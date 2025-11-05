@@ -1,11 +1,15 @@
-
 import type { CarSaleCondition, User } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
 
 const handleResponse = async (response: Response) => {
+    if (response.status === 401) {
+        sessionStorage.removeItem('authToken');
+        window.location.reload();
+        throw new Error('نشست شما منقضی شده است. لطفا دوباره وارد شوید.');
+    }
+
     if (response.ok) {
-        // Handle responses with no content (e.g., 204 for DELETE)
         if (response.status === 204 || response.headers.get('content-length') === '0') {
             return;
         }
@@ -21,12 +25,68 @@ const handleResponse = async (response: Response) => {
     }
 };
 
+const getAuthHeaders = (): HeadersInit => {
+    const token = sessionStorage.getItem('authToken');
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+};
+
+// --- Auth ---
+
+export const login = async (username: string, password: string): Promise<{ token: string }> => {
+    const response = await fetch(`${API_BASE_URL}/auth`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+    });
+
+    if (response.ok) {
+        return response.json();
+    } else {
+        let errorData;
+        try {
+            errorData = await response.json();
+        } catch (e) {
+            errorData = { message: 'نام کاربری یا رمز عبور اشتباه است.' };
+        }
+        throw new Error(errorData.message || `خطا در ورود: ${response.status}`);
+    }
+};
+
+export const createUserAccount = async (username: string, password: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/auth/new`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+    });
+
+    if (response.ok) {
+        return;
+    } else {
+        let errorData;
+        try {
+            errorData = await response.json();
+        } catch (e) {
+            errorData = { message: 'ایجاد کاربر با خطا مواجه شد. شاید این نام کاربری قبلا استفاده شده باشد.' };
+        }
+        throw new Error(errorData.message || `خطا در ایجاد کاربر: ${response.status}`);
+    }
+};
+
 // --- Car Sale Conditions ---
 
 const normalizeCondition = (condition: any): CarSaleCondition => {
     if (!condition) return condition;
 
-    // Map API's 'indeed_status' to frontend's 'document_status'
     const { indeed_status, ...restOfApiData } = condition;
     
     const colorsArray = typeof condition.colors === 'string'
@@ -43,7 +103,6 @@ const normalizeCondition = (condition: any): CarSaleCondition => {
 };
 
 const denormalizeCondition = (condition: Omit<CarSaleCondition, 'id'> | CarSaleCondition) => {
-    // Map frontend's 'document_status' back to API's 'indeed_status'
     const { document_status, ...restOfAppData } = condition;
 
     return {
@@ -54,7 +113,7 @@ const denormalizeCondition = (condition: Omit<CarSaleCondition, 'id'> | CarSaleC
 };
 
 export const getConditions = async (): Promise<CarSaleCondition[]> => {
-    const response = await fetch(`${API_BASE_URL}/conditions`);
+    const response = await fetch(`${API_BASE_URL}/conditions`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
     return Array.isArray(data) ? data.map(normalizeCondition) : [];
 };
@@ -62,9 +121,7 @@ export const getConditions = async (): Promise<CarSaleCondition[]> => {
 export const createCondition = async (condition: Omit<CarSaleCondition, 'id'>): Promise<CarSaleCondition> => {
     const response = await fetch(`${API_BASE_URL}/conditions`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(denormalizeCondition(condition)),
     });
     const newCondition = await handleResponse(response);
@@ -74,9 +131,7 @@ export const createCondition = async (condition: Omit<CarSaleCondition, 'id'>): 
 export const updateCondition = async (id: number, updatedCondition: CarSaleCondition): Promise<CarSaleCondition> => {
     const response = await fetch(`${API_BASE_URL}/conditions`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(denormalizeCondition(updatedCondition)),
     });
     const resultCondition = await handleResponse(response);
@@ -86,9 +141,7 @@ export const updateCondition = async (id: number, updatedCondition: CarSaleCondi
 export const deleteCondition = async (id: number): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/conditions`, {
         method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id }),
     });
     return handleResponse(response);
@@ -97,7 +150,7 @@ export const deleteCondition = async (id: number): Promise<void> => {
 // --- Users (Sales Leads) ---
 
 export const getUsers = async (): Promise<User[]> => {
-    const response = await fetch(`${API_BASE_URL}/users`);
+    const response = await fetch(`${API_BASE_URL}/users`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
 };
@@ -105,7 +158,7 @@ export const getUsers = async (): Promise<User[]> => {
 export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
     const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(user),
     });
     return handleResponse(response);
@@ -114,7 +167,7 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
 export const updateUser = async (id: number, updatedUser: User): Promise<User> => {
     const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(updatedUser),
     });
     const resultUser = await handleResponse(response);
@@ -124,7 +177,7 @@ export const updateUser = async (id: number, updatedUser: User): Promise<User> =
 export const deleteUser = async (id: number): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id }),
     });
     return handleResponse(response);
