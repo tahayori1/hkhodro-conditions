@@ -1,0 +1,5 @@
+{
+  "name": "Persian Car Sale Conditions Manager",
+  "description": "A modern, responsive Persian-language web application to display and manage a list of car sale conditions. It features filtering, adding, editing, and deleting functionalities with a clean UI.",
+  "requestFramePermissions": []
+}
