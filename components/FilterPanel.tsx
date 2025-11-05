@@ -8,7 +8,7 @@ interface FilterPanelProps {
 }
 
 const CAR_MODELS = [
-    'JAC J4', 'JAC S3', 'JAC S5', 'BAC X3pro', 'KMC T8', 'KMC T9', 'KMC A5',
+    'JAC J4', 'JAC S3', 'JAC S5', 'BAC X3PRO', 'KMC T8', 'KMC T9', 'KMC A5',
     'KMC J7', 'KMC X5', 'KMC SR3', 'KMC EAGLE', 'KMC SHADOW', 'KMC SR6'
 ];
 

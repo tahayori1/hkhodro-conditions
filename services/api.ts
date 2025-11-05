@@ -1,6 +1,8 @@
-import type { CarSaleCondition, User } from '../types';
+import type { CarSaleCondition, User, ActiveLead } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
+const ACTIVE_LEADS_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1/users/active/';
+
 
 const handleResponse = async (response: Response) => {
     if (response.status === 401) {
@@ -148,6 +150,12 @@ export const deleteCondition = async (id: number): Promise<void> => {
 };
 
 // --- Users (Sales Leads) ---
+
+export const getActiveLeads = async (): Promise<ActiveLead[]> => {
+    const response = await fetch(ACTIVE_LEADS_URL, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+};
 
 export const getUsers = async (): Promise<User[]> => {
     const response = await fetch(`${API_BASE_URL}/users`, { headers: getAuthHeaders() });

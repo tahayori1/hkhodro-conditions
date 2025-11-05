@@ -3,15 +3,18 @@ import type { User } from '../types';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { EyeIcon } from './icons/EyeIcon';
+import { SortIcon } from './icons/SortIcon';
 
 interface UserTableProps {
     users: User[];
     onEdit: (user: User) => void;
     onDelete: (id: number) => void;
     onView: (user: User) => void;
+    onSort: (key: keyof User) => void;
+    sortConfig: { key: keyof User; direction: 'ascending' | 'descending' } | null;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onView }) => {
+const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onView, onSort, sortConfig }) => {
     if (users.length === 0) {
         return <p className="text-center text-slate-500 py-10">هیچ سرنخی یافت نشد.</p>;
     }
@@ -29,19 +32,36 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onView }
             return dateString;
         }
     };
+    
+    const SortableHeader: React.FC<{ title: string; sortKey: keyof User; }> = ({ title, sortKey }) => {
+        const isSorted = sortConfig?.key === sortKey;
+        const direction = isSorted ? sortConfig.direction : 'none';
+
+        return (
+            <th scope="col" className="px-6 py-3">
+                <button
+                    className="flex items-center gap-1 uppercase font-bold text-xs text-slate-700 group"
+                    onClick={() => onSort(sortKey)}
+                >
+                    {title}
+                    <SortIcon direction={direction} />
+                </button>
+            </th>
+        );
+    };
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {/* Desktop Table */}
             <div className="hidden md:block">
                 <table className="w-full text-sm text-right text-slate-600">
-                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                    <thead className="text-xs text-slate-700 bg-slate-50">
                         <tr>
-                            <th scope="col" className="px-6 py-3">نام کامل</th>
-                            <th scope="col" className="px-6 py-3">شماره تماس</th>
-                            <th scope="col" className="px-6 py-3">خودروی درخواستی</th>
-                            <th scope="col" className="px-6 py-3">استان / شهر</th>
-                            <th scope="col" className="px-6 py-3">زمان ثبت</th>
+                            <SortableHeader title="نام کامل" sortKey="FullName" />
+                            <SortableHeader title="شماره تماس" sortKey="Number" />
+                            <SortableHeader title="خودروی درخواستی" sortKey="CarModel" />
+                            <SortableHeader title="استان / شهر" sortKey="Province" />
+                            <SortableHeader title="زمان ثبت" sortKey="RegisterTime" />
                             <th scope="col" className="px-6 py-3"></th>
                         </tr>
                     </thead>

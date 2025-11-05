@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getUsers, createUser, updateUser, deleteUser } from '../services/api';
-import type { User } from '../types';
+import { getUsers, createUser, updateUser, deleteUser, getActiveLeads } from '../services/api';
+import type { User, ActiveLead } from '../types';
 import UserTable from '../components/UserTable';
 import UserFilterPanel from '../components/UserFilterPanel';
 import UserModal from '../components/UserModal';
@@ -10,13 +10,20 @@ import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
 import { PlusIcon } from '../components/icons/PlusIcon';
+import HotLeadsPanel from '../components/HotLeadsPanel';
 
 const ITEMS_PER_PAGE = 50;
+
+type SortConfig = { key: keyof User; direction: 'ascending' | 'descending' } | null;
 
 const UsersPage: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+
+    const [activeLeads, setActiveLeads] = useState<ActiveLead[]>([]);
+    const [hotLeadsLoading, setHotLeadsLoading] = useState<boolean>(true);
+    const [hotLeadsError, setHotLeadsError] = useState<string | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -31,13 +38,14 @@ const UsersPage: React.FC = () => {
     
     const [query, setQuery] = useState<string>('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'RegisterTime', direction: 'descending' });
 
     const fetchAllUsers = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const data = await getUsers();
-            setUsers(data.sort((a, b) => new Date(b.RegisterTime).getTime() - new Date(a.RegisterTime).getTime()));
+            setUsers(data); // Initial fetch, sorting happens in useMemo
         } catch (err) {
             setError('خطا در دریافت اطلاعات کاربران');
             showToast('خطا در دریافت اطلاعات کاربران', 'error');
@@ -46,14 +54,27 @@ const UsersPage: React.FC = () => {
         }
     }, []);
 
+     const fetchActiveLeads = useCallback(async () => {
+        setHotLeadsLoading(true);
+        setHotLeadsError(null);
+        try {
+            const data = await getActiveLeads();
+            setActiveLeads(data);
+        } catch (err) {
+            setHotLeadsError('خطا در دریافت سرنخ‌های داغ');
+        } finally {
+            setHotLeadsLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchAllUsers();
-    }, [fetchAllUsers]);
+        fetchActiveLeads();
+    }, [fetchAllUsers, fetchActiveLeads]);
 
-    // Reset to page 1 when filter changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [query]);
+    }, [query, sortConfig]);
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
@@ -110,28 +131,61 @@ const UsersPage: React.FC = () => {
             }
         }
     };
+    
+    const handleSort = (key: keyof User) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
 
-    const filteredUsers = useMemo(() => {
-        return users.filter(u => {
+    const sortedAndFilteredUsers = useMemo(() => {
+        let filtered = users.filter(u => {
             const lowerCaseQuery = query.toLowerCase();
             return query === '' || 
                    u.FullName.toLowerCase().includes(lowerCaseQuery) ||
                    u.Number.toLowerCase().includes(lowerCaseQuery) ||
                    u.CarModel.toLowerCase().includes(lowerCaseQuery) ||
-                   u.City.toLowerCase().includes(lowerCaseQuery);
+                   u.City.toLowerCase().includes(lowerCaseQuery) ||
+                   (u.Province && u.Province.toLowerCase().includes(lowerCaseQuery)) ||
+                   (u.Decription && u.Decription.toLowerCase().includes(lowerCaseQuery));
         });
-    }, [users, query]);
+
+        if (sortConfig !== null) {
+            return [...filtered].sort((a, b) => {
+                const aValue = a[sortConfig.key];
+                const bValue = b[sortConfig.key];
+                
+                if (['RegisterTime', 'LastAction', 'createdAt', 'updatedAt'].includes(sortConfig.key)) {
+                    const dateA = new Date(aValue as string).getTime();
+                    const dateB = new Date(bValue as string).getTime();
+                    if (dateA < dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
+                    if (dateA > dateB) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return 0;
+                }
+
+                const aStr = String(aValue ?? '');
+                const bStr = String(bValue ?? '');
+                const comparison = aStr.localeCompare(bStr, 'fa-IR');
+                return sortConfig.direction === 'ascending' ? comparison : -comparison;
+            });
+        }
+        
+        return filtered;
+    }, [users, query, sortConfig]);
 
     const paginatedUsers = useMemo(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [filteredUsers, currentPage]);
+        return sortedAndFilteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [sortedAndFilteredUsers, currentPage]);
 
-    const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(sortedAndFilteredUsers.length / ITEMS_PER_PAGE);
 
     return (
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <HotLeadsPanel leads={activeLeads} isLoading={hotLeadsLoading} error={hotLeadsError} />
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         <UserFilterPanel onFilterChange={setQuery} />
@@ -157,14 +211,16 @@ const UsersPage: React.FC = () => {
                             users={paginatedUsers} 
                             onEdit={handleEdit} 
                             onDelete={handleDelete}
-                            onView={handleView} 
+                            onView={handleView}
+                            onSort={handleSort}
+                            sortConfig={sortConfig}
                         />
                         {totalPages > 1 && (
                             <Pagination
                                 currentPage={currentPage}
                                 totalPages={totalPages}
                                 onPageChange={setCurrentPage}
-                                totalItems={filteredUsers.length}
+                                totalItems={sortedAndFilteredUsers.length}
                                 itemsPerPage={ITEMS_PER_PAGE}
                             />
                         )}

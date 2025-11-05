@@ -52,3 +52,9 @@ export interface User {
     createdAt: string;
     updatedAt: string;
 }
+
+export interface ActiveLead {
+    number: string;
+    updatedAt: string;
+    Message: string;
+}

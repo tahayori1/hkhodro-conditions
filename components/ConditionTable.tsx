@@ -4,12 +4,15 @@ import { ConditionStatus } from '../types';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { EyeIcon } from './icons/EyeIcon';
+import { SortIcon } from './icons/SortIcon';
 
 interface ConditionTableProps {
     conditions: CarSaleCondition[];
     onEdit: (condition: CarSaleCondition) => void;
     onDelete: (id: number) => void;
     onView: (condition: CarSaleCondition) => void;
+    onSort: (key: keyof CarSaleCondition) => void;
+    sortConfig: { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
 }
 
 const statusColorMap: Record<ConditionStatus, string> = {
@@ -18,25 +21,42 @@ const statusColorMap: Record<ConditionStatus, string> = {
     [ConditionStatus.CAPACITY_FULL]: 'bg-yellow-100 text-yellow-800',
 };
 
-const ConditionTable: React.FC<ConditionTableProps> = ({ conditions, onEdit, onDelete, onView }) => {
+const ConditionTable: React.FC<ConditionTableProps> = ({ conditions, onEdit, onDelete, onView, onSort, sortConfig }) => {
     if (conditions.length === 0) {
         return <p className="text-center text-slate-500 py-10">هیچ شرایط فروشی یافت نشد.</p>;
     }
+
+    const SortableHeader: React.FC<{ title: string; sortKey: keyof CarSaleCondition; }> = ({ title, sortKey }) => {
+        const isSorted = sortConfig?.key === sortKey;
+        const direction = isSorted ? sortConfig.direction : 'none';
+
+        return (
+            <th scope="col" className="px-6 py-3">
+                <button
+                    className="flex items-center gap-1 uppercase font-bold text-xs text-slate-700 group"
+                    onClick={() => onSort(sortKey)}
+                >
+                    {title}
+                    <SortIcon direction={direction} />
+                </button>
+            </th>
+        );
+    };
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {/* Desktop Table */}
             <div className="hidden md:block">
                 <table className="w-full text-sm text-right text-slate-600">
-                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                    <thead className="text-xs text-slate-700 bg-slate-50">
                         <tr>
-                            <th scope="col" className="px-6 py-3">وضعیت</th>
-                            <th scope="col" className="px-6 py-3">مدل خودرو</th>
-                            <th scope="col" className="px-6 py-3">سال</th>
-                            <th scope="col" className="px-6 py-3">نوع فروش</th>
-                            <th scope="col" className="px-6 py-3">نحوه پرداخت</th>
-                            <th scope="col" className="px-6 py-3">زمان تحویل</th>
-                            <th scope="col" className="px-6 py-3">پیش‌پرداخت (تومان)</th>
+                            <SortableHeader title="وضعیت" sortKey="status" />
+                            <SortableHeader title="مدل خودرو" sortKey="car_model" />
+                            <SortableHeader title="سال" sortKey="model" />
+                            <SortableHeader title="نوع فروش" sortKey="sale_type" />
+                            <SortableHeader title="نحوه پرداخت" sortKey="pay_type" />
+                            <SortableHeader title="زمان تحویل" sortKey="delivery_time" />
+                            <SortableHeader title="پیش‌پرداخت (تومان)" sortKey="initial_deposit" />
                             <th scope="col" className="px-6 py-3"></th>
                         </tr>
                     </thead>

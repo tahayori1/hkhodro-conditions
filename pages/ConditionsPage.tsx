@@ -10,6 +10,8 @@ import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import { PlusIcon } from '../components/icons/PlusIcon';
 
+type SortConfig = { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
+
 const ConditionsPage: React.FC = () => {
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -27,6 +29,8 @@ const ConditionsPage: React.FC = () => {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
     const [filters, setFilters] = useState<{ status: ConditionStatus | 'all'; query: string; car_model: string | 'all'; sale_type: SaleType | 'all' }>({ status: 'all', query: '', car_model: 'all', sale_type: 'all' });
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'descending' });
+
 
     const fetchAllConditions = useCallback(async () => {
         setLoading(true);
@@ -102,16 +106,44 @@ const ConditionsPage: React.FC = () => {
         }
     };
 
-    const filteredConditions = useMemo(() => {
-        return conditions.filter(c => {
+    const handleSort = (key: keyof CarSaleCondition) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedAndFilteredConditions = useMemo(() => {
+        const filtered = conditions.filter(c => {
             const statusMatch = filters.status === 'all' || c.status === filters.status;
-            const carModelMatch = filters.car_model === 'all' || c.car_model === filters.car_model;
+            const carModelMatch = filters.car_model === 'all' || (c.car_model && c.car_model.toLowerCase() === filters.car_model.toLowerCase());
             const saleTypeMatch = filters.sale_type === 'all' || c.sale_type === filters.sale_type;
             const queryMatch = filters.query === '' || 
                                (c.descriptions && c.descriptions.toLowerCase().includes(filters.query.toLowerCase()));
             return statusMatch && queryMatch && carModelMatch && saleTypeMatch;
         });
-    }, [conditions, filters]);
+
+        if (sortConfig !== null) {
+            return [...filtered].sort((a, b) => {
+                const aValue = a[sortConfig.key];
+                const bValue = b[sortConfig.key];
+                
+                if (typeof aValue === 'number' && typeof bValue === 'number') {
+                     if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+                    if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return 0;
+                }
+                
+                const aStr = String(aValue);
+                const bStr = String(bValue);
+
+                const comparison = aStr.localeCompare(bStr, 'fa-IR');
+                return sortConfig.direction === 'ascending' ? comparison : -comparison;
+            });
+        }
+        return filtered;
+    }, [conditions, filters, sortConfig]);
 
     return (
         <>
@@ -138,10 +170,12 @@ const ConditionsPage: React.FC = () => {
                     <p className="text-center text-red-500">{error}</p>
                 ) : (
                     <ConditionTable 
-                        conditions={filteredConditions} 
+                        conditions={sortedAndFilteredConditions} 
                         onEdit={handleEdit} 
                         onDelete={handleDelete} 
                         onView={handleView}
+                        onSort={handleSort}
+                        sortConfig={sortConfig}
                     />
                 )}
             </main>
