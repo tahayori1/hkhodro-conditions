@@ -211,3 +211,47 @@ export const sendMessage = async (number: string, message: string): Promise<{ Se
     });
     return handleResponse(response);
 };
+
+// --- Settings ---
+
+export interface ApiSettings {
+    whatsappApiKey: string;
+    smsApiKey: string;
+}
+
+// Mock implementation using localStorage
+export const getApiSettings = async (): Promise<ApiSettings> => {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const settings = localStorage.getItem('apiSettings');
+    return settings ? JSON.parse(settings) : { whatsappApiKey: '', smsApiKey: '' };
+};
+
+export const saveApiSettings = async (settings: ApiSettings): Promise<void> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    localStorage.setItem('apiSettings', JSON.stringify(settings));
+};
+
+export const updateUserCredentials = async (
+    currentPasswordHash: string,
+    newUsername: string,
+    newPasswordHash?: string
+): Promise<void> => {
+    const payload: any = {
+        currentPassword: currentPasswordHash,
+    };
+    if (newUsername) payload.username = newUsername;
+    if (newPasswordHash) payload.password = newPasswordHash;
+
+    // Do not send if no changes are requested besides current password
+    if (!newUsername && !newPasswordHash) {
+        return Promise.resolve();
+    }
+
+    const response = await fetch(`${API_BASE_URL}/auth`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+    });
+    
+    return handleResponse(response);
+};

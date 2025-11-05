@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import ConditionsPage from './pages/ConditionsPage';
 import UsersPage from './pages/UsersPage';
+import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
+import { SettingsIcon } from './components/icons/SettingsIcon';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [activeView, setActiveView] = useState<'conditions' | 'users'>('conditions');
+    const [activeView, setActiveView] = useState<'conditions' | 'users' | 'settings'>('conditions');
 
     useEffect(() => {
         const token = sessionStorage.getItem('authToken');
@@ -64,20 +66,30 @@ const App: React.FC = () => {
                                 سرنخ‌های فروش
                             </button>
                         </nav>
-                         <button 
-                            onClick={handleLogout}
-                            title="خروج"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-colors duration-200 bg-red-100 text-red-700 hover:bg-red-200"
-                        >
-                            <LogoutIcon />
-                            <span className="hidden sm:inline">خروج</span>
-                        </button>
+                         <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setActiveView('settings')}
+                                title="تنظیمات"
+                                className={`${navButtonClasses} !p-2.5 ${activeView === 'settings' ? activeClasses : inactiveClasses}`}
+                            >
+                                <SettingsIcon />
+                            </button>
+                            <button 
+                                onClick={handleLogout}
+                                title="خروج"
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-colors duration-200 bg-red-100 text-red-700 hover:bg-red-200"
+                            >
+                                <LogoutIcon />
+                                <span className="hidden sm:inline">خروج</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
 
             {activeView === 'conditions' && <ConditionsPage />}
             {activeView === 'users' && <UsersPage />}
+            {activeView === 'settings' && <SettingsPage />}
         </div>
     );
 };
