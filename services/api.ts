@@ -1,4 +1,4 @@
-import type { CarSaleCondition, User, ActiveLead } from '../types';
+import type { CarSaleCondition, User, ActiveLead, LeadMessage } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
 const ACTIVE_LEADS_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1/users/active/';
@@ -157,6 +157,12 @@ export const getActiveLeads = async (): Promise<ActiveLead[]> => {
     return Array.isArray(data) ? data : [];
 };
 
+export const getLeadHistory = async (number: string): Promise<LeadMessage[]> => {
+    const response = await fetch(`${API_BASE_URL}/users/history?number=${number}`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+};
+
 export const getUsers = async (): Promise<User[]> => {
     const response = await fetch(`${API_BASE_URL}/users`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
@@ -187,6 +193,16 @@ export const deleteUser = async (id: number): Promise<void> => {
         method: 'DELETE',
         headers: getAuthHeaders(),
         body: JSON.stringify({ id }),
+    });
+    return handleResponse(response);
+};
+
+// --- WhatsApp ---
+export const sendMessage = async (number: string, message: string): Promise<{ Sent: string }> => {
+    const response = await fetch(`${API_BASE_URL}/whatsapp/send`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ number, message }),
     });
     return handleResponse(response);
 };

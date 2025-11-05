@@ -6,8 +6,11 @@ import { PhoneIcon } from './icons/PhoneIcon';
 const timeAgo = (dateString: string): string => {
     try {
         const date = new Date(dateString);
+        // Assuming the API time is UTC and we want to adjust to Iran's timezone (+3:30)
+        // This logic may need adjustment based on server timezone configuration
+        const localDate = new Date(date.getTime() - (3.5 * 60 * 60 * 1000));
         const now = new Date();
-        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+        const seconds = Math.floor((now.getTime() - localDate.getTime()) / 1000);
 
         if (seconds < 60) {
              return new Intl.RelativeTimeFormat('fa-IR').format(-seconds, 'second');
@@ -53,31 +56,34 @@ interface HotLeadsPanelProps {
     leads: ActiveLead[];
     isLoading: boolean;
     error: string | null;
+    onViewHistory: (lead: ActiveLead) => void;
 }
 
-const HotLeadCard: React.FC<{ lead: ActiveLead }> = ({ lead }) => {
+const HotLeadCard: React.FC<{ lead: ActiveLead, onViewHistory: (lead: ActiveLead) => void; }> = ({ lead, onViewHistory }) => {
     const timeAgoText = useTimeAgo(lead.updatedAt);
     return (
-        <div className="flex-shrink-0 w-64 bg-white rounded-xl shadow-md p-4 border border-slate-200 flex flex-col justify-between h-40">
+        <button 
+            onClick={() => onViewHistory(lead)}
+            className="flex-shrink-0 w-64 bg-white rounded-xl shadow-md p-4 border border-slate-200 flex flex-col justify-between h-40 text-right hover:bg-slate-50 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+        >
             <p className="text-sm text-slate-700 leading-relaxed overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
                 {lead.Message || <span className="italic text-slate-400">بدون پیام</span>}
             </p>
             <div>
-                <a 
-                    href={`tel:${lead.number}`}
-                    className="flex items-center gap-2 text-sky-600 font-bold hover:text-sky-800 transition-colors"
+                <div 
+                    className="flex items-center gap-2 text-sky-600 font-bold"
                     dir="ltr"
                 >
                     <PhoneIcon className="w-4 h-4" />
                     {lead.number}
-                </a>
+                </div>
                 <p className="text-xs text-slate-400 mt-1 text-left">{timeAgoText}</p>
             </div>
-        </div>
+        </button>
     );
 };
 
-const HotLeadsPanel: React.FC<HotLeadsPanelProps> = ({ leads, isLoading, error }) => {
+const HotLeadsPanel: React.FC<HotLeadsPanelProps> = ({ leads, isLoading, error, onViewHistory }) => {
     const renderContent = () => {
         if (isLoading) {
             return (
@@ -100,7 +106,7 @@ const HotLeadsPanel: React.FC<HotLeadsPanelProps> = ({ leads, isLoading, error }
                     }
                 `}</style>
                  {leads.map((lead, index) => (
-                    <HotLeadCard key={`${lead.number}-${index}`} lead={lead} />
+                    <HotLeadCard key={`${lead.number}-${index}`} lead={lead} onViewHistory={onViewHistory} />
                 ))}
             </div>
         );

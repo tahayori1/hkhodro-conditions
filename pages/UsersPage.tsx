@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, getActiveLeads } from '../services/api';
-import type { User, ActiveLead } from '../types';
+import { getUsers, createUser, updateUser, deleteUser, getActiveLeads, getLeadHistory, sendMessage } from '../services/api';
+import type { User, ActiveLead, LeadMessage } from '../types';
 import UserTable from '../components/UserTable';
 import UserFilterPanel from '../components/UserFilterPanel';
 import UserModal from '../components/UserModal';
@@ -11,6 +11,8 @@ import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import HotLeadsPanel from '../components/HotLeadsPanel';
+import LeadHistoryModal from '../components/LeadHistoryModal';
+
 
 const ITEMS_PER_PAGE = 50;
 
@@ -30,6 +32,12 @@ const UsersPage: React.FC = () => {
 
     const [isViewModalOpen, setIsViewModalOpen] = useState<boolean>(false);
     const [userToView, setUserToView] = useState<User | null>(null);
+    
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
+    const [historyLead, setHistoryLead] = useState<User | ActiveLead | null>(null);
+    const [historyMessages, setHistoryMessages] = useState<LeadMessage[]>([]);
+    const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+    const [historyError, setHistoryError] = useState<string | null>(null);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
     const [userToDelete, setUserToDelete] = useState<number | null>(null);
@@ -100,6 +108,30 @@ const UsersPage: React.FC = () => {
         setUserToView(user);
         setIsViewModalOpen(true);
     };
+
+    const handleViewHistory = async (lead: User | ActiveLead) => {
+        setIsHistoryModalOpen(true);
+        setHistoryLead(lead);
+        setHistoryLoading(true);
+        setHistoryError(null);
+        setHistoryMessages([]);
+        try {
+            // FIX: Use 'number' for ActiveLead and 'Number' for User to fix incorrect property access.
+            const numberToFetch = 'number' in lead ? lead.number : lead.Number;
+            const data = await getLeadHistory(numberToFetch);
+            setHistoryMessages(data.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+        } catch (err) {
+            setHistoryError('خطا در دریافت تاریخچه پیام‌ها');
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const handleCloseHistoryModal = () => {
+        setIsHistoryModalOpen(false);
+        setHistoryLead(null);
+        setHistoryMessages([]);
+    };
     
     const handleSave = async (userData: Omit<User, 'id'>) => {
         try {
@@ -138,6 +170,27 @@ const UsersPage: React.FC = () => {
             direction = 'descending';
         }
         setSortConfig({ key, direction });
+    };
+
+    const handleSendMessage = async (message: string) => {
+        if (!historyLead) {
+            throw new Error("No active lead selected for sending message.");
+        }
+        
+        const number = 'number' in historyLead ? historyLead.number : historyLead.Number;
+
+        try {
+            await sendMessage(number, message);
+            showToast('پیام با موفقیت ارسال شد', 'success');
+            
+            // Refetch history to show the sent message
+            const data = await getLeadHistory(number);
+            setHistoryMessages(data.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+        } catch (err) {
+            showToast('ارسال پیام با خطا مواجه شد', 'error');
+            // Re-throw to let the modal know the submission failed
+            throw err;
+        }
     };
 
     const sortedAndFilteredUsers = useMemo(() => {
@@ -185,7 +238,12 @@ const UsersPage: React.FC = () => {
     return (
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <HotLeadsPanel leads={activeLeads} isLoading={hotLeadsLoading} error={hotLeadsError} />
+                <HotLeadsPanel 
+                    leads={activeLeads} 
+                    isLoading={hotLeadsLoading} 
+                    error={hotLeadsError}
+                    onViewHistory={handleViewHistory}
+                />
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         <UserFilterPanel onFilterChange={setQuery} />
@@ -212,6 +270,7 @@ const UsersPage: React.FC = () => {
                             onEdit={handleEdit} 
                             onDelete={handleDelete}
                             onView={handleView}
+                            onViewHistory={handleViewHistory}
                             onSort={handleSort}
                             sortConfig={sortConfig}
                         />
@@ -242,6 +301,18 @@ const UsersPage: React.FC = () => {
                     isOpen={isViewModalOpen}
                     onClose={() => setIsViewModalOpen(false)}
                     user={userToView}
+                />
+            )}
+
+            {isHistoryModalOpen && (
+                <LeadHistoryModal
+                    isOpen={isHistoryModalOpen}
+                    onClose={handleCloseHistoryModal}
+                    lead={historyLead}
+                    messages={historyMessages}
+                    isLoading={historyLoading}
+                    error={historyError}
+                    onSendMessage={handleSendMessage}
                 />
             )}
             

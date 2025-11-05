@@ -58,3 +58,13 @@ export interface ActiveLead {
     updatedAt: string;
     Message: string;
 }
+
+export interface LeadMessage {
+    id: number;
+    number: string;
+    Message: string;
+    media: string | null;
+    receive: 0 | 1; // 1 for incoming (customer), 0 for outgoing (agent/system)
+    createdAt: string;
+    updatedAt: string;
+}
