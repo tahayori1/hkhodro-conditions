@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, getActiveLeads, getLeadHistory, sendMessage } from '../services/api';
+import { getUsers, createUser, updateUser, deleteUser, getActiveLeads, getLeadHistory, sendMessage, getUserByNumber } from '../services/api';
 import type { User, ActiveLead, LeadMessage } from '../types';
 import UserTable from '../components/UserTable';
 import UserFilterPanel from '../components/UserFilterPanel';
@@ -66,8 +66,22 @@ const UsersPage: React.FC = () => {
         setHotLeadsLoading(true);
         setHotLeadsError(null);
         try {
-            const data = await getActiveLeads();
-            setActiveLeads(data);
+            const basicLeads = await getActiveLeads();
+            const enrichedLeads = await Promise.all(
+                basicLeads.map(async (lead) => {
+                    try {
+                        const userDetails = await getUserByNumber(lead.number);
+                        return {
+                            ...lead,
+                            FullName: userDetails?.FullName || lead.number,
+                            CarModel: userDetails?.CarModel,
+                        };
+                    } catch (e) {
+                        return lead; // Return basic lead if details fetch fails
+                    }
+                })
+            );
+            setActiveLeads(enrichedLeads);
         } catch (err) {
             setHotLeadsError('خطا در دریافت سرنخ‌های داغ');
         } finally {
@@ -108,6 +122,16 @@ const UsersPage: React.FC = () => {
         setUserToView(user);
         setIsViewModalOpen(true);
     };
+    
+    const handleViewDetailsFromLead = async (lead: ActiveLead) => {
+        const fullUser = await getUserByNumber(lead.number);
+        if (fullUser) {
+            setUserToView(fullUser);
+            setIsViewModalOpen(true);
+        } else {
+            showToast('جزئیات این سرنخ یافت نشد', 'error');
+        }
+    };
 
     const handleViewHistory = async (lead: User | ActiveLead) => {
         setIsHistoryModalOpen(true);
@@ -116,7 +140,6 @@ const UsersPage: React.FC = () => {
         setHistoryError(null);
         setHistoryMessages([]);
         try {
-            // FIX: Use 'number' for ActiveLead and 'Number' for User to fix incorrect property access.
             const numberToFetch = 'number' in lead ? lead.number : lead.Number;
             const data = await getLeadHistory(numberToFetch);
             setHistoryMessages(data.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
@@ -243,6 +266,7 @@ const UsersPage: React.FC = () => {
                     isLoading={hotLeadsLoading} 
                     error={hotLeadsError}
                     onViewHistory={handleViewHistory}
+                    onViewDetails={handleViewDetailsFromLead}
                 />
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">

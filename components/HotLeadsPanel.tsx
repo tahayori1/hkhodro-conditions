@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import type { ActiveLead } from '../types';
 import Spinner from './Spinner';
 import { PhoneIcon } from './icons/PhoneIcon';
+import { ChatIcon } from './icons/ChatIcon';
+import { EyeIcon } from './icons/EyeIcon';
 
 const timeAgo = (dateString: string): string => {
     try {
@@ -57,33 +59,51 @@ interface HotLeadsPanelProps {
     isLoading: boolean;
     error: string | null;
     onViewHistory: (lead: ActiveLead) => void;
+    onViewDetails: (lead: ActiveLead) => void;
 }
 
-const HotLeadCard: React.FC<{ lead: ActiveLead, onViewHistory: (lead: ActiveLead) => void; }> = ({ lead, onViewHistory }) => {
+const HotLeadCard: React.FC<{ 
+    lead: ActiveLead, 
+    onViewHistory: (lead: ActiveLead) => void;
+    onViewDetails: (lead: ActiveLead) => void;
+}> = ({ lead, onViewHistory, onViewDetails }) => {
     const timeAgoText = useTimeAgo(lead.updatedAt);
     return (
-        <button 
-            onClick={() => onViewHistory(lead)}
-            className="flex-shrink-0 w-64 bg-white rounded-xl shadow-md p-4 border border-slate-200 flex flex-col justify-between h-40 text-right hover:bg-slate-50 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
-        >
-            <p className="text-sm text-slate-700 leading-relaxed overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+        <div className="flex-shrink-0 w-72 bg-white rounded-xl shadow-md p-4 border border-slate-200 flex flex-col justify-between h-auto min-h-[12rem] text-right transition-shadow hover:shadow-lg">
+            {/* Header */}
+            <div>
+                 <h3 className="font-bold text-slate-800 truncate">{lead.FullName || lead.number}</h3>
+                 <p className="text-sm text-slate-500">{lead.CarModel || 'خودرو مشخص نشده'}</p>
+            </div>
+
+            {/* Message Body */}
+            <p className="text-sm text-slate-700 leading-relaxed overflow-hidden my-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                 {lead.Message || <span className="italic text-slate-400">بدون پیام</span>}
             </p>
-            <div>
-                <div 
-                    className="flex items-center gap-2 text-sky-600 font-bold"
-                    dir="ltr"
-                >
-                    <PhoneIcon className="w-4 h-4" />
-                    {lead.number}
+
+            {/* Footer */}
+            <div className="mt-auto pt-2 border-t border-slate-100">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1 text-sky-600 font-semibold text-sm" dir="ltr">
+                        <PhoneIcon className="w-4 h-4" />
+                        <span>{lead.number}</span>
+                    </div>
+                     <div className="flex items-center gap-3">
+                        <button onClick={() => onViewHistory(lead)} className="text-slate-500 hover:text-sky-600 transition-colors" title="تاریخچه گفتگو">
+                            <ChatIcon />
+                        </button>
+                        <button onClick={() => onViewDetails(lead)} className="text-slate-500 hover:text-sky-600 transition-colors" title="نمایش جزئیات">
+                            <EyeIcon />
+                        </button>
+                    </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-1 text-left">{timeAgoText}</p>
+                 <p className="text-xs text-slate-400 mt-1 text-left">{timeAgoText}</p>
             </div>
-        </button>
+        </div>
     );
 };
 
-const HotLeadsPanel: React.FC<HotLeadsPanelProps> = ({ leads, isLoading, error, onViewHistory }) => {
+const HotLeadsPanel: React.FC<HotLeadsPanelProps> = ({ leads, isLoading, error, onViewHistory, onViewDetails }) => {
     const renderContent = () => {
         if (isLoading) {
             return (
@@ -106,7 +126,12 @@ const HotLeadsPanel: React.FC<HotLeadsPanelProps> = ({ leads, isLoading, error, 
                     }
                 `}</style>
                  {leads.map((lead, index) => (
-                    <HotLeadCard key={`${lead.number}-${index}`} lead={lead} onViewHistory={onViewHistory} />
+                    <HotLeadCard 
+                        key={`${lead.number}-${index}`} 
+                        lead={lead} 
+                        onViewHistory={onViewHistory}
+                        onViewDetails={onViewDetails}
+                    />
                 ))}
             </div>
         );

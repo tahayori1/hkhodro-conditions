@@ -63,15 +63,19 @@ const LeadHistoryModal: React.FC<LeadHistoryModalProps> = ({ isOpen, onClose, le
         }
     };
     
-    const leadName = 'FullName' in lead ? lead.FullName : null;
+    const leadName = 'FullName' in lead && lead.FullName ? lead.FullName : null;
     const leadNumber = 'number' in lead ? lead.number : lead.Number;
+    const leadCarModel = 'CarModel' in lead && lead.CarModel ? lead.CarModel : null;
+
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 <header className="p-4 border-b flex justify-between items-center flex-shrink-0">
                     <div>
-                        <h2 className="text-lg font-bold text-slate-800">تاریخچه گفتگو</h2>
+                        <h2 className="text-lg font-bold text-slate-800">
+                            تاریخچه گفتگو {leadCarModel && <span className="text-sky-700">- {leadCarModel}</span>}
+                        </h2>
                         <p className="text-sm text-slate-500" dir="ltr">
                             {leadNumber} {leadName && `(${leadName})`}
                         </p>

@@ -150,6 +150,11 @@ export const deleteCondition = async (id: number): Promise<void> => {
 };
 
 // --- Users (Sales Leads) ---
+export const getUserByNumber = async (number: string): Promise<User | null> => {
+    const response = await fetch(`${API_BASE_URL}/user?number=${number}`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return (Array.isArray(data) && data.length > 0) ? data[0] : null;
+};
 
 export const getActiveLeads = async (): Promise<ActiveLead[]> => {
     const response = await fetch(ACTIVE_LEADS_URL, { headers: getAuthHeaders() });

@@ -57,6 +57,8 @@ export interface ActiveLead {
     number: string;
     updatedAt: string;
     Message: string;
+    FullName?: string;
+    CarModel?: string;
 }
 
 export interface LeadMessage {
