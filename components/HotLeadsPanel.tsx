@@ -7,35 +7,41 @@ import { EyeIcon } from './icons/EyeIcon';
 
 const timeAgo = (dateString: string): string => {
     try {
-        const date = new Date(dateString);
-        // Assuming the API time is UTC and we want to adjust to Iran's timezone (+3:30)
-        // This logic may need adjustment based on server timezone configuration
-        const localDate = new Date(date.getTime() - (3.5 * 60 * 60 * 1000));
-        const now = new Date();
-        const seconds = Math.floor((now.getTime() - localDate.getTime()) / 1000);
+        // API returns "YYYY-MM-DD HH:mm:ss", which can be parsed incorrectly by some browsers.
+        // Replacing the space with 'T' makes it compliant with the ISO 8601 format subset
+        // that is well-supported across browsers.
+        const parsableDateString = dateString.replace(' ', 'T');
+        const date = new Date(parsableDateString);
 
-        if (seconds < 60) {
-             return new Intl.RelativeTimeFormat('fa-IR').format(-seconds, 'second');
+        // Check if the date is valid after parsing
+        if (isNaN(date.getTime())) {
+            return dateString; // Return original string if parsing fails
         }
+        
+        const now = new Date();
+        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+        // If the date is in the future (due to clock skew), treat it as "just now".
+        if (seconds < 0) return 'همین الان';
+        if (seconds < 60) return new Intl.RelativeTimeFormat('fa-IR').format(-seconds, 'second');
+        
         const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) {
-            return new Intl.RelativeTimeFormat('fa-IR').format(-minutes, 'minute');
-        }
+        if (minutes < 60) return new Intl.RelativeTimeFormat('fa-IR').format(-minutes, 'minute');
+
         const hours = Math.floor(minutes / 60);
-        if (hours < 24) {
-            return new Intl.RelativeTimeFormat('fa-IR').format(-hours, 'hour');
-        }
+        if (hours < 24) return new Intl.RelativeTimeFormat('fa-IR').format(-hours, 'hour');
+
         const days = Math.floor(hours / 24);
-        if (days < 30) {
-             return new Intl.RelativeTimeFormat('fa-IR').format(-days, 'day');
-        }
+        if (days < 30) return new Intl.RelativeTimeFormat('fa-IR').format(-days, 'day');
+
         const months = Math.floor(days / 30);
-        if (months < 12) {
-            return new Intl.RelativeTimeFormat('fa-IR').format(-months, 'month');
-        }
+        if (months < 12) return new Intl.RelativeTimeFormat('fa-IR').format(-months, 'month');
+
         const years = Math.floor(days / 365);
         return new Intl.RelativeTimeFormat('fa-IR').format(-years, 'year');
+
     } catch(e) {
+        // Fallback for any unexpected error
         return dateString;
     }
 };
