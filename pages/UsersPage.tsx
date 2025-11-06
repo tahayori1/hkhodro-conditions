@@ -2,13 +2,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getUsers, createUser, updateUser, deleteUser, getActiveLeads, getLeadHistory, sendMessage, getUserByNumber } from '../services/api';
 import type { User, ActiveLead, LeadMessage } from '../types';
 import UserTable from '../components/UserTable';
-import UserFilterPanel from '../components/UserFilterPanel';
 import UserModal from '../components/UserModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
-import { PlusIcon } from '../components/icons/PlusIcon';
 import HotLeadsPanel from '../components/HotLeadsPanel';
 import LeadDetailHistoryModal from '../components/LeadHistoryModal';
 
@@ -17,7 +15,11 @@ const ITEMS_PER_PAGE = 50;
 
 type SortConfig = { key: keyof User; direction: 'ascending' | 'descending' } | null;
 
-const UsersPage: React.FC = () => {
+interface UsersPageProps {
+    setOnAddNew: (handler: (() => void) | null) => void;
+}
+
+const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,6 @@ const UsersPage: React.FC = () => {
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
-    const [query, setQuery] = useState<string>('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'RegisterTime', direction: 'descending' });
 
@@ -79,17 +80,22 @@ const UsersPage: React.FC = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [query, sortConfig]);
+    }, [sortConfig]);
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
     };
     
-    const handleAddNew = () => {
+    const handleAddNew = useCallback(() => {
         setCurrentUser(null);
         setIsModalOpen(true);
-    };
+    }, []);
+
+    useEffect(() => {
+        setOnAddNew(() => handleAddNew);
+        return () => setOnAddNew(null);
+    }, [setOnAddNew, handleAddNew]);
 
     const handleEdit = (user: User) => {
         setCurrentUser(user);
@@ -192,20 +198,11 @@ const UsersPage: React.FC = () => {
         }
     };
 
-    const sortedAndFilteredUsers = useMemo(() => {
-        let filtered = users.filter(u => {
-            const lowerCaseQuery = query.toLowerCase();
-            return query === '' || 
-                   u.FullName.toLowerCase().includes(lowerCaseQuery) ||
-                   u.Number.toLowerCase().includes(lowerCaseQuery) ||
-                   u.CarModel.toLowerCase().includes(lowerCaseQuery) ||
-                   u.City.toLowerCase().includes(lowerCaseQuery) ||
-                   (u.Province && u.Province.toLowerCase().includes(lowerCaseQuery)) ||
-                   (u.Decription && u.Decription.toLowerCase().includes(lowerCaseQuery));
-        });
+    const sortedUsers = useMemo(() => {
+        let usersCopy = [...users];
 
         if (sortConfig !== null) {
-            return [...filtered].sort((a, b) => {
+            return usersCopy.sort((a, b) => {
                 const aValue = a[sortConfig.key];
                 const bValue = b[sortConfig.key];
                 
@@ -224,15 +221,15 @@ const UsersPage: React.FC = () => {
             });
         }
         
-        return filtered;
-    }, [users, query, sortConfig]);
+        return usersCopy;
+    }, [users, sortConfig]);
 
     const paginatedUsers = useMemo(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return sortedAndFilteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [sortedAndFilteredUsers, currentPage]);
+        return sortedUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [sortedUsers, currentPage]);
 
-    const totalPages = Math.ceil(sortedAndFilteredUsers.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(sortedUsers.length / ITEMS_PER_PAGE);
 
     return (
         <>
@@ -243,18 +240,6 @@ const UsersPage: React.FC = () => {
                     error={hotLeadsError}
                     onViewDetails={handleViewDetails}
                 />
-                <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <UserFilterPanel onFilterChange={setQuery} />
-                        <button
-                            onClick={handleAddNew}
-                            className="w-full md:w-auto flex items-center justify-center gap-2 bg-sky-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow"
-                        >
-                            <PlusIcon />
-                            افزودن سرنخ جدید
-                        </button>
-                    </div>
-                </div>
 
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
@@ -277,7 +262,7 @@ const UsersPage: React.FC = () => {
                                 currentPage={currentPage}
                                 totalPages={totalPages}
                                 onPageChange={setCurrentPage}
-                                totalItems={sortedAndFilteredUsers.length}
+                                totalItems={sortedUsers.length}
                                 itemsPerPage={ITEMS_PER_PAGE}
                             />
                         )}

@@ -4,7 +4,7 @@ import type { ConditionStatus, SaleType } from '../types';
 import { ConditionStatus as ConditionStatusEnum, SaleType as SaleTypeEnum } from '../types';
 
 interface FilterPanelProps {
-    onFilterChange: (filters: { status: ConditionStatus | 'all'; query: string; car_model: string | 'all', sale_type: SaleType | 'all' }) => void;
+    onFilterChange: (filters: { status: ConditionStatus | 'all'; car_model: string | 'all', sale_type: SaleType | 'all' }) => void;
 }
 
 const CAR_MODELS = [
@@ -14,29 +14,21 @@ const CAR_MODELS = [
 
 const FilterPanel: React.FC<FilterPanelProps> = ({ onFilterChange }) => {
     const [status, setStatus] = useState<ConditionStatus | 'all'>('all');
-    const [query, setQuery] = useState('');
     const [carModel, setCarModel] = useState<string | 'all'>('all');
     const [saleType, setSaleType] = useState<SaleType | 'all'>('all');
 
     useEffect(() => {
         const handler = setTimeout(() => {
-            onFilterChange({ status, query, car_model: carModel, sale_type: saleType });
+            onFilterChange({ status, car_model: carModel, sale_type: saleType });
         }, 300);
 
         return () => {
             clearTimeout(handler);
         };
-    }, [status, query, carModel, saleType, onFilterChange]);
+    }, [status, carModel, saleType, onFilterChange]);
 
     return (
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <input
-                type="text"
-                placeholder="جستجو در توضیحات..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-            />
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <select
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
                 value={carModel}

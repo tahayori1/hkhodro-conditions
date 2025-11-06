@@ -6,11 +6,14 @@ import LoginPage from './pages/LoginPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
+import { PlusIcon } from './components/icons/PlusIcon';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [activeView, setActiveView] = useState<'conditions' | 'users' | 'settings'>('users');
+    const [onAddNew, setOnAddNew] = useState<(() => void) | null>(null);
+
 
     useEffect(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -92,9 +95,19 @@ const App: React.FC = () => {
                 </div>
             </header>
 
-            {activeView === 'conditions' && <ConditionsPage />}
-            {activeView === 'users' && <UsersPage />}
+            {activeView === 'conditions' && <ConditionsPage setOnAddNew={setOnAddNew} />}
+            {activeView === 'users' && <UsersPage setOnAddNew={setOnAddNew} />}
             {activeView === 'settings' && <SettingsPage />}
+
+            {onAddNew && activeView !== 'settings' && (
+                <button
+                    onClick={onAddNew}
+                    className="fixed bottom-6 left-6 bg-sky-600 text-white font-semibold px-5 py-3 rounded-full hover:bg-sky-700 transition-colors duration-300 shadow-lg flex items-center gap-2 z-20"
+                >
+                    <PlusIcon />
+                    {activeView === 'users' ? 'افزودن سرنخ جدید' : 'افزودن شرط جدید'}
+                </button>
+            )}
         </div>
     );
 };

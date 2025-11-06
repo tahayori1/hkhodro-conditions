@@ -8,11 +8,14 @@ import ConditionViewModal from '../components/ConditionViewModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
-import { PlusIcon } from '../components/icons/PlusIcon';
 
 type SortConfig = { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
 
-const ConditionsPage: React.FC = () => {
+interface ConditionsPageProps {
+    setOnAddNew: (handler: (() => void) | null) => void;
+}
+
+const ConditionsPage: React.FC<ConditionsPageProps> = ({ setOnAddNew }) => {
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -28,7 +31,7 @@ const ConditionsPage: React.FC = () => {
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
-    const [filters, setFilters] = useState<{ status: ConditionStatus | 'all'; query: string; car_model: string | 'all'; sale_type: SaleType | 'all' }>({ status: 'all', query: '', car_model: 'all', sale_type: 'all' });
+    const [filters, setFilters] = useState<{ status: ConditionStatus | 'all'; car_model: string | 'all'; sale_type: SaleType | 'all' }>({ status: 'all', car_model: 'all', sale_type: 'all' });
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'descending' });
 
 
@@ -55,10 +58,15 @@ const ConditionsPage: React.FC = () => {
         setTimeout(() => setToast(null), 3000);
     };
     
-    const handleAddNew = () => {
+    const handleAddNew = useCallback(() => {
         setCurrentCondition(null);
         setIsModalOpen(true);
-    };
+    }, []);
+
+    useEffect(() => {
+        setOnAddNew(() => handleAddNew);
+        return () => setOnAddNew(null);
+    }, [setOnAddNew, handleAddNew]);
 
     const handleEdit = (condition: CarSaleCondition) => {
         setCurrentCondition(condition);
@@ -119,9 +127,7 @@ const ConditionsPage: React.FC = () => {
             const statusMatch = filters.status === 'all' || c.status === filters.status;
             const carModelMatch = filters.car_model === 'all' || (c.car_model && c.car_model.toLowerCase() === filters.car_model.toLowerCase());
             const saleTypeMatch = filters.sale_type === 'all' || c.sale_type === filters.sale_type;
-            const queryMatch = filters.query === '' || 
-                               (c.descriptions && c.descriptions.toLowerCase().includes(filters.query.toLowerCase()));
-            return statusMatch && queryMatch && carModelMatch && saleTypeMatch;
+            return statusMatch && carModelMatch && saleTypeMatch;
         });
 
         if (sortConfig !== null) {
@@ -149,15 +155,8 @@ const ConditionsPage: React.FC = () => {
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8 space-y-4">
-                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                     <div className="flex justify-between items-center">
                         <h2 className="text-xl font-bold text-slate-700">فیلترها</h2>
-                         <button
-                            onClick={handleAddNew}
-                            className="w-full md:w-auto flex items-center justify-center gap-2 bg-sky-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow"
-                        >
-                            <PlusIcon />
-                            افزودن شرط جدید
-                        </button>
                     </div>
                     <FilterPanel onFilterChange={setFilters} />
                 </div>
