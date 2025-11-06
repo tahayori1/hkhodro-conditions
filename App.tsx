@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import ConditionsPage from './pages/ConditionsPage';
 import UsersPage from './pages/UsersPage';
@@ -130,7 +129,7 @@ const App: React.FC = () => {
         <div className="bg-slate-100 min-h-screen text-slate-800">
             <header className="bg-white shadow-md sticky top-0 z-10">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-sky-700">سامانه مدیریت فروش</h1>
+                    <h1 className="text-2xl font-bold text-sky-700">AutoLead</h1>
                      <div className="flex items-center gap-4">
                         <nav className="flex items-center gap-2">
                             <button

@@ -1,7 +1,7 @@
 {
-  "name": "Persian Car Sale Conditions Manager",
-  "short_name": "مدیریت فروش",
-  "description": "A modern, responsive Persian-language web application to display and manage a list of car sale conditions. It features filtering, adding, editing, and deleting functionalities with a clean UI.",
+  "name": "AutoLead",
+  "short_name": "AutoLead",
+  "description": "AutoLead: A modern, responsive web application to manage car sales leads and conditions. It features filtering, adding, editing, and deleting functionalities with a clean UI.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f1f5f9",

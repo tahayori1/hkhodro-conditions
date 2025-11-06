@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { login, createUserAccount } from '../services/api';
 import PwaInstallModal from '../components/PwaInstallModal';
@@ -112,7 +111,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <div className="bg-slate-100 min-h-screen flex flex-col justify-center items-center p-4">
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8">
-                     <h1 className="text-3xl font-bold text-sky-700">سامانه مدیریت فروش</h1>
+                     <h1 className="text-3xl font-bold text-sky-700">AutoLead</h1>
                      <p className="text-slate-500 mt-2">{subTitle}</p>
                 </div>
                 <div className="bg-white p-8 rounded-2xl shadow-lg">
