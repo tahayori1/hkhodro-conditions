@@ -10,6 +10,8 @@ import { SettingsIcon } from './components/icons/SettingsIcon';
 import { PlusIcon } from './components/icons/PlusIcon';
 import { getActiveLeads } from './services/api';
 import type { ActiveLead } from './types';
+import { UsersIcon } from './components/icons/UsersIcon';
+import { ConditionsIcon } from './components/icons/ConditionsIcon';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -131,17 +133,19 @@ const App: React.FC = () => {
                     <h1 className="text-2xl font-bold text-sky-700">سامانه مدیریت فروش</h1>
                      <div className="flex items-center gap-4">
                         <nav className="flex items-center gap-2">
-                            <button 
+                            <button
                                 onClick={() => setActiveView('users')}
-                                className={`${navButtonClasses} ${activeView === 'users' ? activeClasses : inactiveClasses}`}
+                                title="سرنخ های فروش"
+                                className={`${navButtonClasses} !p-2.5 ${activeView === 'users' ? activeClasses : inactiveClasses}`}
                             >
-                                سرنخ های فروش
+                                <UsersIcon />
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setActiveView('conditions')}
-                                className={`${navButtonClasses} ${activeView === 'conditions' ? activeClasses : inactiveClasses}`}
+                                title="شرایط فروش"
+                                className={`${navButtonClasses} !p-2.5 ${activeView === 'conditions' ? activeClasses : inactiveClasses}`}
                             >
-                                شرایط فروش
+                                <ConditionsIcon />
                             </button>
                         </nav>
                          <div className="flex items-center gap-2">
