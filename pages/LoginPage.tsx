@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { login, createUserAccount } from '../services/api';
-import PwaInstallBanner from '../components/PwaInstallBanner';
+import PwaInstallModal from '../components/PwaInstallModal';
 
 interface LoginPageProps {
     onLoginSuccess: (token: string, remember: boolean) => void;
@@ -16,6 +16,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [showInstallModal, setShowInstallModal] = useState(false);
+
+    useEffect(() => {
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+        const wasDismissed = sessionStorage.getItem('pwaInstallModalDismissed') === 'true';
+        
+        if (!isStandalone && !wasDismissed) {
+            const timer = setTimeout(() => {
+                setShowInstallModal(true);
+            }, 2000); // Show modal after 2 seconds
+            return () => clearTimeout(timer);
+        }
+    }, []);
 
     const hashPassword = async (password: string): Promise<string> => {
         const encoder = new TextEncoder();
@@ -207,7 +220,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     &copy; {new Date().getFullYear()} Hoseini Khodro. All rights reserved.
                 </footer>
             </div>
-            <PwaInstallBanner />
+            <PwaInstallModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
         </div>
     );
 };

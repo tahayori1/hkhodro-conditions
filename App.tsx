@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import ConditionsPage from './pages/ConditionsPage';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
@@ -7,6 +8,8 @@ import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
 import { PlusIcon } from './components/icons/PlusIcon';
+import { getActiveLeads } from './services/api';
+import type { ActiveLead } from './types';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -14,6 +17,8 @@ const App: React.FC = () => {
     const [activeView, setActiveView] = useState<'conditions' | 'users' | 'settings'>('users');
     const [onAddNew, setOnAddNew] = useState<(() => void) | null>(null);
 
+    const knownLeadsRef = useRef<Set<string>>(new Set());
+    const isInitialLoadRef = useRef(true);
 
     useEffect(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -22,6 +27,71 @@ const App: React.FC = () => {
         }
         setIsLoading(false);
     }, []);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const checkHotLeads = async () => {
+            if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+                return;
+            }
+
+            try {
+                const activeLeads = await getActiveLeads();
+                
+                const newLeads: ActiveLead[] = [];
+                const currentLeadIds = new Set<string>();
+
+                activeLeads.forEach(lead => {
+                    const leadId = `${lead.number}-${lead.updatedAt}`;
+                    currentLeadIds.add(leadId);
+
+                    if (!isInitialLoadRef.current && !knownLeadsRef.current.has(leadId)) {
+                        newLeads.push(lead);
+                    }
+                });
+                
+                if (isInitialLoadRef.current) {
+                    knownLeadsRef.current = currentLeadIds;
+                    isInitialLoadRef.current = false;
+                    return;
+                }
+
+                if (newLeads.length > 0) {
+                    const registration = await navigator.serviceWorker.ready;
+                    
+                    const leadToShow = newLeads[0];
+                    let notificationTitle = 'سرنخ داغ جدید';
+                    let notificationBody = `یک سرنخ داغ جدید از ${leadToShow.FullName} دریافت شد.`;
+                    
+                    if (newLeads.length > 1) {
+                        notificationTitle = `${newLeads.length.toLocaleString('fa-IR')} سرنخ داغ جدید`;
+                        notificationBody = `شما ${newLeads.length.toLocaleString('fa-IR')} سرنخ داغ جدید پاسخ داده نشده دارید.`;
+                    }
+
+                    // FIX: The 'renotify' property is not a standard part of NotificationOptions and causes a TypeScript error.
+                    // It is also deprecated. Removing it to resolve the compilation error.
+                    registration.showNotification(notificationTitle, {
+                        body: notificationBody,
+                        icon: '/vite.svg',
+                        badge: '/vite.svg',
+                        tag: 'new-hot-lead',
+                    });
+                }
+
+                knownLeadsRef.current = currentLeadIds;
+
+            } catch (error) {
+                console.error('Failed to check for new hot leads:', error);
+            }
+        };
+        
+        isInitialLoadRef.current = true;
+        checkHotLeads();
+        const intervalId = setInterval(checkHotLeads, 60000); // Poll every 60 seconds
+
+        return () => clearInterval(intervalId);
+    }, [isAuthenticated]);
 
     const handleLoginSuccess = (token: string, remember: boolean) => {
         if (remember) {

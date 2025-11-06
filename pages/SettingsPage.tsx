@@ -3,6 +3,7 @@ import { getApiSettings, saveApiSettings, updateUserCredentials } from '../servi
 import type { ApiSettings } from '../services/api';
 import Spinner from '../components/Spinner';
 import Toast from '../components/Toast';
+import { NotificationIcon } from '../components/icons/NotificationIcon';
 
 const SettingsPage: React.FC = () => {
     // State for API settings form
@@ -19,6 +20,12 @@ const SettingsPage: React.FC = () => {
     });
     const [credSaving, setCredSaving] = useState(false);
     const [credErrors, setCredErrors] = useState<Record<string, string>>({});
+
+    // State for notifications
+    const [notificationPermission, setNotificationPermission] = useState(
+        typeof Notification !== 'undefined' ? Notification.permission : 'default'
+    );
+    const [isSubscribing, setIsSubscribing] = useState(false);
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -57,6 +64,30 @@ const SettingsPage: React.FC = () => {
             showToast('خطا در ذخیره تنظیمات API', 'error');
         } finally {
             setApiSaving(false);
+        }
+    };
+
+    const handleNotificationPermission = async () => {
+        if (Notification.permission === 'default') {
+            setIsSubscribing(true);
+            try {
+                const permission = await Notification.requestPermission();
+                setNotificationPermission(permission);
+                if (permission === 'granted') {
+                    showToast('اعلان‌ها با موفقیت فعال شدند.', 'success');
+                    const registration = await navigator.serviceWorker.ready;
+                    registration.showNotification('اعلان‌ها فعال شدند', {
+                        body: 'شما از این پس اعلان‌های سرنخ‌های داغ را دریافت خواهید کرد.',
+                        icon: '/vite.svg'
+                    });
+                } else {
+                    showToast('شما اجازه ارسال اعلان‌ها را ندادید.', 'error');
+                }
+            } catch (error) {
+                showToast('خطا در فعال‌سازی اعلان‌ها', 'error');
+            } finally {
+                setIsSubscribing(false);
+            }
         }
     };
 
@@ -141,6 +172,40 @@ const SettingsPage: React.FC = () => {
                 <h2 className="text-3xl font-bold text-slate-800 mb-8">تنظیمات</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                     
+                     <div className="bg-white p-6 rounded-lg shadow-md">
+                        <h3 className="text-xl font-bold text-slate-700 mb-4 border-b pb-3 flex items-center gap-2">
+                            <NotificationIcon className="w-5 h-5" />
+                            تنظیمات اعلان‌ها
+                        </h3>
+                        <div className="space-y-4">
+                            <p className="text-sm text-slate-600">
+                                برای دریافت اعلان‌ها در مورد سرنخ‌های داغ جدید، لطفاً اجازه دسترسی را بدهید.
+                            </p>
+                            {notificationPermission === 'granted' && (
+                                <div className="p-3 bg-green-100 text-green-800 rounded-md text-center font-semibold">
+                                    اعلان‌ها فعال هستند.
+                                </div>
+                            )}
+                            {notificationPermission === 'denied' && (
+                                <div className="p-3 bg-red-100 text-red-800 rounded-md text-center">
+                                    <p className="font-semibold">اعلان‌ها مسدود شده‌اند.</p>
+                                    <p className="text-xs mt-1">برای فعال‌سازی، لطفاً از تنظیمات مرورگر خود اقدام کنید.</p>
+                                </div>
+                            )}
+                            {notificationPermission === 'default' && (
+                                <div className="pt-2 flex justify-end">
+                                    <button 
+                                        onClick={handleNotificationPermission} 
+                                        disabled={isSubscribing}
+                                        className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-sky-400 flex items-center justify-center w-40"
+                                    >
+                                        {isSubscribing ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'فعال‌سازی اعلان‌ها'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <h3 className="text-xl font-bold text-slate-700 mb-4 border-b pb-3">تنظیمات API</h3>
                         {apiLoading ? <div className="flex justify-center p-8"><Spinner /></div> : (
@@ -156,13 +221,15 @@ const SettingsPage: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
                         <h3 className="text-xl font-bold text-slate-700 mb-4 border-b pb-3">تغییر اطلاعات کاربری</h3>
                         <form onSubmit={handleChangeCredentialsSubmit} className="space-y-4">
-                            <FormField label="نام کاربری جدید (اختیاری)" name="username" type="text" value={credForm.username} onChange={handleCredFormChange} error={credErrors.username} disabled={credSaving} />
-                            <FormField label="رمز عبور فعلی" name="currentPassword" type="password" value={credForm.currentPassword} onChange={handleCredFormChange} error={credErrors.currentPassword} disabled={credSaving} />
-                            <FormField label="رمز عبور جدید (اختیاری)" name="newPassword" type="password" value={credForm.newPassword} onChange={handleCredFormChange} error={credErrors.newPassword} disabled={credSaving} />
-                            <FormField label="تکرار رمز عبور جدید" name="confirmNewPassword" type="password" value={credForm.confirmNewPassword} onChange={handleCredFormChange} error={credErrors.confirmNewPassword} disabled={credSaving} />
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField label="نام کاربری جدید (اختیاری)" name="username" type="text" value={credForm.username} onChange={handleCredFormChange} error={credErrors.username} disabled={credSaving} />
+                                <FormField label="رمز عبور فعلی" name="currentPassword" type="password" value={credForm.currentPassword} onChange={handleCredFormChange} error={credErrors.currentPassword} disabled={credSaving} />
+                                <FormField label="رمز عبور جدید (اختیاری)" name="newPassword" type="password" value={credForm.newPassword} onChange={handleCredFormChange} error={credErrors.newPassword} disabled={credSaving} />
+                                <FormField label="تکرار رمز عبور جدید" name="confirmNewPassword" type="password" value={credForm.confirmNewPassword} onChange={handleCredFormChange} error={credErrors.confirmNewPassword} disabled={credSaving} />
+                            </div>
                             {credErrors.general && <p className="text-red-500 text-sm text-center">{credErrors.general}</p>}
                             <div className="pt-2 flex justify-end">
                                 <button type="submit" disabled={credSaving} className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-sky-400 flex items-center justify-center w-36">
