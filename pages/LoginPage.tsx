@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { login, createUserAccount } from '../services/api';
+import PwaInstallBanner from '../components/PwaInstallBanner';
 
 interface LoginPageProps {
     onLoginSuccess: (token: string, remember: boolean) => void;
@@ -205,6 +207,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     &copy; {new Date().getFullYear()} Hoseini Khodro. All rights reserved.
                 </footer>
             </div>
+            <PwaInstallBanner />
         </div>
     );
 };
