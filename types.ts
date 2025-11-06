@@ -55,10 +55,17 @@ export interface User {
 
 export interface ActiveLead {
     number: string;
-    updatedAt: string;
     Message: string;
-    FullName?: string;
-    CarModel?: string;
+    media: string | null;
+    receive: 0 | 1;
+    updatedAt: string;
+    Province: string;
+    City: string;
+    Decription: string;
+    RegisterTime: string;
+    reference: string;
+    CarModel: string;
+    FullName: string;
 }
 
 export interface LeadMessage {

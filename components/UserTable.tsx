@@ -2,7 +2,6 @@ import React from 'react';
 import type { User } from '../types';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
-import { EyeIcon } from './icons/EyeIcon';
 import { SortIcon } from './icons/SortIcon';
 import { ChatIcon } from './icons/ChatIcon';
 
@@ -11,13 +10,12 @@ interface UserTableProps {
     users: User[];
     onEdit: (user: User) => void;
     onDelete: (id: number) => void;
-    onView: (user: User) => void;
-    onViewHistory: (user: User) => void;
+    onViewDetails: (user: User) => void;
     onSort: (key: keyof User) => void;
     sortConfig: { key: keyof User; direction: 'ascending' | 'descending' } | null;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onView, onViewHistory, onSort, sortConfig }) => {
+const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails, onSort, sortConfig }) => {
     if (users.length === 0) {
         return <p className="text-center text-slate-500 py-10">هیچ سرنخی یافت نشد.</p>;
     }
@@ -78,11 +76,8 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onView, 
                                 <td className="px-6 py-4">{formatDate(user.RegisterTime)}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-4">
-                                         <button onClick={() => onViewHistory(user)} className="text-slate-500 hover:text-slate-800" title="تاریخچه گفتگو">
+                                         <button onClick={() => onViewDetails(user)} className="text-slate-500 hover:text-slate-800" title="جزئیات و تاریخچه گفتگو">
                                             <ChatIcon />
-                                        </button>
-                                        <button onClick={() => onView(user)} className="text-slate-500 hover:text-slate-800" title="نمایش">
-                                            <EyeIcon />
                                         </button>
                                         <button onClick={() => onEdit(user)} className="text-sky-600 hover:text-sky-800" title="ویرایش">
                                             <EditIcon />
@@ -114,11 +109,8 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onView, 
                             </div>
                         </div>
                         <div className="flex items-center justify-end gap-4 mt-4 pt-4 border-t border-slate-200">
-                             <button onClick={() => onViewHistory(user)} className="flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm">
-                                <ChatIcon /> تاریخچه
-                            </button>
-                             <button onClick={() => onView(user)} className="flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm">
-                                <EyeIcon /> نمایش
+                             <button onClick={() => onViewDetails(user)} className="flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm">
+                                <ChatIcon /> جزئیات
                             </button>
                             <button onClick={() => onEdit(user)} className="flex items-center gap-1 text-sky-600 hover:text-sky-800 text-sm">
                                 <EditIcon /> ویرایش

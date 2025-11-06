@@ -4,17 +4,25 @@ import { CloseIcon } from './icons/CloseIcon';
 import Spinner from './Spinner';
 import { SendIcon } from './icons/SendIcon';
 
-interface LeadHistoryModalProps {
+interface LeadDetailHistoryModalProps {
     isOpen: boolean;
     onClose: () => void;
     lead: User | ActiveLead | null;
+    fullUserDetails: User | null;
     messages: LeadMessage[];
     isLoading: boolean;
     error: string | null;
     onSendMessage: (message: string) => Promise<void>;
 }
 
-const LeadHistoryModal: React.FC<LeadHistoryModalProps> = ({ isOpen, onClose, lead, messages, isLoading, error, onSendMessage }) => {
+const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ label, value }) => (
+    <div>
+        <span className="text-xs text-slate-500">{label}</span>
+        <p className="text-sm font-semibold text-slate-800">{value || '-'}</p>
+    </div>
+);
+
+const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, onSendMessage }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -24,11 +32,10 @@ const LeadHistoryModal: React.FC<LeadHistoryModalProps> = ({ isOpen, onClose, le
     };
 
     useEffect(() => {
-        if (isOpen && messages.length > 0) {
-            // Use timeout to ensure the DOM has been updated before scrolling
+        if (isOpen && !isLoading && messages.length > 0) {
             setTimeout(scrollToBottom, 100);
         }
-    }, [isOpen, messages]);
+    }, [isOpen, isLoading, messages]);
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,13 +52,12 @@ const LeadHistoryModal: React.FC<LeadHistoryModalProps> = ({ isOpen, onClose, le
         }
     };
 
-
     if (!isOpen || !lead) return null;
 
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         try {
-            return new Intl.DateTimeFormat('fa-IR-u-nu-latn', {
+            return new Intl.DateTimeFormat('fa-IR', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
@@ -63,18 +69,16 @@ const LeadHistoryModal: React.FC<LeadHistoryModalProps> = ({ isOpen, onClose, le
         }
     };
     
-    const leadName = 'FullName' in lead && lead.FullName ? lead.FullName : null;
+    const leadName = ('FullName' in lead && lead.FullName) || (fullUserDetails?.FullName);
     const leadNumber = 'number' in lead ? lead.number : lead.Number;
-    const leadCarModel = 'CarModel' in lead && lead.CarModel ? lead.CarModel : null;
-
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 <header className="p-4 border-b flex justify-between items-center flex-shrink-0">
                     <div>
                         <h2 className="text-lg font-bold text-slate-800">
-                            تاریخچه گفتگو {leadCarModel && <span className="text-sky-700">- {leadCarModel}</span>}
+                           جزئیات و تاریخچه سرنخ
                         </h2>
                         <p className="text-sm text-slate-500" dir="ltr">
                             {leadNumber} {leadName && `(${leadName})`}
@@ -85,34 +89,59 @@ const LeadHistoryModal: React.FC<LeadHistoryModalProps> = ({ isOpen, onClose, le
                     </button>
                 </header>
 
-                <main className="p-4 flex-grow overflow-y-auto bg-slate-50">
+                <main className="flex-grow overflow-y-auto">
                     {isLoading ? (
-                        <div className="flex justify-center items-center h-full">
-                            <Spinner />
-                        </div>
+                        <div className="flex justify-center items-center h-full"><Spinner /></div>
                     ) : error ? (
-                         <div className="flex justify-center items-center h-full">
-                            <p className="text-red-500">{error}</p>
-                        </div>
-                    ) : messages.length === 0 ? (
-                        <div className="flex justify-center items-center h-full">
-                            <p className="text-slate-500">تاریخچه پیامی برای این شماره یافت نشد.</p>
-                        </div>
+                         <div className="flex justify-center items-center h-full"><p className="text-red-500">{error}</p></div>
                     ) : (
-                        <div className="space-y-4">
-                            {messages.map((msg) => (
-                                <div key={msg.id} className={`flex items-end gap-2 ${msg.receive === 1 ? 'justify-start' : 'justify-end'}`}>
-                                    <div className={`max-w-xs md:max-w-md p-3 rounded-xl ${msg.receive === 1 ? 'bg-sky-100 text-slate-800' : 'bg-slate-200 text-slate-800'}`}>
-                                        <p className="text-sm whitespace-pre-wrap">{msg.Message}</p>
-                                        <div className={`text-xs mt-2 ${msg.receive === 1 ? 'text-slate-500' : 'text-slate-500'}`}>
-                                            <span>{formatDate(msg.createdAt)}</span>
-                                            {msg.media && <span className="font-semibold"> ({msg.media})</span>}
-                                        </div>
+                        <>
+                            {/* User Details Section */}
+                            <div className="p-4 bg-slate-50 border-b">
+                                <h3 className="text-md font-bold text-slate-700 mb-3">اطلاعات سرنخ</h3>
+                                {fullUserDetails ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                        <DetailItem label="خودروی درخواستی" value={fullUserDetails.CarModel} />
+                                        <DetailItem label="استان" value={fullUserDetails.Province} />
+                                        <DetailItem label="شهر" value={fullUserDetails.City} />
+                                        <DetailItem label="مرجع" value={fullUserDetails.reference} />
+                                        <DetailItem label="زمان ثبت" value={formatDate(fullUserDetails.RegisterTime)} />
+                                        <DetailItem label="آخرین فعالیت" value={formatDate(fullUserDetails.LastAction)} />
+                                        {fullUserDetails.Decription && (
+                                            <div className="col-span-full">
+                                                <DetailItem label="توضیحات" value={<span className="whitespace-pre-wrap">{fullUserDetails.Decription}</span>} />
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            ))}
-                             <div ref={messagesEndRef} />
-                        </div>
+                                ) : (
+                                     <p className="text-slate-500 text-sm">جزئیات کامل کاربر یافت نشد.</p>
+                                )}
+                            </div>
+
+                            {/* Messages Section */}
+                            <div className="p-4">
+                                {messages.length === 0 ? (
+                                    <div className="flex justify-center items-center py-10">
+                                        <p className="text-slate-500">تاریخچه پیامی برای این شماره یافت نشد.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {messages.map((msg) => (
+                                            <div key={msg.id} className={`flex items-end gap-2 ${msg.receive === 1 ? 'justify-start' : 'justify-end'}`}>
+                                                <div className={`max-w-xs md:max-w-md p-3 rounded-xl ${msg.receive === 1 ? 'bg-sky-100 text-slate-800' : 'bg-slate-200 text-slate-800'}`}>
+                                                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: msg.Message }} />
+                                                    <div className={`text-xs mt-2 ${msg.receive === 1 ? 'text-slate-500' : 'text-slate-500'}`}>
+                                                        <span>{formatDate(msg.createdAt)}</span>
+                                                        {msg.media && <span className="font-semibold"> ({msg.media})</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div ref={messagesEndRef} />
+                                    </div>
+                                )}
+                            </div>
+                        </>
                     )}
                 </main>
                 
@@ -124,12 +153,12 @@ const LeadHistoryModal: React.FC<LeadHistoryModalProps> = ({ isOpen, onClose, le
                             onChange={(e) => setNewMessage(e.target.value)}
                             placeholder="محل تایپ کردن پاسخ..."
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
-                            disabled={isSending}
+                            disabled={isSending || isLoading}
                             autoComplete="off"
                         />
                         <button
                             type="submit"
-                            disabled={isSending || !newMessage.trim()}
+                            disabled={isSending || isLoading || !newMessage.trim()}
                             className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors flex items-center justify-center disabled:bg-sky-400 disabled:cursor-not-allowed w-28"
                             aria-label="ارسال پیام"
                         >
@@ -149,4 +178,4 @@ const LeadHistoryModal: React.FC<LeadHistoryModalProps> = ({ isOpen, onClose, le
     );
 };
 
-export default LeadHistoryModal;
+export default LeadDetailHistoryModal;

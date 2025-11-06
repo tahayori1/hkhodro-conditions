@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { login, createUserAccount } from '../services/api';
 
 interface LoginPageProps {
-    onLoginSuccess: (token: string) => void;
+    onLoginSuccess: (token: string, remember: boolean) => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
@@ -10,6 +10,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('rememberMe') === 'true');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -36,7 +37,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             const hashedPassword = await hashPassword(password);
             const response = await login(username, hashedPassword);
             if (response.token) {
-                onLoginSuccess(response.token);
+                onLoginSuccess(response.token, rememberMe);
             } else {
                 setError('خطا در ورود: توکن دریافت نشد.');
             }
@@ -81,6 +82,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         setConfirmPassword('');
         setError(null);
         setSuccessMessage(null);
+    };
+    
+    const handleRememberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const isChecked = e.target.checked;
+        setRememberMe(isChecked);
+        localStorage.setItem('rememberMe', String(isChecked));
     };
 
     const title = isLoginView ? 'ورود به سامانه' : 'ایجاد حساب کاربری جدید';
@@ -154,6 +161,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                     disabled={loading}
                                     aria-label="Confirm Password"
                                 />
+                            </div>
+                        )}
+                         {isLoginView && (
+                            <div className="flex items-center">
+                                <input
+                                    id="remember-me"
+                                    name="remember-me"
+                                    type="checkbox"
+                                    checked={rememberMe}
+                                    onChange={handleRememberChange}
+                                    className="h-4 w-4 text-sky-600 focus:ring-sky-500 border-slate-300 rounded ml-2"
+                                />
+                                <label htmlFor="remember-me" className="text-sm text-slate-600">
+                                    مرا به خاطر بسپار
+                                </label>
                             </div>
                         )}
                         <div>

@@ -1,12 +1,11 @@
 import type { CarSaleCondition, User, ActiveLead, LeadMessage } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
-const ACTIVE_LEADS_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1/users/active/';
-
 
 const handleResponse = async (response: Response) => {
     if (response.status === 401) {
         sessionStorage.removeItem('authToken');
+        localStorage.removeItem('authToken');
         window.location.reload();
         throw new Error('نشست شما منقضی شده است. لطفا دوباره وارد شوید.');
     }
@@ -28,7 +27,7 @@ const handleResponse = async (response: Response) => {
 };
 
 const getAuthHeaders = (): HeadersInit => {
-    const token = sessionStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
@@ -157,7 +156,7 @@ export const getUserByNumber = async (number: string): Promise<User | null> => {
 };
 
 export const getActiveLeads = async (): Promise<ActiveLead[]> => {
-    const response = await fetch(ACTIVE_LEADS_URL, { headers: getAuthHeaders() });
+    const response = await fetch(`${API_BASE_URL}/users/active/`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
 };

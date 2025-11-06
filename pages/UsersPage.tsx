@@ -4,14 +4,13 @@ import type { User, ActiveLead, LeadMessage } from '../types';
 import UserTable from '../components/UserTable';
 import UserFilterPanel from '../components/UserFilterPanel';
 import UserModal from '../components/UserModal';
-import UserViewModal from '../components/UserViewModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import HotLeadsPanel from '../components/HotLeadsPanel';
-import LeadHistoryModal from '../components/LeadHistoryModal';
+import LeadDetailHistoryModal from '../components/LeadHistoryModal';
 
 
 const ITEMS_PER_PAGE = 50;
@@ -29,15 +28,13 @@ const UsersPage: React.FC = () => {
 
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-
-    const [isViewModalOpen, setIsViewModalOpen] = useState<boolean>(false);
-    const [userToView, setUserToView] = useState<User | null>(null);
     
-    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
-    const [historyLead, setHistoryLead] = useState<User | ActiveLead | null>(null);
-    const [historyMessages, setHistoryMessages] = useState<LeadMessage[]>([]);
-    const [historyLoading, setHistoryLoading] = useState<boolean>(false);
-    const [historyError, setHistoryError] = useState<string | null>(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
+    const [selectedLead, setSelectedLead] = useState<User | ActiveLead | null>(null);
+    const [modalMessages, setModalMessages] = useState<LeadMessage[]>([]);
+    const [modalFullUser, setModalFullUser] = useState<User | null>(null);
+    const [modalLoading, setModalLoading] = useState<boolean>(false);
+    const [modalError, setModalError] = useState<string | null>(null);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
     const [userToDelete, setUserToDelete] = useState<number | null>(null);
@@ -53,7 +50,7 @@ const UsersPage: React.FC = () => {
         setError(null);
         try {
             const data = await getUsers();
-            setUsers(data); // Initial fetch, sorting happens in useMemo
+            setUsers(data);
         } catch (err) {
             setError('خطا در دریافت اطلاعات کاربران');
             showToast('خطا در دریافت اطلاعات کاربران', 'error');
@@ -66,22 +63,8 @@ const UsersPage: React.FC = () => {
         setHotLeadsLoading(true);
         setHotLeadsError(null);
         try {
-            const basicLeads = await getActiveLeads();
-            const enrichedLeads = await Promise.all(
-                basicLeads.map(async (lead) => {
-                    try {
-                        const userDetails = await getUserByNumber(lead.number);
-                        return {
-                            ...lead,
-                            FullName: userDetails?.FullName || lead.number,
-                            CarModel: userDetails?.CarModel,
-                        };
-                    } catch (e) {
-                        return lead; // Return basic lead if details fetch fails
-                    }
-                })
-            );
-            setActiveLeads(enrichedLeads);
+            const leads = await getActiveLeads();
+            setActiveLeads(leads);
         } catch (err) {
             setHotLeadsError('خطا در دریافت سرنخ‌های داغ');
         } finally {
@@ -118,42 +101,37 @@ const UsersPage: React.FC = () => {
         setIsDeleteModalOpen(true);
     };
 
-    const handleView = (user: User) => {
-        setUserToView(user);
-        setIsViewModalOpen(true);
-    };
-    
-    const handleViewDetailsFromLead = async (lead: ActiveLead) => {
-        const fullUser = await getUserByNumber(lead.number);
-        if (fullUser) {
-            setUserToView(fullUser);
-            setIsViewModalOpen(true);
-        } else {
-            showToast('جزئیات این سرنخ یافت نشد', 'error');
-        }
-    };
-
-    const handleViewHistory = async (lead: User | ActiveLead) => {
-        setIsHistoryModalOpen(true);
-        setHistoryLead(lead);
-        setHistoryLoading(true);
-        setHistoryError(null);
-        setHistoryMessages([]);
+    const handleViewDetails = async (lead: User | ActiveLead) => {
+        setIsDetailModalOpen(true);
+        setSelectedLead(lead);
+        setModalLoading(true);
+        setModalError(null);
+        setModalMessages([]);
+        setModalFullUser(null);
         try {
             const numberToFetch = 'number' in lead ? lead.number : lead.Number;
-            const data = await getLeadHistory(numberToFetch);
-            setHistoryMessages(data.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+            
+            const historyPromise = getLeadHistory(numberToFetch);
+            // If the lead is already a full User object, just use it. Otherwise, fetch it.
+            const userPromise = 'id' in lead ? Promise.resolve(lead) : getUserByNumber(numberToFetch);
+
+            const [historyData, userData] = await Promise.all([historyPromise, userPromise]);
+
+            setModalMessages(historyData.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+            setModalFullUser(userData);
+
         } catch (err) {
-            setHistoryError('خطا در دریافت تاریخچه پیام‌ها');
+            setModalError('خطا در دریافت اطلاعات کامل سرنخ');
         } finally {
-            setHistoryLoading(false);
+            setModalLoading(false);
         }
     };
 
-    const handleCloseHistoryModal = () => {
-        setIsHistoryModalOpen(false);
-        setHistoryLead(null);
-        setHistoryMessages([]);
+    const handleCloseDetailModal = () => {
+        setIsDetailModalOpen(false);
+        setSelectedLead(null);
+        setModalMessages([]);
+        setModalFullUser(null);
     };
     
     const handleSave = async (userData: Omit<User, 'id'>) => {
@@ -196,22 +174,20 @@ const UsersPage: React.FC = () => {
     };
 
     const handleSendMessage = async (message: string) => {
-        if (!historyLead) {
+        if (!selectedLead) {
             throw new Error("No active lead selected for sending message.");
         }
         
-        const number = 'number' in historyLead ? historyLead.number : historyLead.Number;
+        const number = 'number' in selectedLead ? selectedLead.number : selectedLead.Number;
 
         try {
             await sendMessage(number, message);
             showToast('پیام با موفقیت ارسال شد', 'success');
             
-            // Refetch history to show the sent message
             const data = await getLeadHistory(number);
-            setHistoryMessages(data.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+            setModalMessages(data.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
         } catch (err) {
             showToast('ارسال پیام با خطا مواجه شد', 'error');
-            // Re-throw to let the modal know the submission failed
             throw err;
         }
     };
@@ -265,8 +241,7 @@ const UsersPage: React.FC = () => {
                     leads={activeLeads} 
                     isLoading={hotLeadsLoading} 
                     error={hotLeadsError}
-                    onViewHistory={handleViewHistory}
-                    onViewDetails={handleViewDetailsFromLead}
+                    onViewDetails={handleViewDetails}
                 />
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -293,8 +268,7 @@ const UsersPage: React.FC = () => {
                             users={paginatedUsers} 
                             onEdit={handleEdit} 
                             onDelete={handleDelete}
-                            onView={handleView}
-                            onViewHistory={handleViewHistory}
+                            onViewDetails={handleViewDetails}
                             onSort={handleSort}
                             sortConfig={sortConfig}
                         />
@@ -320,22 +294,15 @@ const UsersPage: React.FC = () => {
                 />
             )}
 
-            {isViewModalOpen && (
-                <UserViewModal
-                    isOpen={isViewModalOpen}
-                    onClose={() => setIsViewModalOpen(false)}
-                    user={userToView}
-                />
-            )}
-
-            {isHistoryModalOpen && (
-                <LeadHistoryModal
-                    isOpen={isHistoryModalOpen}
-                    onClose={handleCloseHistoryModal}
-                    lead={historyLead}
-                    messages={historyMessages}
-                    isLoading={historyLoading}
-                    error={historyError}
+            {isDetailModalOpen && (
+                <LeadDetailHistoryModal
+                    isOpen={isDetailModalOpen}
+                    onClose={handleCloseDetailModal}
+                    lead={selectedLead}
+                    fullUserDetails={modalFullUser}
+                    messages={modalMessages}
+                    isLoading={modalLoading}
+                    error={modalError}
                     onSendMessage={handleSendMessage}
                 />
             )}

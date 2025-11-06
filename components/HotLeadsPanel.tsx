@@ -3,25 +3,19 @@ import type { ActiveLead } from '../types';
 import Spinner from './Spinner';
 import { PhoneIcon } from './icons/PhoneIcon';
 import { ChatIcon } from './icons/ChatIcon';
-import { EyeIcon } from './icons/EyeIcon';
 
 const timeAgo = (dateString: string): string => {
     try {
-        // API returns "YYYY-MM-DD HH:mm:ss", which can be parsed incorrectly by some browsers.
-        // Replacing the space with 'T' makes it compliant with the ISO 8601 format subset
-        // that is well-supported across browsers.
         const parsableDateString = dateString.replace(' ', 'T');
         const date = new Date(parsableDateString);
 
-        // Check if the date is valid after parsing
         if (isNaN(date.getTime())) {
-            return dateString; // Return original string if parsing fails
+            return dateString;
         }
         
         const now = new Date();
         const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-        // If the date is in the future (due to clock skew), treat it as "just now".
         if (seconds < 0) return 'همین الان';
         if (seconds < 60) return new Intl.RelativeTimeFormat('fa-IR').format(-seconds, 'second');
         
@@ -41,7 +35,6 @@ const timeAgo = (dateString: string): string => {
         return new Intl.RelativeTimeFormat('fa-IR').format(-years, 'year');
 
     } catch(e) {
-        // Fallback for any unexpected error
         return dateString;
     }
 };
@@ -52,7 +45,7 @@ const useTimeAgo = (dateString: string) => {
     useEffect(() => {
         const intervalId = setInterval(() => {
             setTimeAgoText(timeAgo(dateString));
-        }, 60000); // Update every minute
+        }, 60000);
 
         return () => clearInterval(intervalId);
     }, [dateString]);
@@ -64,30 +57,25 @@ interface HotLeadsPanelProps {
     leads: ActiveLead[];
     isLoading: boolean;
     error: string | null;
-    onViewHistory: (lead: ActiveLead) => void;
     onViewDetails: (lead: ActiveLead) => void;
 }
 
 const HotLeadCard: React.FC<{ 
     lead: ActiveLead, 
-    onViewHistory: (lead: ActiveLead) => void;
     onViewDetails: (lead: ActiveLead) => void;
-}> = ({ lead, onViewHistory, onViewDetails }) => {
+}> = ({ lead, onViewDetails }) => {
     const timeAgoText = useTimeAgo(lead.updatedAt);
     return (
         <div className="flex-shrink-0 w-72 bg-white rounded-xl shadow-md p-4 border border-slate-200 flex flex-col justify-between h-auto min-h-[12rem] text-right transition-shadow hover:shadow-lg">
-            {/* Header */}
             <div>
-                 <h3 className="font-bold text-slate-800 truncate">{lead.FullName || lead.number}</h3>
-                 <p className="text-sm text-slate-500">{lead.CarModel || 'خودرو مشخص نشده'}</p>
+                 <h3 className="font-bold text-slate-800 truncate">{lead.FullName}</h3>
+                 <p className="text-sm font-semibold text-slate-600">{lead.CarModel || 'خودرو مشخص نشده'}</p>
             </div>
 
-            {/* Message Body */}
             <p className="text-sm text-slate-700 leading-relaxed overflow-hidden my-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                 {lead.Message || <span className="italic text-slate-400">بدون پیام</span>}
             </p>
 
-            {/* Footer */}
             <div className="mt-auto pt-2 border-t border-slate-100">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-1 text-sky-600 font-semibold text-sm" dir="ltr">
@@ -95,11 +83,8 @@ const HotLeadCard: React.FC<{
                         <span>{lead.number}</span>
                     </div>
                      <div className="flex items-center gap-3">
-                        <button onClick={() => onViewHistory(lead)} className="text-slate-500 hover:text-sky-600 transition-colors" title="تاریخچه گفتگو">
+                        <button onClick={() => onViewDetails(lead)} className="text-slate-500 hover:text-sky-600 transition-colors" title="جزئیات و تاریخچه گفتگو">
                             <ChatIcon />
-                        </button>
-                        <button onClick={() => onViewDetails(lead)} className="text-slate-500 hover:text-sky-600 transition-colors" title="نمایش جزئیات">
-                            <EyeIcon />
                         </button>
                     </div>
                 </div>
@@ -109,7 +94,7 @@ const HotLeadCard: React.FC<{
     );
 };
 
-const HotLeadsPanel: React.FC<HotLeadsPanelProps> = ({ leads, isLoading, error, onViewHistory, onViewDetails }) => {
+const HotLeadsPanel: React.FC<HotLeadsPanelProps> = ({ leads, isLoading, error, onViewDetails }) => {
     const renderContent = () => {
         if (isLoading) {
             return (
@@ -135,7 +120,6 @@ const HotLeadsPanel: React.FC<HotLeadsPanelProps> = ({ leads, isLoading, error, 
                     <HotLeadCard 
                         key={`${lead.number}-${index}`} 
                         lead={lead} 
-                        onViewHistory={onViewHistory}
                         onViewDetails={onViewDetails}
                     />
                 ))}

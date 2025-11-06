@@ -10,23 +10,28 @@ import { SettingsIcon } from './components/icons/SettingsIcon';
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [activeView, setActiveView] = useState<'conditions' | 'users' | 'settings'>('conditions');
+    const [activeView, setActiveView] = useState<'conditions' | 'users' | 'settings'>('users');
 
     useEffect(() => {
-        const token = sessionStorage.getItem('authToken');
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         if (token) {
             setIsAuthenticated(true);
         }
         setIsLoading(false);
     }, []);
 
-    const handleLoginSuccess = (token: string) => {
-        sessionStorage.setItem('authToken', token);
+    const handleLoginSuccess = (token: string, remember: boolean) => {
+        if (remember) {
+            localStorage.setItem('authToken', token);
+        } else {
+            sessionStorage.setItem('authToken', token);
+        }
         setIsAuthenticated(true);
     };
 
     const handleLogout = () => {
         sessionStorage.removeItem('authToken');
+        localStorage.removeItem('authToken');
         setIsAuthenticated(false);
     };
 
@@ -54,16 +59,16 @@ const App: React.FC = () => {
                      <div className="flex items-center gap-4">
                         <nav className="flex items-center gap-2">
                             <button 
+                                onClick={() => setActiveView('users')}
+                                className={`${navButtonClasses} ${activeView === 'users' ? activeClasses : inactiveClasses}`}
+                            >
+                                سرنخ های فروش
+                            </button>
+                            <button 
                                 onClick={() => setActiveView('conditions')}
                                 className={`${navButtonClasses} ${activeView === 'conditions' ? activeClasses : inactiveClasses}`}
                             >
                                 شرایط فروش
-                            </button>
-                            <button 
-                                onClick={() => setActiveView('users')}
-                                className={`${navButtonClasses} ${activeView === 'users' ? activeClasses : inactiveClasses}`}
-                            >
-                                سرنخ‌های فروش
                             </button>
                         </nav>
                          <div className="flex items-center gap-2">
