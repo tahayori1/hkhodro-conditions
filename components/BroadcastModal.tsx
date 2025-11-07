@@ -59,20 +59,23 @@ const BroadcastModal: React.FC<BroadcastModalProps> = ({ isOpen, onClose, onSend
     
     const handleConditionsSelected = (selectedConditions: CarSaleCondition[]) => {
         if (selectedConditions.length === 0) return;
+
+        const textParts = selectedConditions.map(c => {
+            const descriptionsText = c.descriptions ? c.descriptions : 'ندارد';
+            return `*شرایط فروش خودروی ${c.car_model} - مدل ${c.model}*
+
+- *نوع فروش:* ${c.sale_type} (${c.pay_type})
+- *وضعیت:* ${c.status}
+- *وضعیت سند:* ${c.document_status}
+- *زمان تحویل:* ${c.delivery_time}
+- *رنگ‌ها:* ${c.colors.join('، ')}
+- *پیش پرداخت:* *${c.initial_deposit.toLocaleString('fa-IR')} تومان*
+
+*توضیحات:*
+${descriptionsText}`;
+        });
         
-        let text = `شرایط فروش انتخاب شده برای ${selectedCarModel}:\n\n`;
-        text += selectedConditions.map(c => 
-`---
-- **نوع فروش:** ${c.sale_type} (${c.pay_type})
-- **مدل:** ${c.model}
-- **وضعیت:** ${c.status}
-- **وضعیت سند:** ${c.document_status}
-- **پیش پرداخت:** ${c.initial_deposit.toLocaleString('fa-IR')} تومان
-- **زمان تحویل:** ${c.delivery_time}
-- **رنگ‌های موجود:** ${c.colors.join('، ')}
-- **توضیحات:** ${c.descriptions || 'ندارد'}
----`
-        ).join('\n\n');
+        const text = textParts.join('\n\n--------------------------------\n\n');
         
         handleQuickSend(text);
         setIsConditionModalOpen(false);
