@@ -3,6 +3,7 @@ import type { Car } from '../types';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { EyeIcon } from './icons/EyeIcon';
+import { CarIcon } from './icons/CarIcon';
 
 interface CarTableProps {
     cars: Car[];
@@ -23,6 +24,7 @@ const CarTable: React.FC<CarTableProps> = ({ cars, onEdit, onDelete, onView }) =
                 <table className="w-full text-sm text-right text-slate-600">
                     <thead className="text-xs text-slate-700 bg-slate-50">
                         <tr>
+                            <th scope="col" className="px-6 py-3 uppercase font-bold">تصویر</th>
                             <th scope="col" className="px-6 py-3 uppercase font-bold">نام خودرو</th>
                             <th scope="col" className="px-6 py-3 uppercase font-bold">برند</th>
                             <th scope="col" className="px-6 py-3"></th>
@@ -31,6 +33,15 @@ const CarTable: React.FC<CarTableProps> = ({ cars, onEdit, onDelete, onView }) =
                     <tbody>
                         {cars.map((car) => (
                             <tr key={car.id} className="bg-white border-b hover:bg-slate-50">
+                                <td className="px-6 py-4">
+                                    {car.main_image_url ? (
+                                        <img src={car.main_image_url} alt={car.name} className="h-10 w-16 object-cover rounded" />
+                                    ) : (
+                                        <div className="h-10 w-16 flex items-center justify-center bg-slate-100 rounded">
+                                            <CarIcon className="h-6 w-6 text-slate-400" />
+                                        </div>
+                                    )}
+                                </td>
                                 <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{car.name}</td>
                                 <td className="px-6 py-4">{car.brand}</td>
                                 <td className="px-6 py-4">
@@ -55,12 +66,21 @@ const CarTable: React.FC<CarTableProps> = ({ cars, onEdit, onDelete, onView }) =
             {/* Mobile Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 md:hidden">
                 {cars.map((car) => (
-                    <div key={car.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col justify-between">
+                     <div key={car.id} className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden flex flex-col justify-between">
                         <div>
-                            <h3 className="font-bold text-slate-800">{car.name}</h3>
-                            <p className="text-sm text-slate-600"><strong>برند:</strong> {car.brand}</p>
+                             {car.main_image_url ? (
+                                <img src={car.main_image_url} alt={car.name} className="w-full h-32 object-cover" />
+                            ) : (
+                                <div className="w-full h-32 flex items-center justify-center bg-slate-100">
+                                    <CarIcon className="w-12 h-12 text-slate-400" />
+                                </div>
+                            )}
+                            <div className="p-4">
+                                <h3 className="font-bold text-slate-800">{car.name}</h3>
+                                <p className="text-sm text-slate-600"><strong>برند:</strong> {car.brand}</p>
+                            </div>
                         </div>
-                        <div className="flex items-center justify-end gap-4 mt-4 pt-4 border-t border-slate-200">
+                        <div className="flex items-center justify-end gap-4 p-4 border-t border-slate-200">
                             <button onClick={() => onView(car)} className="flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm">
                                 <EyeIcon /> نمایش
                             </button>
