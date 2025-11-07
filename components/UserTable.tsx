@@ -13,9 +13,12 @@ interface UserTableProps {
     onViewDetails: (user: User) => void;
     onSort: (key: keyof User) => void;
     sortConfig: { key: keyof User; direction: 'ascending' | 'descending' } | null;
+    selectedUserIds: Set<number>;
+    onSelectionChange: (userId: number) => void;
+    onSelectAllChange: (selectAll: boolean) => void;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails, onSort, sortConfig }) => {
+const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails, onSort, sortConfig, selectedUserIds, onSelectionChange, onSelectAllChange }) => {
     if (users.length === 0) {
         return <p className="text-center text-slate-500 py-10">هیچ سرنخی یافت نشد.</p>;
     }
@@ -58,6 +61,18 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                 <table className="w-full text-sm text-right text-slate-600">
                     <thead className="text-xs text-slate-700 bg-slate-50">
                         <tr>
+                            <th scope="col" className="p-4">
+                                <div className="flex items-center">
+                                    <input
+                                        id="checkbox-all-desktop"
+                                        type="checkbox"
+                                        className="w-4 h-4 text-sky-600 bg-gray-100 border-gray-300 rounded focus:ring-sky-500"
+                                        checked={users.length > 0 && selectedUserIds.size === users.length}
+                                        onChange={(e) => onSelectAllChange(e.target.checked)}
+                                        aria-label="Select all users on this page"
+                                    />
+                                </div>
+                            </th>
                             <SortableHeader title="نام کامل" sortKey="FullName" />
                             <SortableHeader title="شماره تماس" sortKey="Number" />
                             <SortableHeader title="خودروی درخواستی" sortKey="CarModel" />
@@ -68,8 +83,20 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                     </thead>
                     <tbody>
                         {users.map((user) => (
-                            <tr key={user.id} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{user.FullName}</td>
+                            <tr key={user.id} className={`bg-white border-b hover:bg-slate-50 ${selectedUserIds.has(user.id) ? 'bg-sky-50' : ''}`}>
+                                <td className="p-4">
+                                    <div className="flex items-center">
+                                        <input
+                                            id={`checkbox-desktop-${user.id}`}
+                                            type="checkbox"
+                                            className="w-4 h-4 text-sky-600 bg-gray-100 border-gray-300 rounded focus:ring-sky-500"
+                                            checked={selectedUserIds.has(user.id)}
+                                            onChange={() => onSelectionChange(user.id)}
+                                            aria-labelledby={`user-name-${user.id}`}
+                                        />
+                                    </div>
+                                </td>
+                                <td id={`user-name-${user.id}`} className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{user.FullName}</td>
                                 <td className="px-6 py-4" dir="ltr">{user.Number}</td>
                                 <td className="px-6 py-4">{user.CarModel}</td>
                                 <td className="px-6 py-4">{user.Province} / {user.City}</td>
@@ -96,9 +123,18 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
             {/* Mobile Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 md:hidden">
                 {users.map((user) => (
-                    <div key={user.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col justify-between">
+                    <div key={user.id} className={`relative bg-slate-50 border rounded-lg p-4 flex flex-col justify-between ${selectedUserIds.has(user.id) ? 'border-sky-400 ring-2 ring-sky-200' : 'border-slate-200'}`}>
+                        <div className="absolute top-3 left-3 z-10">
+                            <input
+                                type="checkbox"
+                                className="w-5 h-5 text-sky-600 bg-white border-slate-300 rounded focus:ring-sky-500"
+                                checked={selectedUserIds.has(user.id)}
+                                onChange={() => onSelectionChange(user.id)}
+                                aria-label={`Select ${user.FullName}`}
+                            />
+                        </div>
                         <div>
-                            <div className="flex justify-between items-start mb-2">
+                            <div className="flex justify-between items-start mb-2 pr-8">
                                 <h3 className="font-bold text-slate-800">{user.FullName}</h3>
                             </div>
                             <div className="text-sm text-slate-600 space-y-1">

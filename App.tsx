@@ -3,6 +3,8 @@ import ConditionsPage from './pages/ConditionsPage';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
+import CarsPage from './pages/CarsPage';
+import DealershipPage from './pages/DealershipPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -11,11 +13,13 @@ import { getActiveLeads } from './services/api';
 import type { ActiveLead } from './types';
 import { UsersIcon } from './components/icons/UsersIcon';
 import { ConditionsIcon } from './components/icons/ConditionsIcon';
+import { CarIcon } from './components/icons/CarIcon';
+import { DealershipIcon } from './components/icons/DealershipIcon';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [activeView, setActiveView] = useState<'conditions' | 'users' | 'settings'>('users');
+    const [activeView, setActiveView] = useState<'conditions' | 'users' | 'cars' | 'dealership' | 'settings'>('users');
     const [onAddNew, setOnAddNew] = useState<(() => void) | null>(null);
 
     const knownLeadsRef = useRef<Set<string>>(new Set());
@@ -70,8 +74,6 @@ const App: React.FC = () => {
                         notificationBody = `شما ${newLeads.length.toLocaleString('fa-IR')} سرنخ داغ جدید پاسخ داده نشده دارید.`;
                     }
 
-                    // FIX: The 'renotify' property is not a standard part of NotificationOptions and causes a TypeScript error.
-                    // It is also deprecated. Removing it to resolve the compilation error.
                     registration.showNotification(notificationTitle, {
                         body: notificationBody,
                         icon: '/vite.svg',
@@ -125,6 +127,15 @@ const App: React.FC = () => {
     const activeClasses = "bg-sky-600 text-white";
     const inactiveClasses = "bg-white text-sky-700 hover:bg-sky-100";
 
+    const getAddNewButtonText = () => {
+        switch (activeView) {
+            case 'users': return 'افزودن سرنخ جدید';
+            case 'conditions': return 'افزودن شرط جدید';
+            case 'cars': return 'افزودن خودرو جدید';
+            default: return '';
+        }
+    };
+
     return (
         <div className="bg-slate-100 min-h-screen text-slate-800">
             <header className="bg-white shadow-md sticky top-0 z-10">
@@ -145,6 +156,20 @@ const App: React.FC = () => {
                                 className={`${navButtonClasses} !p-2.5 ${activeView === 'conditions' ? activeClasses : inactiveClasses}`}
                             >
                                 <ConditionsIcon />
+                            </button>
+                             <button
+                                onClick={() => setActiveView('cars')}
+                                title="خودروها"
+                                className={`${navButtonClasses} !p-2.5 ${activeView === 'cars' ? activeClasses : inactiveClasses}`}
+                            >
+                                <CarIcon />
+                            </button>
+                            <button
+                                onClick={() => setActiveView('dealership')}
+                                title="اطلاعات نمایندگی"
+                                className={`${navButtonClasses} !p-2.5 ${activeView === 'dealership' ? activeClasses : inactiveClasses}`}
+                            >
+                                <DealershipIcon />
                             </button>
                         </nav>
                          <div className="flex items-center gap-2">
@@ -170,15 +195,17 @@ const App: React.FC = () => {
 
             {activeView === 'conditions' && <ConditionsPage setOnAddNew={setOnAddNew} />}
             {activeView === 'users' && <UsersPage setOnAddNew={setOnAddNew} />}
+            {activeView === 'cars' && <CarsPage setOnAddNew={setOnAddNew} />}
+            {activeView === 'dealership' && <DealershipPage />}
             {activeView === 'settings' && <SettingsPage />}
 
-            {onAddNew && activeView !== 'settings' && (
+            {onAddNew && !['settings', 'dealership'].includes(activeView) && (
                 <button
                     onClick={onAddNew}
                     className="fixed bottom-6 left-6 bg-sky-600 text-white font-semibold px-5 py-3 rounded-full hover:bg-sky-700 transition-colors duration-300 shadow-lg flex items-center gap-2 z-20"
                 >
                     <PlusIcon />
-                    {activeView === 'users' ? 'افزودن سرنخ جدید' : 'افزودن شرط جدید'}
+                    {getAddNewButtonText()}
                 </button>
             )}
         </div>

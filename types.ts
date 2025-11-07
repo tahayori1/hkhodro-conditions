@@ -77,3 +77,38 @@ export interface LeadMessage {
     createdAt: string;
     updatedAt: string;
 }
+
+export interface Car {
+    id: number;
+    name: string;
+    brand: string;
+    technical_specs: string;
+    comfort_features: string;
+    main_image_url: string;
+    front_image_url: string;
+    side_image_url: string;
+    rear_image_url: string;
+    dashboard_image_url: string;
+    interior_image_1_url: string;
+    interior_image_2_url: string;
+}
+
+export interface DealershipInfo {
+    dealership_name: string;
+    company_name: string;
+    logo_url: string;
+    establishment_year: number | string;
+    activity_area: string;
+    address: string;
+    google_maps_url: string;
+    neshan_maps_url: string;
+    contact_phones: string;
+    mobile_numbers: string;
+    instagram_url: string;
+    youtube_url: string;
+    telegram_channel_url: string;
+    whatsapp_channel_url: string;
+    threads_url: string;
+    competitive_advantages: string;
+    description: string;
+}

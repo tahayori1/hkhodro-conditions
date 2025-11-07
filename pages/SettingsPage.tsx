@@ -7,7 +7,7 @@ import { NotificationIcon } from '../components/icons/NotificationIcon';
 
 const SettingsPage: React.FC = () => {
     // State for API settings form
-    const [apiSettings, setApiSettings] = useState<ApiSettings>({ whatsappApiKey: '', smsApiKey: '' });
+    const [apiSettings, setApiSettings] = useState<ApiSettings>({ whatsappApiKey: '', smsApiKey: '', didarApiKey: '' });
     const [apiLoading, setApiLoading] = useState(true);
     const [apiSaving, setApiSaving] = useState(false);
 
@@ -212,6 +212,7 @@ const SettingsPage: React.FC = () => {
                             <form onSubmit={handleApiSettingsSubmit} className="space-y-4">
                                 <FormField label="کلید API واتساپ" name="whatsappApiKey" type="text" value={apiSettings.whatsappApiKey} onChange={handleApiSettingsChange} disabled={apiSaving} />
                                 <FormField label="کلید API پیامک (SMS)" name="smsApiKey" type="text" value={apiSettings.smsApiKey} onChange={handleApiSettingsChange} disabled={apiSaving} />
+                                <FormField label="کلید API دیدار" name="didarApiKey" type="text" value={apiSettings.didarApiKey} onChange={handleApiSettingsChange} disabled={apiSaving} />
                                 <div className="pt-2 flex justify-end">
                                     <button type="submit" disabled={apiSaving} className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-sky-400 flex items-center justify-center w-28">
                                         {apiSaving ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'ذخیره'}

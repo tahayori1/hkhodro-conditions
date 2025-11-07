@@ -1,5 +1,4 @@
 const STATIC_CACHE_NAME = 'persian-car-sale-static-v2';
-const DATA_CACHE_NAME = 'persian-car-sale-data-v1';
 
 const urlsToCache = [
   '/',
@@ -19,7 +18,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [STATIC_CACHE_NAME, DATA_CACHE_NAME];
+  const cacheWhitelist = [STATIC_CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -38,32 +37,10 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const apiUrl = 'https://api.hoseinikhodro.com/webhook/';
 
-  // API requests (GET only): Network-first, then cache.
-  if (event.request.url.startsWith(apiUrl) && event.request.method === 'GET') {
-    event.respondWith(
-      fetch(event.request)
-        .then(networkResponse => {
-          // If response is good, cache it.
-          if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(DATA_CACHE_NAME).then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          // Network failed, try to serve from cache.
-          return caches.match(event.request);
-        })
-    );
-    return;
-  }
-  
-  // For non-GET API requests, just fetch from network.
+  // If it's an API request, always go to the network.
   if (event.request.url.startsWith(apiUrl)) {
-      event.respondWith(fetch(event.request));
-      return;
+    event.respondWith(fetch(event.request));
+    return;
   }
 
   // All other requests (static assets, pages): Cache-first, then network.

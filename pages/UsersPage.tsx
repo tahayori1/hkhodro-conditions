@@ -9,6 +9,9 @@ import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
 import HotLeadsPanel from '../components/HotLeadsPanel';
 import LeadDetailHistoryModal from '../components/LeadHistoryModal';
+import BroadcastModal from '../components/BroadcastModal';
+import { BroadcastIcon } from '../components/icons/BroadcastIcon';
+import { CloseIcon } from '../components/icons/CloseIcon';
 
 
 const ITEMS_PER_PAGE = 50;
@@ -46,6 +49,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'RegisterTime', direction: 'descending' });
 
+    const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+    const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+
+
     const fetchAllUsers = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -80,7 +87,43 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
 
     useEffect(() => {
         setCurrentPage(1);
+        setSelectedUserIds(new Set());
     }, [sortConfig]);
+    
+    const sortedUsers = useMemo(() => {
+        let usersCopy = [...users];
+
+        if (sortConfig !== null) {
+            return usersCopy.sort((a, b) => {
+                const aValue = a[sortConfig.key];
+                const bValue = b[sortConfig.key];
+                
+                if (['RegisterTime', 'LastAction', 'createdAt', 'updatedAt'].includes(sortConfig.key)) {
+                    const dateA = new Date(aValue as string).getTime();
+                    const dateB = new Date(bValue as string).getTime();
+                    if (dateA < dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
+                    if (dateA > dateB) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return 0;
+                }
+
+                const aStr = String(aValue ?? '');
+                const bStr = String(bValue ?? '');
+                const comparison = aStr.localeCompare(bStr, 'fa-IR');
+                return sortConfig.direction === 'ascending' ? comparison : -comparison;
+            });
+        }
+        
+        return usersCopy;
+    }, [users, sortConfig]);
+
+    const paginatedUsers = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return sortedUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [sortedUsers, currentPage]);
+    
+    useEffect(() => {
+        setSelectedUserIds(new Set());
+    }, [currentPage, paginatedUsers]);
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
@@ -198,36 +241,52 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
         }
     };
 
-    const sortedUsers = useMemo(() => {
-        let usersCopy = [...users];
+    const handleSelectionChange = (userId: number) => {
+        setSelectedUserIds(prev => {
+            const newSelection = new Set(prev);
+            if (newSelection.has(userId)) {
+                newSelection.delete(userId);
+            } else {
+                newSelection.add(userId);
+            }
+            return newSelection;
+        });
+    };
 
-        if (sortConfig !== null) {
-            return usersCopy.sort((a, b) => {
-                const aValue = a[sortConfig.key];
-                const bValue = b[sortConfig.key];
-                
-                if (['RegisterTime', 'LastAction', 'createdAt', 'updatedAt'].includes(sortConfig.key)) {
-                    const dateA = new Date(aValue as string).getTime();
-                    const dateB = new Date(bValue as string).getTime();
-                    if (dateA < dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
-                    if (dateA > dateB) return sortConfig.direction === 'ascending' ? 1 : -1;
-                    return 0;
-                }
+    const handleSelectAllChange = (selectAll: boolean) => {
+        if (selectAll) {
+            const allUserIdsOnPage = paginatedUsers.map(u => u.id);
+            setSelectedUserIds(new Set(allUserIdsOnPage));
+        } else {
+            setSelectedUserIds(new Set());
+        }
+    };
+    
+    const handleSendBroadcast = async (
+        message: string,
+        onProgress: (progress: { sent: number; errors: number }) => void
+    ): Promise<{finalSuccess: number, finalErrors: number}> => {
+        const selectedUsers = users.filter(u => selectedUserIds.has(u.id));
+        if (selectedUsers.length === 0 || !message.trim()) {
+            return {finalSuccess: 0, finalErrors: 0};
+        }
 
-                const aStr = String(aValue ?? '');
-                const bStr = String(bValue ?? '');
-                const comparison = aStr.localeCompare(bStr, 'fa-IR');
-                return sortConfig.direction === 'ascending' ? comparison : -comparison;
-            });
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const user of selectedUsers) {
+            try {
+                await sendMessage(user.Number, message);
+                successCount++;
+            } catch (err) {
+                console.error(`Failed to send message to ${user.Number}:`, err);
+                errorCount++;
+            }
+            onProgress({ sent: successCount, errors: errorCount });
         }
         
-        return usersCopy;
-    }, [users, sortConfig]);
-
-    const paginatedUsers = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return sortedUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [sortedUsers, currentPage]);
+        return {finalSuccess: successCount, finalErrors: errorCount};
+    };
 
     const totalPages = Math.ceil(sortedUsers.length / ITEMS_PER_PAGE);
 
@@ -256,6 +315,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
                             onViewDetails={handleViewDetails}
                             onSort={handleSort}
                             sortConfig={sortConfig}
+                            selectedUserIds={selectedUserIds}
+                            onSelectionChange={handleSelectionChange}
+                            onSelectAllChange={handleSelectAllChange}
                         />
                         {totalPages > 1 && (
                             <Pagination
@@ -292,6 +354,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
                 />
             )}
             
+            {isBroadcastModalOpen && (
+                 <BroadcastModal
+                    isOpen={isBroadcastModalOpen}
+                    onClose={() => {
+                        setIsBroadcastModalOpen(false);
+                        setSelectedUserIds(new Set());
+                    }}
+                    onSend={handleSendBroadcast}
+                    recipientCount={selectedUserIds.size}
+                />
+            )}
+            
             {isDeleteModalOpen && (
                 <DeleteConfirmModal
                     isOpen={isDeleteModalOpen}
@@ -303,6 +377,36 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
             )}
             
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+            {selectedUserIds.size > 0 && (
+                <div className="fixed bottom-0 left-0 right-0 bg-sky-700 text-white p-3 sm:p-4 shadow-lg z-30 flex justify-between items-center animate-slide-up">
+                    <p className="text-sm sm:text-base">{selectedUserIds.size.toLocaleString('fa-IR')} کاربر انتخاب شده است</p>
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        <button
+                            onClick={() => setIsBroadcastModalOpen(true)}
+                            className="bg-white text-sky-700 font-semibold px-3 sm:px-4 py-2 rounded-lg hover:bg-sky-100 transition-colors flex items-center gap-2 text-sm sm:text-base"
+                        >
+                            <BroadcastIcon /> ارسال پیام گروهی
+                        </button>
+                        <button
+                            onClick={() => setSelectedUserIds(new Set())}
+                            className="text-white hover:bg-sky-600 p-2 rounded-full"
+                            title="لغو انتخاب"
+                        >
+                            <CloseIcon className="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+            )}
+            <style>{`
+                @keyframes slide-up {
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
+                }
+                .animate-slide-up {
+                    animation: slide-up 0.3s ease-out forwards;
+                }
+            `}</style>
         </>
     );
 };

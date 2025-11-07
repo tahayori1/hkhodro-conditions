@@ -37,9 +37,16 @@ const getAuthHeaders = (): HeadersInit => {
     return headers;
 };
 
+const ensureOnline = () => {
+    if (!navigator.onLine) {
+        throw new Error('این عملیات در حالت آفلاین امکان‌پذیر نیست.');
+    }
+};
+
 // --- Auth ---
 
 export const login = async (username: string, password: string): Promise<{ token: string }> => {
+    ensureOnline();
     const response = await fetch(`${API_BASE_URL}/auth`, {
         method: 'POST',
         headers: {
@@ -62,6 +69,7 @@ export const login = async (username: string, password: string): Promise<{ token
 };
 
 export const createUserAccount = async (username: string, password: string): Promise<void> => {
+    ensureOnline();
     const response = await fetch(`${API_BASE_URL}/auth/new`, {
         method: 'POST',
         headers: {
@@ -120,6 +128,7 @@ export const getConditions = async (): Promise<CarSaleCondition[]> => {
 };
 
 export const createCondition = async (condition: Omit<CarSaleCondition, 'id'>): Promise<CarSaleCondition> => {
+    ensureOnline();
     const response = await fetch(`${API_BASE_URL}/conditions`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -130,6 +139,7 @@ export const createCondition = async (condition: Omit<CarSaleCondition, 'id'>): 
 };
 
 export const updateCondition = async (id: number, updatedCondition: CarSaleCondition): Promise<CarSaleCondition> => {
+    ensureOnline();
     const response = await fetch(`${API_BASE_URL}/conditions`, {
         method: 'PUT',
         headers: getAuthHeaders(),
@@ -140,6 +150,7 @@ export const updateCondition = async (id: number, updatedCondition: CarSaleCondi
 };
 
 export const deleteCondition = async (id: number): Promise<void> => {
+    ensureOnline();
     const response = await fetch(`${API_BASE_URL}/conditions`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -157,7 +168,7 @@ export const getUserByNumber = async (number: string): Promise<User | null> => {
 
 export const getActiveLeads = async (): Promise<ActiveLead[]> => {
     const response = await fetch(`${API_BASE_URL}/users/active/`, { headers: getAuthHeaders() });
-    const data = await handleResponse(response);
+    const data: ActiveLead[] = await handleResponse(response) || [];
     return Array.isArray(data) ? data : [];
 };
 
@@ -174,6 +185,7 @@ export const getUsers = async (): Promise<User[]> => {
 };
 
 export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
+    ensureOnline();
     const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -183,6 +195,7 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
 };
 
 export const updateUser = async (id: number, updatedUser: User): Promise<User> => {
+    ensureOnline();
     const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'PUT',
         headers: getAuthHeaders(),
@@ -193,6 +206,7 @@ export const updateUser = async (id: number, updatedUser: User): Promise<User> =
 };
 
 export const deleteUser = async (id: number): Promise<void> => {
+    ensureOnline();
     const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -203,6 +217,7 @@ export const deleteUser = async (id: number): Promise<void> => {
 
 // --- WhatsApp ---
 export const sendMessage = async (number: string, message: string): Promise<{ Sent: string }> => {
+    ensureOnline();
     const response = await fetch(`${API_BASE_URL}/whatsapp/send`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -216,16 +231,18 @@ export const sendMessage = async (number: string, message: string): Promise<{ Se
 export interface ApiSettings {
     whatsappApiKey: string;
     smsApiKey: string;
+    didarApiKey: string;
 }
 
 // Mock implementation using localStorage
 export const getApiSettings = async (): Promise<ApiSettings> => {
     await new Promise(resolve => setTimeout(resolve, 200));
     const settings = localStorage.getItem('apiSettings');
-    return settings ? JSON.parse(settings) : { whatsappApiKey: '', smsApiKey: '' };
+    return settings ? JSON.parse(settings) : { whatsappApiKey: '', smsApiKey: '', didarApiKey: '' };
 };
 
 export const saveApiSettings = async (settings: ApiSettings): Promise<void> => {
+    ensureOnline();
     await new Promise(resolve => setTimeout(resolve, 500));
     localStorage.setItem('apiSettings', JSON.stringify(settings));
 };
@@ -235,6 +252,7 @@ export const updateUserCredentials = async (
     newUsername: string,
     newPasswordHash?: string
 ): Promise<void> => {
+    ensureOnline();
     const payload: any = {
         currentPassword: currentPasswordHash,
     };
