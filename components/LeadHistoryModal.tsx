@@ -13,7 +13,7 @@ interface LeadDetailHistoryModalProps {
     isLoading: boolean;
     error: string | null;
     onSendMessage: (message: string) => Promise<void>;
-    car: Car | null;
+    cars: Car[];
     conditions: CarSaleCondition[];
 }
 
@@ -24,11 +24,12 @@ const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ labe
     </div>
 );
 
-const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, onSendMessage, car, conditions }) => {
+const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, onSendMessage, cars, conditions }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [quickSendCarModel, setQuickSendCarModel] = useState('');
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,6 +40,18 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
             setTimeout(scrollToBottom, 100);
         }
     }, [isOpen, isLoading, messages]);
+
+    useEffect(() => {
+        if (isOpen && (lead || fullUserDetails)) {
+            const initialCarModel = fullUserDetails?.CarModel || ('CarModel' in lead! ? lead.CarModel : '') || '';
+            setQuickSendCarModel(initialCarModel);
+        } else if (!isOpen) {
+            // Reset state on close
+            setQuickSendCarModel('');
+            setNewMessage('');
+        }
+    }, [isOpen, lead, fullUserDetails]);
+
 
     useEffect(() => {
         if (textareaRef.current) {
@@ -67,23 +80,26 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
         setTimeout(() => textareaRef.current?.focus(), 0);
     };
 
+    const selectedCarForQuickSend = cars.find(c => c.name === quickSendCarModel);
+    const conditionsForSelectedCar = conditions.filter(c => c.car_model === quickSendCarModel);
+
     const formatConditions = (): string => {
-        if (!car || conditions.length === 0) return '';
-        let text = `شرایط فروش موجود برای ${car.name}:\n`;
-        text += conditions.map(c => 
+        if (!selectedCarForQuickSend || conditionsForSelectedCar.length === 0) return '';
+        let text = `شرایط فروش موجود برای ${selectedCarForQuickSend.name}:\n`;
+        text += conditionsForSelectedCar.map(c => 
             `- ${c.sale_type} (${c.pay_type}): پیش پرداخت ${c.initial_deposit.toLocaleString('fa-IR')} تومان، تحویل ${c.delivery_time}`
         ).join('\n');
         return text;
     };
 
     const formatTechSpecs = (): string => {
-        if (!car || !car.technical_specs) return '';
-        return `مشخصات فنی خودرو ${car.name}:\n\n${car.technical_specs}`;
+        if (!selectedCarForQuickSend || !selectedCarForQuickSend.technical_specs) return '';
+        return `مشخصات فنی خودرو ${selectedCarForQuickSend.name}:\n\n${selectedCarForQuickSend.technical_specs}`;
     };
 
     const formatComfortFeatures = (): string => {
-        if (!car || !car.comfort_features) return '';
-        return `امکانات رفاهی خودرو ${car.name}:\n\n${car.comfort_features}`;
+        if (!selectedCarForQuickSend || !selectedCarForQuickSend.comfort_features) return '';
+        return `امکانات رفاهی خودرو ${selectedCarForQuickSend.name}:\n\n${selectedCarForQuickSend.comfort_features}`;
     };
 
     if (!isOpen || !lead) return null;
@@ -180,34 +196,46 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
                 </main>
                 
                 <footer className="p-3 border-t bg-white flex-shrink-0">
-                    {!isLoading && car && (
+                    {!isLoading && (
                         <div className="p-2 mb-2 border-b">
                             <p className="text-sm font-semibold text-slate-600 mb-2">ارسال سریع:</p>
-                            <div className="flex flex-wrap gap-2">
-                                <button 
-                                    type="button" 
-                                    onClick={() => handleQuickSend(formatConditions())}
-                                    disabled={conditions.length === 0}
-                                    className="text-xs px-3 py-1 bg-slate-200 text-slate-700 rounded-full hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                                 <select
+                                    value={quickSendCarModel}
+                                    onChange={(e) => setQuickSendCarModel(e.target.value)}
+                                    className="w-full sm:w-48 px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-sm focus:ring-sky-500 focus:border-sky-500"
                                 >
-                                    شرایط فروش
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => handleQuickSend(formatTechSpecs())}
-                                    disabled={!car.technical_specs}
-                                    className="text-xs px-3 py-1 bg-slate-200 text-slate-700 rounded-full hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    مشخصات فنی
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => handleQuickSend(formatComfortFeatures())}
-                                    disabled={!car.comfort_features}
-                                    className="text-xs px-3 py-1 bg-slate-200 text-slate-700 rounded-full hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    امکانات رفاهی
-                                </button>
+                                    <option value="">انتخاب خودرو...</option>
+                                    {cars.map(car => (
+                                        <option key={car.id} value={car.name}>{car.name}</option>
+                                    ))}
+                                </select>
+                                <div className="flex flex-wrap gap-2">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleQuickSend(formatConditions())}
+                                        disabled={!selectedCarForQuickSend || conditionsForSelectedCar.length === 0}
+                                        className="text-xs px-3 py-1 bg-slate-200 text-slate-700 rounded-full hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        شرایط فروش
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleQuickSend(formatTechSpecs())}
+                                        disabled={!selectedCarForQuickSend || !selectedCarForQuickSend.technical_specs}
+                                        className="text-xs px-3 py-1 bg-slate-200 text-slate-700 rounded-full hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        مشخصات فنی
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleQuickSend(formatComfortFeatures())}
+                                        disabled={!selectedCarForQuickSend || !selectedCarForQuickSend.comfort_features}
+                                        className="text-xs px-3 py-1 bg-slate-200 text-slate-700 rounded-full hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        امکانات رفاهی
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

@@ -46,8 +46,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
     const [modalFullUser, setModalFullUser] = useState<User | null>(null);
     const [modalLoading, setModalLoading] = useState<boolean>(false);
     const [modalError, setModalError] = useState<string | null>(null);
-    const [selectedCarForModal, setSelectedCarForModal] = useState<Car | null>(null);
-    const [selectedConditionsForModal, setSelectedConditionsForModal] = useState<CarSaleCondition[]>([]);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
     const [userToDelete, setUserToDelete] = useState<number | null>(null);
@@ -192,8 +190,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
         setModalError(null);
         setModalMessages([]);
         setModalFullUser(null);
-        setSelectedCarForModal(null);
-        setSelectedConditionsForModal([]);
         try {
             const numberToFetch = 'number' in lead ? lead.number : lead.Number;
             
@@ -205,16 +201,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
 
             setModalMessages(historyData.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
             setModalFullUser(userData);
-
-            const carModel = userData?.CarModel || lead.CarModel;
-
-            if (carModel) {
-                const foundCar = cars.find(c => c.name.toLowerCase() === carModel.toLowerCase());
-                setSelectedCarForModal(foundCar || null);
-
-                const foundConditions = conditions.filter(c => c.car_model.toLowerCase() === carModel.toLowerCase());
-                setSelectedConditionsForModal(foundConditions);
-            }
 
         } catch (err) {
             setModalError('خطا در دریافت اطلاعات کامل سرنخ');
@@ -412,8 +398,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
                     isLoading={modalLoading}
                     error={modalError}
                     onSendMessage={handleSendMessage}
-                    car={selectedCarForModal}
-                    conditions={selectedConditionsForModal}
+                    cars={cars}
+                    conditions={conditions}
                 />
             )}
             
