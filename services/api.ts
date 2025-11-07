@@ -292,7 +292,12 @@ export const getSettings = async (): Promise<Partial<AppSettings>> => {
         return {};
     }
     const data = await handleResponse(response);
-    return data || {};
+    // API returns an array with a single settings object
+    if (Array.isArray(data) && data.length > 0) {
+        return data[0];
+    }
+    // Fallback for empty array or other unexpected format
+    return {};
 };
 
 export const updateSettings = async (settings: Partial<AppSettings>): Promise<void> => {
