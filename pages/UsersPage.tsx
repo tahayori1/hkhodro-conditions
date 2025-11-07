@@ -12,17 +12,21 @@ import LeadDetailHistoryModal from '../components/LeadHistoryModal';
 import BroadcastModal from '../components/BroadcastModal';
 import { BroadcastIcon } from '../components/icons/BroadcastIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
+import UserFilterPanel from '../components/UserFilterPanel';
 
 
 const ITEMS_PER_PAGE = 50;
 
 type SortConfig = { key: keyof User; direction: 'ascending' | 'descending' } | null;
+type UserFilters = { query: string; carModel: string };
 
 interface UsersPageProps {
     setOnAddNew: (handler: (() => void) | null) => void;
+    initialFilters: { carModel?: string };
+    onFiltersCleared: () => void;
 }
 
-const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
+const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFiltersCleared }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -48,9 +52,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
     
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'RegisterTime', direction: 'descending' });
+    const [filters, setFilters] = useState<UserFilters>({ query: '', carModel: 'all' });
 
     const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+
+    useEffect(() => {
+        setFilters(prev => ({ ...prev, carModel: initialFilters.carModel || 'all' }));
+    }, [initialFilters]);
 
 
     const fetchAllUsers = useCallback(async () => {
@@ -88,10 +97,26 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
     useEffect(() => {
         setCurrentPage(1);
         setSelectedUserIds(new Set());
-    }, [sortConfig]);
+    }, [sortConfig, filters]);
     
+    const filteredUsers = useMemo(() => {
+        const lowercasedQuery = filters.query.toLowerCase();
+        return users.filter(user => {
+            const queryMatch = filters.query === '' ||
+                (user.FullName?.toLowerCase().includes(lowercasedQuery)) ||
+                (user.Number?.includes(lowercasedQuery)) ||
+                (user.CarModel?.toLowerCase().includes(lowercasedQuery)) ||
+                (user.Province?.toLowerCase().includes(lowercasedQuery)) ||
+                (user.City?.toLowerCase().includes(lowercasedQuery)) ||
+                (user.Decription?.toLowerCase().includes(lowercasedQuery));
+
+            const carModelMatch = filters.carModel === 'all' || user.CarModel === filters.carModel;
+            return queryMatch && carModelMatch;
+        });
+    }, [users, filters]);
+
     const sortedUsers = useMemo(() => {
-        let usersCopy = [...users];
+        let usersCopy = [...filteredUsers];
 
         if (sortConfig !== null) {
             return usersCopy.sort((a, b) => {
@@ -114,7 +139,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
         }
         
         return usersCopy;
-    }, [users, sortConfig]);
+    }, [filteredUsers, sortConfig]);
 
     const paginatedUsers = useMemo(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -299,6 +324,20 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew }) => {
                     error={hotLeadsError}
                     onViewDetails={handleViewDetails}
                 />
+
+                <div className="bg-white p-6 rounded-lg shadow-md mb-8 space-y-4">
+                     <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-slate-700">فیلتر سرنخ‌ها</h2>
+                    </div>
+                    <UserFilterPanel
+                        filters={filters}
+                        onFilterChange={setFilters}
+                        onClear={() => {
+                            setFilters({ query: '', carModel: 'all' });
+                            onFiltersCleared();
+                        }}
+                    />
+                </div>
 
                 {loading ? (
                     <div className="flex justify-center items-center h-64">

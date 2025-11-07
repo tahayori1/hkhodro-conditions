@@ -19,6 +19,7 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [activeView, setActiveView] = useState<'conditions' | 'users' | 'cars' | 'settings'>('users');
     const [onAddNew, setOnAddNew] = useState<(() => void) | null>(null);
+    const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
 
     const knownLeadsRef = useRef<Set<string>>(new Set());
     const isInitialLoadRef = useRef(true);
@@ -109,6 +110,11 @@ const App: React.FC = () => {
         setIsAuthenticated(false);
     };
 
+    const handleNavigateToUsersWithFilter = (carModel: string) => {
+        setUserPageInitialFilters({ carModel });
+        setActiveView('users');
+    };
+
     if (isLoading) {
         return (
             <div className="bg-slate-100 min-h-screen flex justify-center items-center">
@@ -185,8 +191,8 @@ const App: React.FC = () => {
             </header>
 
             {activeView === 'conditions' && <ConditionsPage setOnAddNew={setOnAddNew} />}
-            {activeView === 'users' && <UsersPage setOnAddNew={setOnAddNew} />}
-            {activeView === 'cars' && <CarsPage setOnAddNew={setOnAddNew} />}
+            {activeView === 'users' && <UsersPage setOnAddNew={setOnAddNew} initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} />}
+            {activeView === 'cars' && <CarsPage setOnAddNew={setOnAddNew} onNavigateToLeads={handleNavigateToUsersWithFilter} />}
             {activeView === 'settings' && <SettingsPage />}
 
             {onAddNew && !['settings'].includes(activeView) && (

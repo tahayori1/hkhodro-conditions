@@ -127,6 +127,12 @@ export const getConditions = async (): Promise<CarSaleCondition[]> => {
     return Array.isArray(data) ? data.map(normalizeCondition) : [];
 };
 
+export const getConditionsByCarModel = async (carModel: string): Promise<CarSaleCondition[]> => {
+    const response = await fetch(`${API_BASE_URL}/conditions?CarModel=${encodeURIComponent(carModel)}`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data.map(normalizeCondition) : [];
+};
+
 export const createCondition = async (condition: Omit<CarSaleCondition, 'id'>): Promise<CarSaleCondition> => {
     ensureOnline();
     const response = await fetch(`${API_BASE_URL}/conditions`, {

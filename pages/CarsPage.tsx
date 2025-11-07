@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getCars, createCar, updateCar, deleteCar, getUsersByCarModel } from '../services/api';
-import type { Car, User } from '../types';
+import { getCars, createCar, updateCar, deleteCar, getConditionsByCarModel } from '../services/api';
+import type { Car, CarSaleCondition } from '../types';
 import CarTable from '../components/CarTable';
 import CarModal from '../components/CarModal';
 import CarViewModal from '../components/CarViewModal';
@@ -10,9 +10,10 @@ import Spinner from '../components/Spinner';
 
 interface CarsPageProps {
     setOnAddNew: (handler: (() => void) | null) => void;
+    onNavigateToLeads: (carModel: string) => void;
 }
 
-const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew }) => {
+const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew, onNavigateToLeads }) => {
     const [cars, setCars] = useState<Car[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -22,9 +23,9 @@ const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew }) => {
 
     const [isViewModalOpen, setIsViewModalOpen] = useState<boolean>(false);
     const [carToView, setCarToView] = useState<Car | null>(null);
-    const [carLeads, setCarLeads] = useState<User[]>([]);
-    const [leadsLoading, setLeadsLoading] = useState<boolean>(false);
-    const [leadsError, setLeadsError] = useState<string | null>(null);
+    const [carConditions, setCarConditions] = useState<CarSaleCondition[]>([]);
+    const [conditionsLoading, setConditionsLoading] = useState<boolean>(false);
+    const [conditionsError, setConditionsError] = useState<string | null>(null);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
     const [carToDelete, setCarToDelete] = useState<number | null>(null);
@@ -72,16 +73,16 @@ const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew }) => {
     const handleView = async (car: Car) => {
         setCarToView(car);
         setIsViewModalOpen(true);
-        setLeadsLoading(true);
-        setLeadsError(null);
-        setCarLeads([]);
+        setConditionsLoading(true);
+        setConditionsError(null);
+        setCarConditions([]);
         try {
-            const leadsData = await getUsersByCarModel(car.name);
-            setCarLeads(leadsData);
+            const conditionsData = await getConditionsByCarModel(car.name);
+            setCarConditions(conditionsData);
         } catch (err) {
-            setLeadsError('خطا در دریافت لیست سرنخ‌ها');
+            setConditionsError('خطا در دریافت لیست شرایط فروش');
         } finally {
-            setLeadsLoading(false);
+            setConditionsLoading(false);
         }
     };
 
@@ -160,9 +161,10 @@ const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew }) => {
                     isOpen={isViewModalOpen}
                     onClose={() => setIsViewModalOpen(false)}
                     car={carToView}
-                    leads={carLeads}
-                    leadsLoading={leadsLoading}
-                    leadsError={leadsError}
+                    conditions={carConditions}
+                    conditionsLoading={conditionsLoading}
+                    conditionsError={conditionsError}
+                    onNavigateToLeads={onNavigateToLeads}
                 />
             )}
 
