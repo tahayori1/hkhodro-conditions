@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, getActiveLeads, getLeadHistory, sendMessage, getUserByNumber } from '../services/api';
-import type { User, ActiveLead, LeadMessage } from '../types';
+import { getUsers, createUser, updateUser, deleteUser, getActiveLeads, getLeadHistory, sendMessage, getUserByNumber, getCars, getConditions } from '../services/api';
+import type { User, ActiveLead, LeadMessage, Car, CarSaleCondition } from '../types';
 import UserTable from '../components/UserTable';
 import UserModal from '../components/UserModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -28,6 +28,8 @@ interface UsersPageProps {
 
 const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFiltersCleared }) => {
     const [users, setUsers] = useState<User[]>([]);
+    const [cars, setCars] = useState<Car[]>([]);
+    const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +46,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
     const [modalFullUser, setModalFullUser] = useState<User | null>(null);
     const [modalLoading, setModalLoading] = useState<boolean>(false);
     const [modalError, setModalError] = useState<string | null>(null);
+    const [selectedCarForModal, setSelectedCarForModal] = useState<Car | null>(null);
+    const [selectedConditionsForModal, setSelectedConditionsForModal] = useState<CarSaleCondition[]>([]);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
     const [userToDelete, setUserToDelete] = useState<number | null>(null);
@@ -62,15 +66,21 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
     }, [initialFilters]);
 
 
-    const fetchAllUsers = useCallback(async () => {
+    const fetchAllData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await getUsers();
-            setUsers(data);
+            const [usersData, carsData, conditionsData] = await Promise.all([
+                getUsers(),
+                getCars(),
+                getConditions()
+            ]);
+            setUsers(usersData);
+            setCars(carsData);
+            setConditions(conditionsData);
         } catch (err) {
-            setError('خطا در دریافت اطلاعات کاربران');
-            showToast('خطا در دریافت اطلاعات کاربران', 'error');
+            setError('خطا در دریافت اطلاعات');
+            showToast('خطا در دریافت اطلاعات', 'error');
         } finally {
             setLoading(false);
         }
@@ -90,9 +100,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
     }, []);
 
     useEffect(() => {
-        fetchAllUsers();
+        fetchAllData();
         fetchActiveLeads();
-    }, [fetchAllUsers, fetchActiveLeads]);
+    }, [fetchAllData, fetchActiveLeads]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -182,6 +192,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
         setModalError(null);
         setModalMessages([]);
         setModalFullUser(null);
+        setSelectedCarForModal(null);
+        setSelectedConditionsForModal([]);
         try {
             const numberToFetch = 'number' in lead ? lead.number : lead.Number;
             
@@ -193,6 +205,16 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
 
             setModalMessages(historyData.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
             setModalFullUser(userData);
+
+            const carModel = userData?.CarModel || lead.CarModel;
+
+            if (carModel) {
+                const foundCar = cars.find(c => c.name.toLowerCase() === carModel.toLowerCase());
+                setSelectedCarForModal(foundCar || null);
+
+                const foundConditions = conditions.filter(c => c.car_model.toLowerCase() === carModel.toLowerCase());
+                setSelectedConditionsForModal(foundConditions);
+            }
 
         } catch (err) {
             setModalError('خطا در دریافت اطلاعات کامل سرنخ');
@@ -219,7 +241,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
             }
             setIsModalOpen(false);
             setCurrentUser(null);
-            fetchAllUsers();
+            fetchAllData();
         } catch (err) {
             showToast('عملیات با خطا مواجه شد', 'error');
         }
@@ -232,7 +254,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
                 showToast('کاربر با موفقیت حذف شد', 'success');
                 setIsDeleteModalOpen(false);
                 setUserToDelete(null);
-                fetchAllUsers();
+                fetchAllData();
             } catch (err) {
                 showToast('حذف کاربر با خطا مواجه شد', 'error');
             }
@@ -390,6 +412,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
                     isLoading={modalLoading}
                     error={modalError}
                     onSendMessage={handleSendMessage}
+                    car={selectedCarForModal}
+                    conditions={selectedConditionsForModal}
                 />
             )}
             

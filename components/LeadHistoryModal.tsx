@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { User, ActiveLead, LeadMessage } from '../types';
+import type { User, ActiveLead, LeadMessage, Car, CarSaleCondition } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
 import Spinner from './Spinner';
 import { SendIcon } from './icons/SendIcon';
@@ -13,6 +13,8 @@ interface LeadDetailHistoryModalProps {
     isLoading: boolean;
     error: string | null;
     onSendMessage: (message: string) => Promise<void>;
+    car: Car | null;
+    conditions: CarSaleCondition[];
 }
 
 const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ label, value }) => (
@@ -22,8 +24,9 @@ const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ labe
     </div>
 );
 
-const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, onSendMessage }) => {
+const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, onSendMessage, car, conditions }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
 
@@ -36,6 +39,13 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
             setTimeout(scrollToBottom, 100);
         }
     }, [isOpen, isLoading, messages]);
+
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [newMessage]);
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,6 +60,30 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
         } finally {
             setIsSending(false);
         }
+    };
+    
+    const handleQuickSend = (text: string) => {
+        setNewMessage(prev => prev ? `${prev}\n\n${text}`.trim() : text);
+        setTimeout(() => textareaRef.current?.focus(), 0);
+    };
+
+    const formatConditions = (): string => {
+        if (!car || conditions.length === 0) return '';
+        let text = `شرایط فروش موجود برای ${car.name}:\n`;
+        text += conditions.map(c => 
+            `- ${c.sale_type} (${c.pay_type}): پیش پرداخت ${c.initial_deposit.toLocaleString('fa-IR')} تومان، تحویل ${c.delivery_time}`
+        ).join('\n');
+        return text;
+    };
+
+    const formatTechSpecs = (): string => {
+        if (!car || !car.technical_specs) return '';
+        return `مشخصات فنی خودرو ${car.name}:\n\n${car.technical_specs}`;
+    };
+
+    const formatComfortFeatures = (): string => {
+        if (!car || !car.comfort_features) return '';
+        return `امکانات رفاهی خودرو ${car.name}:\n\n${car.comfort_features}`;
     };
 
     if (!isOpen || !lead) return null;
@@ -129,7 +163,7 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
                                         {messages.map((msg) => (
                                             <div key={msg.id} className={`flex items-end gap-2 ${msg.receive === 1 ? 'justify-start' : 'justify-end'}`}>
                                                 <div className={`max-w-xs md:max-w-md p-3 rounded-xl ${msg.receive === 1 ? 'bg-sky-100 text-slate-800' : 'bg-slate-200 text-slate-800'}`}>
-                                                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: msg.Message }} />
+                                                    <div className="prose prose-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: msg.Message }} />
                                                     <div className={`text-xs mt-2 ${msg.receive === 1 ? 'text-slate-500' : 'text-slate-500'}`}>
                                                         <span>{formatDate(msg.createdAt)}</span>
                                                         {msg.media && <span className="font-semibold"> ({msg.media})</span>}
@@ -146,15 +180,47 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
                 </main>
                 
                 <footer className="p-3 border-t bg-white flex-shrink-0">
+                    {!isLoading && car && (
+                        <div className="p-2 mb-2 border-b">
+                            <p className="text-sm font-semibold text-slate-600 mb-2">ارسال سریع:</p>
+                            <div className="flex flex-wrap gap-2">
+                                <button 
+                                    type="button" 
+                                    onClick={() => handleQuickSend(formatConditions())}
+                                    disabled={conditions.length === 0}
+                                    className="text-xs px-3 py-1 bg-slate-200 text-slate-700 rounded-full hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    شرایط فروش
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => handleQuickSend(formatTechSpecs())}
+                                    disabled={!car.technical_specs}
+                                    className="text-xs px-3 py-1 bg-slate-200 text-slate-700 rounded-full hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    مشخصات فنی
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => handleQuickSend(formatComfortFeatures())}
+                                    disabled={!car.comfort_features}
+                                    className="text-xs px-3 py-1 bg-slate-200 text-slate-700 rounded-full hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    امکانات رفاهی
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     <form onSubmit={handleSubmit} className="flex items-center gap-2">
-                        <input
-                            type="text"
+                        <textarea
+                            ref={textareaRef}
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             placeholder="محل تایپ کردن پاسخ..."
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition resize-y min-h-[44px] max-h-36"
                             disabled={isSending || isLoading}
                             autoComplete="off"
+                            rows={1}
                         />
                         <button
                             type="submit"
