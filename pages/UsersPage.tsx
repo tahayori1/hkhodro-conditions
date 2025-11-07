@@ -426,6 +426,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
                     }}
                     onSend={handleSendBroadcast}
                     recipientCount={selectedUserIds.size}
+                    cars={cars}
+                    conditions={conditions}
                 />
             )}
             
