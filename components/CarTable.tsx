@@ -2,14 +2,16 @@ import React from 'react';
 import type { Car } from '../types';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
+import { EyeIcon } from './icons/EyeIcon';
 
 interface CarTableProps {
     cars: Car[];
     onEdit: (car: Car) => void;
     onDelete: (id: number) => void;
+    onView: (car: Car) => void;
 }
 
-const CarTable: React.FC<CarTableProps> = ({ cars, onEdit, onDelete }) => {
+const CarTable: React.FC<CarTableProps> = ({ cars, onEdit, onDelete, onView }) => {
     if (cars.length === 0) {
         return <p className="text-center text-slate-500 py-10">هیچ خودرویی یافت نشد.</p>;
     }
@@ -33,6 +35,9 @@ const CarTable: React.FC<CarTableProps> = ({ cars, onEdit, onDelete }) => {
                                 <td className="px-6 py-4">{car.brand}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-4">
+                                        <button onClick={() => onView(car)} className="text-slate-500 hover:text-slate-800" title="نمایش جزئیات">
+                                            <EyeIcon />
+                                        </button>
                                         <button onClick={() => onEdit(car)} className="text-sky-600 hover:text-sky-800" title="ویرایش">
                                             <EditIcon />
                                         </button>
@@ -56,6 +61,9 @@ const CarTable: React.FC<CarTableProps> = ({ cars, onEdit, onDelete }) => {
                             <p className="text-sm text-slate-600"><strong>برند:</strong> {car.brand}</p>
                         </div>
                         <div className="flex items-center justify-end gap-4 mt-4 pt-4 border-t border-slate-200">
+                            <button onClick={() => onView(car)} className="flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm">
+                                <EyeIcon /> نمایش
+                            </button>
                             <button onClick={() => onEdit(car)} className="flex items-center gap-1 text-sky-600 hover:text-sky-800 text-sm">
                                 <EditIcon /> ویرایش
                             </button>

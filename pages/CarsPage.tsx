@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { Car } from '../types';
+import { getCars, createCar, updateCar, deleteCar, getUsersByCarModel } from '../services/api';
+import type { Car, User } from '../types';
 import CarTable from '../components/CarTable';
 import CarModal from '../components/CarModal';
+import CarViewModal from '../components/CarViewModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
@@ -10,30 +12,43 @@ interface CarsPageProps {
     setOnAddNew: (handler: (() => void) | null) => void;
 }
 
-const MOCK_CARS: Car[] = [
-    { id: 1, name: 'JAC J4', brand: 'JAC', technical_specs: '1.5L Engine, Automatic', comfort_features: 'Sunroof, Leather seats', main_image_url: '', front_image_url: '', side_image_url: '', rear_image_url: '', dashboard_image_url: '', interior_image_1_url: '', interior_image_2_url: '' },
-    { id: 2, name: 'KMC T8', brand: 'KMC', technical_specs: '2.0L Turbo, Manual', comfort_features: '4x4, Touchscreen', main_image_url: '', front_image_url: '', side_image_url: '', rear_image_url: '', dashboard_image_url: '', interior_image_1_url: '', interior_image_2_url: '' }
-];
-
 const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew }) => {
     const [cars, setCars] = useState<Car[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
     
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [currentCar, setCurrentCar] = useState<Car | null>(null);
+
+    const [isViewModalOpen, setIsViewModalOpen] = useState<boolean>(false);
+    const [carToView, setCarToView] = useState<Car | null>(null);
+    const [carLeads, setCarLeads] = useState<User[]>([]);
+    const [leadsLoading, setLeadsLoading] = useState<boolean>(false);
+    const [leadsError, setLeadsError] = useState<string | null>(null);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
     const [carToDelete, setCarToDelete] = useState<number | null>(null);
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-    useEffect(() => {
-        // Simulate fetching data
-        setTimeout(() => {
-            setCars(MOCK_CARS);
+    const fetchAllCars = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await getCars();
+            setCars(data);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'خطا در دریافت اطلاعات خودروها';
+            setError(errorMessage);
+            showToast(errorMessage, 'error');
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchAllCars();
+    }, [fetchAllCars]);
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
@@ -53,6 +68,22 @@ const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew }) => {
         setCurrentCar(car);
         setIsModalOpen(true);
     };
+    
+    const handleView = async (car: Car) => {
+        setCarToView(car);
+        setIsViewModalOpen(true);
+        setLeadsLoading(true);
+        setLeadsError(null);
+        setCarLeads([]);
+        try {
+            const leadsData = await getUsersByCarModel(car.name);
+            setCarLeads(leadsData);
+        } catch (err) {
+            setLeadsError('خطا در دریافت لیست سرنخ‌ها');
+        } finally {
+            setLeadsLoading(false);
+        }
+    };
 
     const handleDelete = (id: number) => {
         setCarToDelete(id);
@@ -60,25 +91,35 @@ const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew }) => {
     };
     
     const handleSave = async (carData: Omit<Car, 'id'>) => {
-        // UI-only logic
-        if (currentCar) {
-            setCars(cars.map(c => c.id === currentCar.id ? { ...c, ...carData } : c));
-            showToast('خودرو با موفقیت ویرایش شد', 'success');
-        } else {
-            const newCar = { ...carData, id: Date.now() }; // Use timestamp for unique ID in mock
-            setCars([...cars, newCar]);
-            showToast('خودرو جدید با موفقیت اضافه شد', 'success');
+        try {
+            if (currentCar) {
+                await updateCar(currentCar.id, { ...carData, id: currentCar.id });
+                showToast('خودرو با موفقیت ویرایش شد', 'success');
+            } else {
+                await createCar(carData);
+                showToast('خودرو جدید با موفقیت اضافه شد', 'success');
+            }
+            setIsModalOpen(false);
+            setCurrentCar(null);
+            fetchAllCars();
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'عملیات با خطا مواجه شد';
+            showToast(errorMessage, 'error');
         }
-        setIsModalOpen(false);
-        setCurrentCar(null);
     };
     
     const confirmDelete = async () => {
         if (carToDelete !== null) {
-            setCars(cars.filter(c => c.id !== carToDelete));
-            showToast('خودرو با موفقیت حذف شد', 'success');
-            setIsDeleteModalOpen(false);
-            setCarToDelete(null);
+            try {
+                await deleteCar(carToDelete);
+                showToast('خودرو با موفقیت حذف شد', 'success');
+                setIsDeleteModalOpen(false);
+                setCarToDelete(null);
+                fetchAllCars();
+            } catch (err) {
+                const errorMessage = err instanceof Error ? err.message : 'حذف خودرو با خطا مواجه شد';
+                showToast(errorMessage, 'error');
+            }
         }
     };
 
@@ -93,11 +134,14 @@ const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew }) => {
                     <div className="flex justify-center items-center h-64">
                         <Spinner />
                     </div>
+                ) : error ? (
+                    <p className="text-center text-red-500">{error}</p>
                 ) : (
                     <CarTable 
                         cars={cars} 
                         onEdit={handleEdit} 
-                        onDelete={handleDelete} 
+                        onDelete={handleDelete}
+                        onView={handleView}
                     />
                 )}
             </main>
@@ -111,6 +155,17 @@ const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew }) => {
                 />
             )}
             
+            {isViewModalOpen && (
+                <CarViewModal
+                    isOpen={isViewModalOpen}
+                    onClose={() => setIsViewModalOpen(false)}
+                    car={carToView}
+                    leads={carLeads}
+                    leadsLoading={leadsLoading}
+                    leadsError={leadsError}
+                />
+            )}
+
             {isDeleteModalOpen && (
                 <DeleteConfirmModal
                     isOpen={isDeleteModalOpen}

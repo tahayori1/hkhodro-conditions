@@ -1,4 +1,4 @@
-import type { CarSaleCondition, User, ActiveLead, LeadMessage } from '../types';
+import type { Car, CarSaleCondition, User, ActiveLead, LeadMessage, DealershipInfo } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
 
@@ -184,6 +184,12 @@ export const getUsers = async (): Promise<User[]> => {
     return Array.isArray(data) ? data : [];
 };
 
+export const getUsersByCarModel = async (carModel: string): Promise<User[]> => {
+    const response = await fetch(`${API_BASE_URL}/users/cars?CarModel=${encodeURIComponent(carModel)}`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+};
+
 export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
     ensureOnline();
     const response = await fetch(`${API_BASE_URL}/users`, {
@@ -215,6 +221,44 @@ export const deleteUser = async (id: number): Promise<void> => {
     return handleResponse(response);
 };
 
+// --- Cars ---
+export const getCars = async (): Promise<Car[]> => {
+    const response = await fetch(`${API_BASE_URL}/cars`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+};
+
+export const createCar = async (car: Omit<Car, 'id'>): Promise<Car> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/cars`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(car),
+    });
+    return handleResponse(response);
+};
+
+export const updateCar = async (id: number, updatedCar: Car): Promise<Car> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/cars`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updatedCar),
+    });
+    const resultCar = await handleResponse(response);
+    return resultCar ?? updatedCar;
+};
+
+export const deleteCar = async (id: number): Promise<void> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/cars`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ id }),
+    });
+    return handleResponse(response);
+};
+
 // --- WhatsApp ---
 export const sendMessage = async (number: string, message: string): Promise<{ Sent: string }> => {
     ensureOnline();
@@ -234,17 +278,25 @@ export interface ApiSettings {
     didarApiKey: string;
 }
 
-// Mock implementation using localStorage
-export const getApiSettings = async (): Promise<ApiSettings> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const settings = localStorage.getItem('apiSettings');
-    return settings ? JSON.parse(settings) : { whatsappApiKey: '', smsApiKey: '', didarApiKey: '' };
+export type AppSettings = ApiSettings & DealershipInfo;
+
+export const getSettings = async (): Promise<Partial<AppSettings>> => {
+    const response = await fetch(`${API_BASE_URL}/settings`, { headers: getAuthHeaders() });
+    if (response.status === 204) {
+        return {};
+    }
+    const data = await handleResponse(response);
+    return data || {};
 };
 
-export const saveApiSettings = async (settings: ApiSettings): Promise<void> => {
+export const updateSettings = async (settings: Partial<AppSettings>): Promise<void> => {
     ensureOnline();
-    await new Promise(resolve => setTimeout(resolve, 500));
-    localStorage.setItem('apiSettings', JSON.stringify(settings));
+    const response = await fetch(`${API_BASE_URL}/settings`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(settings),
+    });
+    return handleResponse(response);
 };
 
 export const updateUserCredentials = async (

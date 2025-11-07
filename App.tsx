@@ -4,7 +4,6 @@ import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import CarsPage from './pages/CarsPage';
-import DealershipPage from './pages/DealershipPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -14,12 +13,11 @@ import type { ActiveLead } from './types';
 import { UsersIcon } from './components/icons/UsersIcon';
 import { ConditionsIcon } from './components/icons/ConditionsIcon';
 import { CarIcon } from './components/icons/CarIcon';
-import { DealershipIcon } from './components/icons/DealershipIcon';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [activeView, setActiveView] = useState<'conditions' | 'users' | 'cars' | 'dealership' | 'settings'>('users');
+    const [activeView, setActiveView] = useState<'conditions' | 'users' | 'cars' | 'settings'>('users');
     const [onAddNew, setOnAddNew] = useState<(() => void) | null>(null);
 
     const knownLeadsRef = useRef<Set<string>>(new Set());
@@ -164,13 +162,6 @@ const App: React.FC = () => {
                             >
                                 <CarIcon />
                             </button>
-                            <button
-                                onClick={() => setActiveView('dealership')}
-                                title="اطلاعات نمایندگی"
-                                className={`${navButtonClasses} !p-2.5 ${activeView === 'dealership' ? activeClasses : inactiveClasses}`}
-                            >
-                                <DealershipIcon />
-                            </button>
                         </nav>
                          <div className="flex items-center gap-2">
                             <button 
@@ -196,10 +187,9 @@ const App: React.FC = () => {
             {activeView === 'conditions' && <ConditionsPage setOnAddNew={setOnAddNew} />}
             {activeView === 'users' && <UsersPage setOnAddNew={setOnAddNew} />}
             {activeView === 'cars' && <CarsPage setOnAddNew={setOnAddNew} />}
-            {activeView === 'dealership' && <DealershipPage />}
             {activeView === 'settings' && <SettingsPage />}
 
-            {onAddNew && !['settings', 'dealership'].includes(activeView) && (
+            {onAddNew && !['settings'].includes(activeView) && (
                 <button
                     onClick={onAddNew}
                     className="fixed bottom-6 left-6 bg-sky-600 text-white font-semibold px-5 py-3 rounded-full hover:bg-sky-700 transition-colors duration-300 shadow-lg flex items-center gap-2 z-20"
