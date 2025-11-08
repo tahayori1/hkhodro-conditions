@@ -21,6 +21,7 @@ const UserViewModal: React.FC<UserViewModalProps> = ({ isOpen, onClose, user }) 
      const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         try {
+            const parsableDateString = dateString.replace(' ', 'T');
             return new Intl.DateTimeFormat('fa-IR-u-nu-latn', {
                 year: 'numeric',
                 month: 'long',
@@ -28,7 +29,7 @@ const UserViewModal: React.FC<UserViewModalProps> = ({ isOpen, onClose, user }) 
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit'
-            }).format(new Date(dateString));
+            }).format(new Date(parsableDateString));
         } catch (e) {
             return dateString;
         }

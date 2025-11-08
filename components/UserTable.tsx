@@ -25,13 +25,14 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
 
     const formatDate = (dateString: string) => {
         try {
+            const parsableDateString = dateString.replace(' ', 'T');
             return new Intl.DateTimeFormat('fa-IR', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
-            }).format(new Date(dateString));
+            }).format(new Date(parsableDateString));
         } catch (e) {
             return dateString;
         }

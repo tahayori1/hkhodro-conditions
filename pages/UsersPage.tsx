@@ -132,8 +132,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
                 const bValue = b[sortConfig.key];
                 
                 if (['RegisterTime', 'LastAction', 'createdAt', 'updatedAt'].includes(sortConfig.key)) {
-                    const dateA = new Date(aValue as string).getTime();
-                    const dateB = new Date(bValue as string).getTime();
+                    const dateA = new Date((aValue as string || '').replace(' ', 'T')).getTime();
+                    const dateB = new Date((bValue as string || '').replace(' ', 'T')).getTime();
                     if (dateA < dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
                     if (dateA > dateB) return sortConfig.direction === 'ascending' ? 1 : -1;
                     return 0;
@@ -198,8 +198,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
             const userPromise = 'id' in lead ? Promise.resolve(lead) : getUserByNumber(numberToFetch);
 
             const [historyData, userData] = await Promise.all([historyPromise, userPromise]);
-
-            setModalMessages(historyData.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+            
+            const parseDate = (dateString: string) => new Date(dateString.replace(' ', 'T'));
+            setModalMessages(historyData.sort((a, b) => parseDate(a.createdAt).getTime() - parseDate(b.createdAt).getTime()));
             setModalFullUser(userData);
 
         } catch (err) {
@@ -267,7 +268,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
             showToast('پیام با موفقیت ارسال شد', 'success');
             
             const data = await getLeadHistory(number);
-            setModalMessages(data.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+            const parseDate = (dateString: string) => new Date(dateString.replace(' ', 'T'));
+            setModalMessages(data.sort((a, b) => parseDate(a.createdAt).getTime() - parseDate(b.createdAt).getTime()));
         } catch (err) {
             showToast('ارسال پیام با خطا مواجه شد', 'error');
             throw err;
