@@ -196,7 +196,7 @@ ${descriptionsText}`;
     
     return (
         <>
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full w-full">
                 <header className="p-3 border-b flex items-center justify-between flex-shrink-0 bg-slate-50 z-10">
                     <div className="flex items-center gap-3">
                         <button onClick={onBack} className="lg:hidden text-slate-600 hover:text-sky-700 p-2 rounded-full">
