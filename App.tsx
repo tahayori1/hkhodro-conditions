@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import ConditionsPage from './pages/ConditionsPage';
 import UsersPage from './pages/UsersPage';
@@ -15,6 +16,7 @@ import { UsersIcon } from './components/icons/UsersIcon';
 import { ConditionsIcon } from './components/icons/ConditionsIcon';
 import { CarIcon } from './components/icons/CarIcon';
 import { FireIcon } from './components/icons/FireIcon';
+import { MoreIcon } from './components/icons/MoreIcon';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -22,9 +24,11 @@ const App: React.FC = () => {
     const [activeView, setActiveView] = useState<'hot-leads' | 'conditions' | 'users' | 'cars' | 'settings'>('hot-leads');
     const [onAddNew, setOnAddNew] = useState<(() => void) | null>(null);
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const knownLeadsRef = useRef<Set<string>>(new Set());
     const isInitialLoadRef = useRef(true);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -96,6 +100,18 @@ const App: React.FC = () => {
 
         return () => clearInterval(intervalId);
     }, [isAuthenticated]);
+    
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const handleLoginSuccess = (token: string, remember: boolean) => {
         if (remember) {
@@ -141,42 +157,34 @@ const App: React.FC = () => {
             default: return '';
         }
     };
+    
+    // FIX: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
+    const navItems: { id: 'hot-leads' | 'users' | 'conditions' | 'cars', title: string, icon: React.ReactElement }[] = [
+        { id: 'hot-leads', title: 'سرنخ های داغ', icon: <FireIcon /> },
+        { id: 'users', title: 'سرنخ های فروش', icon: <UsersIcon /> },
+        { id: 'conditions', title: 'شرایط فروش', icon: <ConditionsIcon /> },
+        { id: 'cars', title: 'خودروها', icon: <CarIcon /> },
+    ];
 
     return (
         <div className="bg-slate-100 min-h-screen text-slate-800">
             <header className="bg-white shadow-md sticky top-0 z-10">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-sky-700">AutoLead</h1>
-                     <div className="flex items-center gap-4">
+                    
+                    {/* Desktop Navigation */}
+                    <div className="hidden md:flex items-center gap-4">
                         <nav className="flex items-center gap-2">
-                            <button
-                                onClick={() => setActiveView('hot-leads')}
-                                title="سرنخ های داغ"
-                                className={`${navButtonClasses} !p-2.5 ${activeView === 'hot-leads' ? activeClasses : inactiveClasses}`}
-                            >
-                                <FireIcon />
-                            </button>
-                             <button
-                                onClick={() => setActiveView('users')}
-                                title="سرنخ های فروش"
-                                className={`${navButtonClasses} !p-2.5 ${activeView === 'users' ? activeClasses : inactiveClasses}`}
-                            >
-                                <UsersIcon />
-                            </button>
-                            <button
-                                onClick={() => setActiveView('conditions')}
-                                title="شرایط فروش"
-                                className={`${navButtonClasses} !p-2.5 ${activeView === 'conditions' ? activeClasses : inactiveClasses}`}
-                            >
-                                <ConditionsIcon />
-                            </button>
-                             <button
-                                onClick={() => setActiveView('cars')}
-                                title="خودروها"
-                                className={`${navButtonClasses} !p-2.5 ${activeView === 'cars' ? activeClasses : inactiveClasses}`}
-                            >
-                                <CarIcon />
-                            </button>
+                           {navItems.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveView(item.id)}
+                                    title={item.title}
+                                    className={`${navButtonClasses} !p-2.5 ${activeView === item.id ? activeClasses : inactiveClasses}`}
+                                >
+                                    {item.icon}
+                                </button>
+                           ))}
                         </nav>
                          <div className="flex items-center gap-2">
                             <button 
@@ -194,6 +202,69 @@ const App: React.FC = () => {
                                 <LogoutIcon />
                                 <span className="hidden sm:inline">خروج</span>
                             </button>
+                        </div>
+                    </div>
+                    
+                    {/* Mobile Navigation */}
+                    <div className="md:hidden" ref={menuRef}>
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsMenuOpen(prev => !prev)}
+                                className="p-2 rounded-full hover:bg-slate-100"
+                                aria-haspopup="true"
+                                aria-expanded={isMenuOpen}
+                                aria-label="Open menu"
+                            >
+                                <MoreIcon />
+                            </button>
+                            {isMenuOpen && (
+                                <div className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-20">
+                                    <div className="py-1" role="menu" aria-orientation="vertical">
+                                        {navItems.map(item => (
+                                            <a
+                                                key={item.id}
+                                                href="#"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setActiveView(item.id);
+                                                    setIsMenuOpen(false);
+                                                }}
+                                                className={`flex items-center gap-3 px-4 py-2 text-sm ${activeView === item.id ? 'bg-sky-100 text-sky-700' : 'text-slate-700'} hover:bg-slate-100`}
+                                                role="menuitem"
+                                            >
+                                                {item.icon}
+                                                <span>{item.title}</span>
+                                            </a>
+                                        ))}
+                                        <div className="border-t my-1"></div>
+                                        <a
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setActiveView('settings');
+                                                setIsMenuOpen(false);
+                                            }}
+                                            className={`flex items-center gap-3 px-4 py-2 text-sm ${activeView === 'settings' ? 'bg-sky-100 text-sky-700' : 'text-slate-700'} hover:bg-slate-100`}
+                                            role="menuitem"
+                                        >
+                                           <SettingsIcon />
+                                           <span>تنظیمات</span>
+                                        </a>
+                                        <a
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                handleLogout();
+                                            }}
+                                            className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                            role="menuitem"
+                                        >
+                                            <LogoutIcon />
+                                            <span>خروج</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
