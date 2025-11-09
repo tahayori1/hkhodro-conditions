@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, getActiveLeads, getLeadHistory, sendMessage, getUserByNumber, getCars, getConditions } from '../services/api';
+import { getUsers, createUser, updateUser, deleteUser, getLeadHistory, sendMessage, getUserByNumber, getCars, getConditions } from '../services/api';
 import type { User, ActiveLead, LeadMessage, Car, CarSaleCondition } from '../types';
 import UserTable from '../components/UserTable';
 import UserModal from '../components/UserModal';
@@ -7,7 +7,6 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
-import HotLeadsPanel from '../components/HotLeadsPanel';
 import LeadDetailHistoryModal from '../components/LeadHistoryModal';
 import BroadcastModal from '../components/BroadcastModal';
 import { BroadcastIcon } from '../components/icons/BroadcastIcon';
@@ -32,10 +31,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-
-    const [activeLeads, setActiveLeads] = useState<ActiveLead[]>([]);
-    const [hotLeadsLoading, setHotLeadsLoading] = useState<boolean>(true);
-    const [hotLeadsError, setHotLeadsError] = useState<string | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -84,23 +79,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
         }
     }, []);
 
-     const fetchActiveLeads = useCallback(async () => {
-        setHotLeadsLoading(true);
-        setHotLeadsError(null);
-        try {
-            const leads = await getActiveLeads();
-            setActiveLeads(leads);
-        } catch (err) {
-            setHotLeadsError('خطا در دریافت سرنخ‌های داغ');
-        } finally {
-            setHotLeadsLoading(false);
-        }
-    }, []);
-
     useEffect(() => {
         fetchAllData();
-        fetchActiveLeads();
-    }, [fetchAllData, fetchActiveLeads]);
+    }, [fetchAllData]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -328,13 +309,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
     return (
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <HotLeadsPanel 
-                    leads={activeLeads} 
-                    isLoading={hotLeadsLoading} 
-                    error={hotLeadsError}
-                    onViewDetails={handleViewDetails}
-                />
-
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8 space-y-4">
                      <div className="flex justify-between items-center">
                         <h2 className="text-xl font-bold text-slate-700">فیلتر سرنخ‌ها</h2>

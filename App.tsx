@@ -4,6 +4,7 @@ import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import CarsPage from './pages/CarsPage';
+import HotLeadsPage from './pages/HotLeadsPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -13,11 +14,12 @@ import type { ActiveLead } from './types';
 import { UsersIcon } from './components/icons/UsersIcon';
 import { ConditionsIcon } from './components/icons/ConditionsIcon';
 import { CarIcon } from './components/icons/CarIcon';
+import { FireIcon } from './components/icons/FireIcon';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [activeView, setActiveView] = useState<'conditions' | 'users' | 'cars' | 'settings'>('users');
+    const [activeView, setActiveView] = useState<'hot-leads' | 'conditions' | 'users' | 'cars' | 'settings'>('hot-leads');
     const [onAddNew, setOnAddNew] = useState<(() => void) | null>(null);
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
 
@@ -148,6 +150,13 @@ const App: React.FC = () => {
                      <div className="flex items-center gap-4">
                         <nav className="flex items-center gap-2">
                             <button
+                                onClick={() => setActiveView('hot-leads')}
+                                title="سرنخ های داغ"
+                                className={`${navButtonClasses} !p-2.5 ${activeView === 'hot-leads' ? activeClasses : inactiveClasses}`}
+                            >
+                                <FireIcon />
+                            </button>
+                             <button
                                 onClick={() => setActiveView('users')}
                                 title="سرنخ های فروش"
                                 className={`${navButtonClasses} !p-2.5 ${activeView === 'users' ? activeClasses : inactiveClasses}`}
@@ -190,12 +199,13 @@ const App: React.FC = () => {
                 </div>
             </header>
 
+            {activeView === 'hot-leads' && <HotLeadsPage />}
             {activeView === 'conditions' && <ConditionsPage setOnAddNew={setOnAddNew} />}
             {activeView === 'users' && <UsersPage setOnAddNew={setOnAddNew} initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} />}
             {activeView === 'cars' && <CarsPage setOnAddNew={setOnAddNew} onNavigateToLeads={handleNavigateToUsersWithFilter} />}
             {activeView === 'settings' && <SettingsPage />}
 
-            {onAddNew && !['settings'].includes(activeView) && (
+            {onAddNew && !['settings', 'hot-leads'].includes(activeView) && (
                 <button
                     onClick={onAddNew}
                     className="fixed bottom-6 left-6 bg-sky-600 text-white font-semibold px-5 py-3 rounded-full hover:bg-sky-700 transition-colors duration-300 shadow-lg flex items-center gap-2 z-20"
