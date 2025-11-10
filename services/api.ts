@@ -166,6 +166,10 @@ export const deleteCondition = async (id: number): Promise<void> => {
 };
 
 // --- Users (Sales Leads) ---
+export interface Reference {
+    reference: string;
+}
+
 export const getUserByNumber = async (number: string): Promise<User | null> => {
     const response = await fetch(`${API_BASE_URL}/user?number=${number}`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
@@ -186,6 +190,12 @@ export const getLeadHistory = async (number: string): Promise<LeadMessage[]> => 
 
 export const getUsers = async (): Promise<User[]> => {
     const response = await fetch(`${API_BASE_URL}/users`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+};
+
+export const getReferences = async (): Promise<Reference[]> => {
+    const response = await fetch(`${API_BASE_URL}/users/refrences/`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
 };

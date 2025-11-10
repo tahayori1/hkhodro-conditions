@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, getLeadHistory, sendMessage, getUserByNumber, getCars, getConditions } from '../services/api';
+import { getUsers, createUser, updateUser, deleteUser, getLeadHistory, sendMessage, getUserByNumber, getCars, getConditions, getReferences } from '../services/api';
+import type { Reference } from '../services/api';
 import type { User, ActiveLead, LeadMessage, Car, CarSaleCondition } from '../types';
 import UserTable from '../components/UserTable';
 import UserModal from '../components/UserModal';
@@ -17,7 +18,7 @@ import UserFilterPanel from '../components/UserFilterPanel';
 const ITEMS_PER_PAGE = 50;
 
 type SortConfig = { key: keyof User; direction: 'ascending' | 'descending' } | null;
-type UserFilters = { query: string; carModel: string };
+type UserFilters = { query: string; carModel: string; reference: string };
 
 interface UsersPageProps {
     setOnAddNew: (handler: (() => void) | null) => void;
@@ -29,6 +30,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
     const [users, setUsers] = useState<User[]>([]);
     const [cars, setCars] = useState<Car[]>([]);
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
+    const [references, setReferences] = useState<Reference[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +51,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
     
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'RegisterTime', direction: 'descending' });
-    const [filters, setFilters] = useState<UserFilters>({ query: '', carModel: 'all' });
+    const [filters, setFilters] = useState<UserFilters>({ query: '', carModel: 'all', reference: 'all' });
 
     const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
@@ -63,14 +65,16 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
         setLoading(true);
         setError(null);
         try {
-            const [usersData, carsData, conditionsData] = await Promise.all([
+            const [usersData, carsData, conditionsData, referencesData] = await Promise.all([
                 getUsers(),
                 getCars(),
-                getConditions()
+                getConditions(),
+                getReferences()
             ]);
             setUsers(usersData);
             setCars(carsData);
             setConditions(conditionsData);
+            setReferences(referencesData);
         } catch (err) {
             setError('خطا در دریافت اطلاعات');
             showToast('خطا در دریافت اطلاعات', 'error');
@@ -100,7 +104,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
                 (user.Decription?.toLowerCase().includes(lowercasedQuery));
 
             const carModelMatch = filters.carModel === 'all' || user.CarModel === filters.carModel;
-            return queryMatch && carModelMatch;
+            const referenceMatch = filters.reference === 'all' || user.reference === filters.reference;
+            return queryMatch && carModelMatch && referenceMatch;
         });
     }, [users, filters]);
 
@@ -316,8 +321,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
                     <UserFilterPanel
                         filters={filters}
                         onFilterChange={setFilters}
+                        references={references}
                         onClear={() => {
-                            setFilters({ query: '', carModel: 'all' });
+                            setFilters({ query: '', carModel: 'all', reference: 'all' });
                             onFiltersCleared();
                         }}
                     />
