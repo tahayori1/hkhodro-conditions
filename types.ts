@@ -1,3 +1,4 @@
+
 export enum ConditionStatus {
     AVAILABLE = 'موجود',
     SOLD_OUT = 'فروخته شد',
@@ -111,4 +112,12 @@ export interface DealershipInfo {
     threads_url: string;
     competitive_advantages: string;
     description: string;
+}
+
+export interface CarPrice {
+    id: number;
+    car_model: string;
+    price_date: string;
+    factory_price: number;
+    market_price: number;
 }

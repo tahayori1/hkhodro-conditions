@@ -1,4 +1,5 @@
-import type { Car, CarSaleCondition, User, ActiveLead, LeadMessage, DealershipInfo } from '../types';
+
+import type { Car, CarSaleCondition, User, ActiveLead, LeadMessage, DealershipInfo, CarPrice } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
 
@@ -268,6 +269,45 @@ export const updateCar = async (id: number, updatedCar: Car): Promise<Car> => {
 export const deleteCar = async (id: number): Promise<void> => {
     ensureOnline();
     const response = await fetch(`${API_BASE_URL}/cars`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ id }),
+    });
+    return handleResponse(response);
+};
+
+// --- Car Prices ---
+
+export const getCarPrices = async (): Promise<CarPrice[]> => {
+    const response = await fetch(`${API_BASE_URL}/prices`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+};
+
+export const createCarPrice = async (price: Omit<CarPrice, 'id'>): Promise<CarPrice> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/prices`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(price),
+    });
+    return handleResponse(response);
+};
+
+export const updateCarPrice = async (id: number, updatedPrice: CarPrice): Promise<CarPrice> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/prices`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updatedPrice),
+    });
+    const resultPrice = await handleResponse(response);
+    return resultPrice ?? updatedPrice;
+};
+
+export const deleteCarPrice = async (id: number): Promise<void> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/prices`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
         body: JSON.stringify({ id }),

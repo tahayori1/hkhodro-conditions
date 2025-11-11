@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getConditions, createCondition, updateCondition, deleteCondition } from '../services/api';
 import type { CarSaleCondition, ConditionStatus, SaleType } from '../types';
@@ -158,7 +159,11 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ setOnAddNew }) => {
                      <div className="flex justify-between items-center">
                         <h2 className="text-xl font-bold text-slate-700">فیلترها</h2>
                     </div>
-                    <FilterPanel onFilterChange={setFilters} />
+                    <FilterPanel
+                        onFilterChange={setFilters}
+                        resultCount={sortedAndFilteredConditions.length}
+                        totalCount={conditions.length}
+                    />
                 </div>
 
                 {loading ? (

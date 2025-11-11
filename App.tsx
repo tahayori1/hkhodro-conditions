@@ -6,6 +6,7 @@ import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import CarsPage from './pages/CarsPage';
 import HotLeadsPage from './pages/HotLeadsPage';
+import CarPricesPage from './pages/CarPricesPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -16,12 +17,13 @@ import { UsersIcon } from './components/icons/UsersIcon';
 import { ConditionsIcon } from './components/icons/ConditionsIcon';
 import { CarIcon } from './components/icons/CarIcon';
 import { FireIcon } from './components/icons/FireIcon';
+import { PriceIcon } from './components/icons/PriceIcon';
 import { MoreIcon } from './components/icons/MoreIcon';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [activeView, setActiveView] = useState<'hot-leads' | 'conditions' | 'users' | 'cars' | 'settings'>('hot-leads');
+    const [activeView, setActiveView] = useState<'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'settings'>('conditions');
     const [onAddNew, setOnAddNew] = useState<(() => void) | null>(null);
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -154,16 +156,18 @@ const App: React.FC = () => {
             case 'users': return 'افزودن سرنخ جدید';
             case 'conditions': return 'افزودن شرط جدید';
             case 'cars': return 'افزودن خودرو جدید';
+            case 'car-prices': return 'افزودن قیمت جدید';
             default: return '';
         }
     };
     
     // FIX: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
-    const navItems: { id: 'hot-leads' | 'users' | 'conditions' | 'cars', title: string, icon: React.ReactElement }[] = [
+    const navItems: { id: 'hot-leads' | 'users' | 'conditions' | 'cars' | 'car-prices', title: string, icon: React.ReactElement }[] = [
         { id: 'hot-leads', title: 'سرنخ های داغ', icon: <FireIcon /> },
         { id: 'users', title: 'سرنخ های فروش', icon: <UsersIcon /> },
         { id: 'conditions', title: 'شرایط فروش', icon: <ConditionsIcon /> },
         { id: 'cars', title: 'خودروها', icon: <CarIcon /> },
+        { id: 'car-prices', title: 'قیمت خودروها', icon: <PriceIcon /> },
     ];
 
     return (
@@ -274,6 +278,7 @@ const App: React.FC = () => {
             {activeView === 'conditions' && <ConditionsPage setOnAddNew={setOnAddNew} />}
             {activeView === 'users' && <UsersPage setOnAddNew={setOnAddNew} initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} />}
             {activeView === 'cars' && <CarsPage setOnAddNew={setOnAddNew} onNavigateToLeads={handleNavigateToUsersWithFilter} />}
+            {activeView === 'car-prices' && <CarPricesPage setOnAddNew={setOnAddNew} />}
             {activeView === 'settings' && <SettingsPage />}
 
             {onAddNew && !['settings', 'hot-leads'].includes(activeView) && (

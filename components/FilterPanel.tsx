@@ -5,6 +5,8 @@ import { ConditionStatus as ConditionStatusEnum, SaleType as SaleTypeEnum } from
 
 interface FilterPanelProps {
     onFilterChange: (filters: { status: ConditionStatus | 'all'; car_model: string | 'all', sale_type: SaleType | 'all' }) => void;
+    resultCount: number;
+    totalCount: number;
 }
 
 const CAR_MODELS = [
@@ -12,7 +14,7 @@ const CAR_MODELS = [
     'KMC J7', 'KMC X5', 'KMC SR3', 'KMC EAGLE', 'KMC SHADOW', 'KMC SR6'
 ];
 
-const FilterPanel: React.FC<FilterPanelProps> = ({ onFilterChange }) => {
+const FilterPanel: React.FC<FilterPanelProps> = ({ onFilterChange, resultCount, totalCount }) => {
     const [status, setStatus] = useState<ConditionStatus | 'all'>('all');
     const [carModel, setCarModel] = useState<string | 'all'>('all');
     const [saleType, setSaleType] = useState<SaleType | 'all'>('all');
@@ -28,7 +30,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFilterChange }) => {
     }, [status, carModel, saleType, onFilterChange]);
 
     return (
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
             <select
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
                 value={carModel}
@@ -59,6 +61,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFilterChange }) => {
                     <option key={s} value={s}>{s}</option>
                 ))}
             </select>
+            <div className="text-right lg:text-left">
+                <p className="text-sm font-medium text-slate-600 whitespace-nowrap">
+                    <span className="font-bold text-sky-700">{resultCount.toLocaleString('fa-IR')}</span> / {totalCount.toLocaleString('fa-IR')} نتیجه
+                </p>
+            </div>
         </div>
     );
 };
