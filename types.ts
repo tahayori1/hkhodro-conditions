@@ -121,3 +121,26 @@ export interface CarPrice {
     factory_price: number;
     market_price: number;
 }
+
+export interface ScrapedCarPrice {
+    id: number;
+    source_name: string;
+    model_name: string;
+    price_text: string;
+    price_rial: number;
+    status: string;
+    captured_at: string;
+}
+
+export interface CarPriceSource {
+    source_name: string;
+}
+
+export interface CarPriceStats {
+    id: number;
+    model_name: string;
+    minimum: number;
+    maximum: number;
+    average: number;
+    computed_at: string;
+}

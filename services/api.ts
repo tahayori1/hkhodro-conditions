@@ -1,5 +1,5 @@
 
-import type { Car, CarSaleCondition, User, ActiveLead, LeadMessage, DealershipInfo, CarPrice } from '../types';
+import type { Car, CarSaleCondition, User, ActiveLead, LeadMessage, DealershipInfo, CarPrice, ScrapedCarPrice, CarPriceSource, CarPriceStats } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
 
@@ -314,6 +314,42 @@ export const deleteCarPrice = async (id: number): Promise<void> => {
     });
     return handleResponse(response);
 };
+
+// --- Scraped Car Prices ---
+
+const handleScrapedApiResponse = async (response: Response) => {
+    if (response.ok) {
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } else {
+        let errorData;
+        try {
+            errorData = await response.json();
+        } catch (e) {
+            errorData = { message: `Request failed with status ${response.status}: ${response.statusText}` };
+        }
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    }
+}
+
+export const getScrapedCarPrices = async (): Promise<ScrapedCarPrice[]> => {
+    const SCRAPED_PRICES_URL = `${API_BASE_URL}/car_price`;
+    const response = await fetch(SCRAPED_PRICES_URL);
+    return handleScrapedApiResponse(response);
+};
+
+export const getScrapedCarPriceSources = async (): Promise<CarPriceSource[]> => {
+    const SCRAPED_SOURCES_URL = `${API_BASE_URL}/sources`;
+    const response = await fetch(SCRAPED_SOURCES_URL);
+    return handleScrapedApiResponse(response);
+};
+
+export const getCarPriceStats = async (): Promise<CarPriceStats[]> => {
+    const STATS_URL = `${API_BASE_URL}/car_price_stats`;
+    const response = await fetch(STATS_URL);
+    return handleScrapedApiResponse(response);
+};
+
 
 // --- WhatsApp ---
 export const sendMessage = async (number: string, message: string): Promise<{ Sent: string }> => {
