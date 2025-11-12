@@ -17,6 +17,12 @@
       body {
         font-family: 'Vazirmatn', sans-serif;
       }
+      /* Use Vazirmatn for monospaced elements to ensure Persian digits and prices use this font */
+      .font-mono, [class*="font-mono"] {
+        font-family: 'Vazirmatn', sans-serif !important;
+        /* Enable tabular figures for better number alignment in tables */
+        font-feature-settings: 'tnum' on;
+      }
     </style>
   <script type="importmap">
 {
