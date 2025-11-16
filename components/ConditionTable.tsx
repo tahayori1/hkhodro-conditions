@@ -96,29 +96,43 @@ const ConditionTable: React.FC<ConditionTableProps> = ({ conditions, onEdit, onD
             {/* Mobile Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 md:hidden">
                 {conditions.map((condition) => (
-                    <div key={condition.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col justify-between">
-                        <div>
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-slate-800">{condition.car_model} - {condition.model}</h3>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColorMap[condition.status]}`}>
+                    <div key={condition.id} className="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col">
+                        <div className="p-4 border-b border-slate-200">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-bold text-slate-800 text-md">{condition.car_model} - {condition.model}</h3>
+                                <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${statusColorMap[condition.status]}`}>
                                     {condition.status}
                                 </span>
                             </div>
-                            <div className="text-sm text-slate-600 space-y-1">
-                                <p><strong>نوع فروش:</strong> {condition.sale_type}</p>
-                                <p><strong>نحوه پرداخت:</strong> {condition.pay_type}</p>
-                                <p><strong>زمان تحویل:</strong> {condition.delivery_time}</p>
-                                <p><strong>پیش‌پرداخت:</strong> <span className="font-mono">{condition.initial_deposit.toLocaleString('fa-IR')} تومان</span></p>
+                        </div>
+                        <div className="p-4 flex-grow">
+                            <div className="text-center mb-4">
+                                <p className="text-xs text-slate-500">پیش‌پرداخت</p>
+                                <p className="text-xl font-bold font-mono text-sky-700">{condition.initial_deposit.toLocaleString('fa-IR')} <span className="text-sm font-sans">تومان</span></p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-600">
+                                <div className="flex flex-col">
+                                    <span className="text-xs text-slate-500">نوع فروش:</span>
+                                    <span className="font-semibold">{condition.sale_type}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs text-slate-500">نحوه پرداخت:</span>
+                                    <span className="font-semibold">{condition.pay_type}</span>
+                                </div>
+                                <div className="flex flex-col col-span-2">
+                                    <span className="text-xs text-slate-500">زمان تحویل:</span>
+                                    <span className="font-semibold">{condition.delivery_time}</span>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex items-center justify-end gap-4 mt-4 pt-4 border-t border-slate-200">
-                             <button onClick={() => onView(condition)} className="flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm">
+                        <div className="flex items-center justify-end gap-2 p-3 bg-slate-50 border-t border-slate-200 rounded-b-lg">
+                            <button onClick={() => onView(condition)} className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-slate-200 transition-colors">
                                 <EyeIcon /> نمایش
                             </button>
-                            <button onClick={() => onEdit(condition)} className="flex items-center gap-1 text-sky-600 hover:text-sky-800 text-sm">
+                            <button onClick={() => onEdit(condition)} className="flex items-center gap-1.5 text-sky-600 hover:text-sky-800 text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-sky-100 transition-colors">
                                 <EditIcon /> ویرایش
                             </button>
-                            <button onClick={() => onDelete(condition.id)} className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm">
+                            <button onClick={() => onDelete(condition.id)} className="flex items-center gap-1.5 text-red-600 hover:text-red-800 text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-red-100 transition-colors">
                                 <TrashIcon /> حذف
                             </button>
                         </div>
