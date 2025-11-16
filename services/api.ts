@@ -347,7 +347,18 @@ export const getScrapedCarPriceSources = async (): Promise<CarPriceSource[]> => 
 export const getCarPriceStats = async (): Promise<CarPriceStats[]> => {
     const STATS_URL = `${API_BASE_URL}/car_price_stats`;
     const response = await fetch(STATS_URL);
-    return handleScrapedApiResponse(response);
+    const data = await handleScrapedApiResponse(response);
+    if (!Array.isArray(data)) {
+        return [];
+    }
+    return data.map((item: any, index: number) => ({
+        id: index, // Synthetic ID for React keys
+        model_name: item.model_name,
+        minimum: item.min_price,
+        maximum: item.max_price,
+        average: parseFloat(item.avg_price),
+        computed_at: new Date().toISOString(), // This is in the type but not the API
+    }));
 };
 
 
