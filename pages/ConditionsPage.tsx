@@ -275,7 +275,7 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
                     onClose={() => setIsDeleteModalOpen(false)}
                     onConfirm={confirmDelete}
                     title="حذف شرط فروش"
-                    message={`آیا از حذف شرط فروش برای خودروی "${conditionToDelete?.car_model}" اطمینان دارید؟ این عملیات قابل بازگشت نیست.`}
+                    message={`آیا از حذف شرط فروش برای خودروی "${conditionToDelete?.car_model} مدل ${conditionToDelete?.model}" اطمینان دارید؟ این عملیات قابل بازگشت نیست.`}
                 />
             )}
             
