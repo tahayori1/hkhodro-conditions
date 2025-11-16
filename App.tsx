@@ -15,9 +15,9 @@ import type { ActiveLead } from './types';
 import { UsersIcon } from './components/icons/UsersIcon';
 import { ConditionsIcon } from './components/icons/ConditionsIcon';
 import { CarIcon } from './components/icons/CarIcon';
-import { FireIcon } from './components/icons/FireIcon';
 import { PriceIcon } from './components/icons/PriceIcon';
 import { MoreIcon } from './components/icons/MoreIcon';
+import { BoltIcon } from './components/icons/BoltIcon';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -151,7 +151,7 @@ const App: React.FC = () => {
     
     // FIX: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
     const navItems: { id: 'hot-leads' | 'users' | 'conditions' | 'cars' | 'car-prices', title: string, icon: React.ReactElement }[] = [
-        { id: 'hot-leads', title: 'سرنخ های داغ', icon: <FireIcon /> },
+        { id: 'hot-leads', title: 'سرنخ های داغ', icon: <BoltIcon /> },
         { id: 'users', title: 'سرنخ های فروش', icon: <UsersIcon /> },
         { id: 'conditions', title: 'شرایط فروش', icon: <ConditionsIcon /> },
         { id: 'cars', title: 'خودروها', icon: <CarIcon /> },
