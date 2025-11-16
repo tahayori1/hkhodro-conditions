@@ -1,4 +1,3 @@
-
 import type { Car, CarSaleCondition, User, ActiveLead, LeadMessage, DealershipInfo, CarPrice, ScrapedCarPrice, CarPriceSource, CarPriceStats } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -57,7 +56,16 @@ export const login = async (username: string, password: string): Promise<{ token
     });
 
     if (response.ok) {
-        return response.json();
+        const data = await response.json();
+        // The API now returns the token inside an array.
+        if (Array.isArray(data) && data.length > 0) {
+            return data[0];
+        }
+        // Fallback in case the format is a direct object.
+        if (data && typeof data === 'object' && !Array.isArray(data) && data.token) {
+            return data;
+        }
+        throw new Error('فرمت پاسخ ورود نامعتبر است.');
     } else {
         let errorData;
         try {
