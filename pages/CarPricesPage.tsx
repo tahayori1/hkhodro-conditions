@@ -7,10 +7,6 @@ import Toast from '../components/Toast';
 import { SortIcon } from '../components/icons/SortIcon';
 import { CopyIcon } from '../components/icons/CopyIcon';
 
-interface CarPricesPageProps {
-    setOnAddNew: (handler: (() => void) | null) => void;
-}
-
 const timeAgo = (dateString: string): string => {
     try {
         // API returns UTC in 'YYYY-MM-DD HH:MM:SS' format.
@@ -50,7 +46,7 @@ type TableRow = {
     [source: string]: number | string; 
 };
 
-const CarPricesPage: React.FC<CarPricesPageProps> = ({ setOnAddNew }) => {
+const CarPricesPage: React.FC = () => {
     const [prices, setPrices] = useState<ScrapedCarPrice[]>([]);
     const [sources, setSources] = useState<string[]>([]);
     const [priceStats, setPriceStats] = useState<CarPriceStats[]>([]);
@@ -59,11 +55,6 @@ const CarPricesPage: React.FC<CarPricesPageProps> = ({ setOnAddNew }) => {
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'model_name', direction: 'ascending' });
     const [lastUpdated, setLastUpdated] = useState<string>('');
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-
-
-    useEffect(() => {
-        setOnAddNew(null);
-    }, [setOnAddNew]);
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });

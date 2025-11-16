@@ -10,7 +10,6 @@ import CarPricesPage from './pages/CarPricesPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
-import { PlusIcon } from './components/icons/PlusIcon';
 import { getActiveLeads } from './services/api';
 import type { ActiveLead } from './types';
 import { UsersIcon } from './components/icons/UsersIcon';
@@ -24,7 +23,6 @@ const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [activeView, setActiveView] = useState<'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'settings'>('conditions');
-    const [onAddNew, setOnAddNew] = useState<(() => void) | null>(null);
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -150,16 +148,6 @@ const App: React.FC = () => {
     const navButtonClasses = "px-4 py-2 rounded-lg font-semibold transition-colors duration-200";
     const activeClasses = "bg-sky-600 text-white";
     const inactiveClasses = "bg-white text-sky-700 hover:bg-sky-100";
-
-    const getAddNewButtonText = () => {
-        switch (activeView) {
-            case 'users': return 'افزودن سرنخ جدید';
-            case 'conditions': return 'افزودن شرط جدید';
-            case 'cars': return 'افزودن خودرو جدید';
-            case 'car-prices': return 'افزودن قیمت جدید';
-            default: return '';
-        }
-    };
     
     // FIX: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
     const navItems: { id: 'hot-leads' | 'users' | 'conditions' | 'cars' | 'car-prices', title: string, icon: React.ReactElement }[] = [
@@ -275,21 +263,12 @@ const App: React.FC = () => {
             </header>
 
             {activeView === 'hot-leads' && <HotLeadsPage />}
-            {activeView === 'conditions' && <ConditionsPage setOnAddNew={setOnAddNew} />}
-            {activeView === 'users' && <UsersPage setOnAddNew={setOnAddNew} initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} />}
-            {activeView === 'cars' && <CarsPage setOnAddNew={setOnAddNew} onNavigateToLeads={handleNavigateToUsersWithFilter} />}
-            {activeView === 'car-prices' && <CarPricesPage setOnAddNew={setOnAddNew} />}
+            {activeView === 'conditions' && <ConditionsPage />}
+            {activeView === 'users' && <UsersPage initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} />}
+            {activeView === 'cars' && <CarsPage onNavigateToLeads={handleNavigateToUsersWithFilter} />}
+            {activeView === 'car-prices' && <CarPricesPage />}
             {activeView === 'settings' && <SettingsPage />}
 
-            {onAddNew && !['settings', 'hot-leads'].includes(activeView) && (
-                <button
-                    onClick={onAddNew}
-                    className="fixed bottom-6 left-6 bg-sky-600 text-white font-semibold px-5 py-3 rounded-full hover:bg-sky-700 transition-colors duration-300 shadow-lg flex items-center gap-2 z-20"
-                >
-                    <PlusIcon />
-                    {getAddNewButtonText()}
-                </button>
-            )}
         </div>
     );
 };

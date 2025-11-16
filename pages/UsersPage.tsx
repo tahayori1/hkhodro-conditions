@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getUsers, createUser, updateUser, deleteUser, getLeadHistory, sendMessage, getUserByNumber, getCars, getConditions, getReferences } from '../services/api';
 import type { Reference } from '../services/api';
@@ -13,6 +14,7 @@ import BroadcastModal from '../components/BroadcastModal';
 import { BroadcastIcon } from '../components/icons/BroadcastIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 import UserFilterPanel from '../components/UserFilterPanel';
+import { PlusIcon } from '../components/icons/PlusIcon';
 
 
 const ITEMS_PER_PAGE = 50;
@@ -21,12 +23,11 @@ type SortConfig = { key: keyof User; direction: 'ascending' | 'descending' } | n
 type UserFilters = { query: string; carModel: string; reference: string };
 
 interface UsersPageProps {
-    setOnAddNew: (handler: (() => void) | null) => void;
     initialFilters: { carModel?: string };
     onFiltersCleared: () => void;
 }
 
-const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFiltersCleared }) => {
+const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [cars, setCars] = useState<Car[]>([]);
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
@@ -153,11 +154,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
         setCurrentUser(null);
         setIsModalOpen(true);
     }, []);
-
-    useEffect(() => {
-        setOnAddNew(() => handleAddNew);
-        return () => setOnAddNew(null);
-    }, [setOnAddNew, handleAddNew]);
 
     const handleEdit = (user: User) => {
         setCurrentUser(user);
@@ -315,8 +311,15 @@ const UsersPage: React.FC<UsersPageProps> = ({ setOnAddNew, initialFilters, onFi
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8 space-y-4">
-                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold text-slate-700">فیلتر سرنخ‌ها</h2>
+                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-xl font-bold text-slate-700">مدیریت سرنخ‌ها</h2>
+                        <button
+                            onClick={handleAddNew}
+                            className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
+                        >
+                            <PlusIcon />
+                            افزودن سرنخ جدید
+                        </button>
                     </div>
                     <UserFilterPanel
                         filters={filters}

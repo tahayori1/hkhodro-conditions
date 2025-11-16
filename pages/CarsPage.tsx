@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { getCars, createCar, updateCar, deleteCar, getConditionsByCarModel } from '../services/api';
 import type { Car, CarSaleCondition } from '../types';
@@ -7,13 +8,13 @@ import CarViewModal from '../components/CarViewModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
+import { PlusIcon } from '../components/icons/PlusIcon';
 
 interface CarsPageProps {
-    setOnAddNew: (handler: (() => void) | null) => void;
     onNavigateToLeads: (carModel: string) => void;
 }
 
-const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew, onNavigateToLeads }) => {
+const CarsPage: React.FC<CarsPageProps> = ({ onNavigateToLeads }) => {
     const [cars, setCars] = useState<Car[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -59,11 +60,6 @@ const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew, onNavigateToLeads }) =
         setCurrentCar(null);
         setIsModalOpen(true);
     }, []);
-
-    useEffect(() => {
-        setOnAddNew(() => handleAddNew);
-        return () => setOnAddNew(null);
-    }, [setOnAddNew, handleAddNew]);
 
     const handleEdit = (car: Car) => {
         setCurrentCar(car);
@@ -127,8 +123,15 @@ const CarsPage: React.FC<CarsPageProps> = ({ setOnAddNew, onNavigateToLeads }) =
     return (
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                 <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+                 <div className="bg-white p-6 rounded-lg shadow-md mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <h2 className="text-xl font-bold text-slate-700">مدیریت خودروها</h2>
+                    <button
+                        onClick={handleAddNew}
+                        className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
+                    >
+                        <PlusIcon />
+                        افزودن خودرو جدید
+                    </button>
                 </div>
 
                 {loading ? (

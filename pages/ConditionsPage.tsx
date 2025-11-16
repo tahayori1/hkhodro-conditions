@@ -9,14 +9,15 @@ import ConditionViewModal from '../components/ConditionViewModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
+import { PlusIcon } from '../components/icons/PlusIcon';
 
 type SortConfig = { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
 
 interface ConditionsPageProps {
-    setOnAddNew: (handler: (() => void) | null) => void;
+    // No props needed
 }
 
-const ConditionsPage: React.FC<ConditionsPageProps> = ({ setOnAddNew }) => {
+const ConditionsPage: React.FC<ConditionsPageProps> = () => {
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -63,11 +64,6 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ setOnAddNew }) => {
         setCurrentCondition(null);
         setIsModalOpen(true);
     }, []);
-
-    useEffect(() => {
-        setOnAddNew(() => handleAddNew);
-        return () => setOnAddNew(null);
-    }, [setOnAddNew, handleAddNew]);
 
     const handleEdit = (condition: CarSaleCondition) => {
         setCurrentCondition(condition);
@@ -156,8 +152,15 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ setOnAddNew }) => {
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8 space-y-4">
-                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold text-slate-700">فیلترها</h2>
+                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-xl font-bold text-slate-700">شرایط فروش</h2>
+                        <button
+                            onClick={handleAddNew}
+                            className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
+                        >
+                            <PlusIcon />
+                            افزودن شرط جدید
+                        </button>
                     </div>
                     <FilterPanel
                         onFilterChange={setFilters}
