@@ -10,6 +10,7 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import { PlusIcon } from '../components/icons/PlusIcon';
+import { ExportIcon } from '../components/icons/ExportIcon';
 
 type SortConfig = { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
 
@@ -148,19 +149,83 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
         return filtered;
     }, [conditions, filters, sortConfig]);
 
+    const handleExportCSV = () => {
+        if (sortedAndFilteredConditions.length === 0) {
+            showToast('هیچ داده‌ای برای خروجی گرفتن وجود ندارد.', 'error');
+            return;
+        }
+
+        const headers = [
+            "شناسه", "وضعیت", "مدل خودرو", "سال مدل", "نوع فروش",
+            "نحوه پرداخت", "وضعیت سند", "رنگ‌ها", "زمان تحویل",
+            "پیش‌پرداخت", "توضیحات"
+        ];
+
+        const escapeCSV = (value: any): string => {
+            const str = String(value ?? '');
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const csvRows = sortedAndFilteredConditions.map(c => [
+            c.id,
+            c.status,
+            c.car_model,
+            c.model,
+            c.sale_type,
+            c.pay_type,
+            c.document_status,
+            c.colors.join(' - '),
+            c.delivery_time,
+            c.initial_deposit,
+            c.descriptions,
+        ].map(escapeCSV).join(','));
+
+        const csvContent = [headers.join(','), ...csvRows].join('\n');
+        
+        // Add BOM for Excel compatibility with Persian characters
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+        
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        const date = new Date().toISOString().split('T')[0];
+        link.setAttribute("download", `conditions_export_${date}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        showToast('فایل CSV با موفقیت آماده شد.', 'success');
+    };
+
     return (
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8 space-y-4">
                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <h2 className="text-xl font-bold text-slate-700">شرایط فروش</h2>
-                        <button
-                            onClick={handleAddNew}
-                            className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
-                        >
-                            <PlusIcon />
-                            افزودن شرط جدید
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                                onClick={handleExportCSV}
+                                disabled={sortedAndFilteredConditions.length === 0 || loading}
+                                className="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-sm flex items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+                            >
+                                <ExportIcon />
+                                خروجی CSV
+                            </button>
+                            <button
+                                onClick={handleAddNew}
+                                className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
+                            >
+                                <PlusIcon />
+                                افزودن شرط جدید
+                            </button>
+                        </div>
                     </div>
                     <FilterPanel
                         onFilterChange={setFilters}
