@@ -9,7 +9,7 @@ import { SortIcon } from './icons/SortIcon';
 interface ConditionTableProps {
     conditions: CarSaleCondition[];
     onEdit: (condition: CarSaleCondition) => void;
-    onDelete: (id: number) => void;
+    onDelete: (condition: CarSaleCondition) => void;
     onView: (condition: CarSaleCondition) => void;
     onSort: (key: keyof CarSaleCondition) => void;
     sortConfig: { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
@@ -82,7 +82,7 @@ const ConditionTable: React.FC<ConditionTableProps> = ({ conditions, onEdit, onD
                                         <button onClick={() => onEdit(condition)} className="text-sky-600 hover:text-sky-800" title="ویرایش">
                                             <EditIcon />
                                         </button>
-                                        <button onClick={() => onDelete(condition.id)} className="text-red-600 hover:text-red-800" title="حذف">
+                                        <button onClick={() => onDelete(condition)} className="text-red-600 hover:text-red-800" title="حذف">
                                             <TrashIcon />
                                         </button>
                                     </div>
@@ -132,7 +132,7 @@ const ConditionTable: React.FC<ConditionTableProps> = ({ conditions, onEdit, onD
                             <button onClick={() => onEdit(condition)} className="flex items-center gap-1.5 text-sky-600 hover:text-sky-800 text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-sky-100 transition-colors">
                                 <EditIcon /> ویرایش
                             </button>
-                            <button onClick={() => onDelete(condition.id)} className="flex items-center gap-1.5 text-red-600 hover:text-red-800 text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-red-100 transition-colors">
+                            <button onClick={() => onDelete(condition)} className="flex items-center gap-1.5 text-red-600 hover:text-red-800 text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-red-100 transition-colors">
                                 <TrashIcon /> حذف
                             </button>
                         </div>

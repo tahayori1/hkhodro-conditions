@@ -30,7 +30,7 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
     const [conditionToView, setConditionToView] = useState<CarSaleCondition | null>(null);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-    const [conditionToDelete, setConditionToDelete] = useState<number | null>(null);
+    const [conditionToDelete, setConditionToDelete] = useState<CarSaleCondition | null>(null);
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
@@ -71,8 +71,8 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id: number) => {
-        setConditionToDelete(id);
+    const handleDelete = (condition: CarSaleCondition) => {
+        setConditionToDelete(condition);
         setIsDeleteModalOpen(true);
     };
 
@@ -99,9 +99,9 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
     };
     
     const confirmDelete = async () => {
-        if (conditionToDelete !== null) {
+        if (conditionToDelete) {
             try {
-                await deleteCondition(conditionToDelete);
+                await deleteCondition(conditionToDelete.id);
                 showToast('شرط با موفقیت حذف شد', 'success');
                 setIsDeleteModalOpen(false);
                 setConditionToDelete(null);
@@ -275,7 +275,7 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
                     onClose={() => setIsDeleteModalOpen(false)}
                     onConfirm={confirmDelete}
                     title="حذف شرط فروش"
-                    message="آیا از حذف این شرط فروش اطمینان دارید؟ این عملیات قابل بازگشت نیست."
+                    message={`آیا از حذف شرط فروش برای خودروی "${conditionToDelete?.car_model}" اطمینان دارید؟ این عملیات قابل بازگشت نیست.`}
                 />
             )}
             
