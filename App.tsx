@@ -1,5 +1,7 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
+import HomePage from './pages/HomePage';
 import ConditionsPage from './pages/ConditionsPage';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
@@ -7,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import CarsPage from './pages/CarsPage';
 import HotLeadsPage from './pages/HotLeadsPage';
 import CarPricesPage from './pages/CarPricesPage';
+import DeliveryProcessPage from './pages/DeliveryProcessPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -18,11 +21,15 @@ import { CarIcon } from './components/icons/CarIcon';
 import { PriceIcon } from './components/icons/PriceIcon';
 import { MoreIcon } from './components/icons/MoreIcon';
 import { BoltIcon } from './components/icons/BoltIcon';
+import { HomeIcon } from './components/icons/HomeIcon';
+import { DeliveryIcon } from './components/icons/DeliveryIcon';
+
+export type ActiveView = 'home' | 'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'delivery-process' | 'settings';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [activeView, setActiveView] = useState<'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'settings'>('conditions');
+    const [activeView, setActiveView] = useState<ActiveView>('home');
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -126,6 +133,7 @@ const App: React.FC = () => {
         sessionStorage.removeItem('authToken');
         localStorage.removeItem('authToken');
         setIsAuthenticated(false);
+        setActiveView('home');
     };
 
     const handleNavigateToUsersWithFilter = (carModel: string) => {
@@ -150,11 +158,14 @@ const App: React.FC = () => {
     const inactiveClasses = "bg-white text-sky-700 hover:bg-sky-100";
     
     // FIX: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
-    const navItems: { id: 'hot-leads' | 'users' | 'conditions' | 'cars' | 'car-prices', title: string, icon: React.ReactElement }[] = [
+    type NavItemId = 'home' | 'hot-leads' | 'users' | 'conditions' | 'cars' | 'car-prices' | 'delivery-process';
+    const navItems: { id: NavItemId, title: string, icon: React.ReactElement }[] = [
+        { id: 'home', title: 'داشبورد', icon: <HomeIcon /> },
         { id: 'hot-leads', title: 'سرنخ های داغ', icon: <BoltIcon /> },
         { id: 'users', title: 'سرنخ های فروش', icon: <UsersIcon /> },
         { id: 'conditions', title: 'شرایط فروش', icon: <ConditionsIcon /> },
         { id: 'cars', title: 'خودروها', icon: <CarIcon /> },
+        { id: 'delivery-process', title: 'فرایند تحویل', icon: <DeliveryIcon /> },
         { id: 'car-prices', title: 'قیمت خودروها', icon: <PriceIcon /> },
     ];
 
@@ -261,12 +272,14 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </header>
-
+            
+            {activeView === 'home' && <HomePage onNavigate={setActiveView} />}
             {activeView === 'hot-leads' && <HotLeadsPage />}
             {activeView === 'conditions' && <ConditionsPage />}
             {activeView === 'users' && <UsersPage initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} />}
             {activeView === 'cars' && <CarsPage onNavigateToLeads={handleNavigateToUsersWithFilter} />}
             {activeView === 'car-prices' && <CarPricesPage />}
+            {activeView === 'delivery-process' && <DeliveryProcessPage />}
             {activeView === 'settings' && <SettingsPage />}
 
         </div>

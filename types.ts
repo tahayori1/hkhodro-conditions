@@ -1,4 +1,5 @@
 
+
 export enum ConditionStatus {
     AVAILABLE = 'موجود',
     SOLD_OUT = 'فروخته شد',
@@ -22,6 +23,13 @@ export enum PayType {
 export enum DocumentStatus {
     FREE = 'آزاد',
     PLEDGED = 'در رهن',
+}
+
+export enum DeliveryStatus {
+    AWAITING_DOCUMENTS = "در انتظار مدارک",
+    PREPARING_VEHICLE = "آماده‌سازی خودرو",
+    READY_FOR_PICKUP = "آماده تحویل",
+    DELIVERED = "تحویل داده شد",
 }
 
 export interface CarSaleCondition {
@@ -143,4 +151,15 @@ export interface CarPriceStats {
     maximum: number;
     average: number;
     computed_at: string;
+}
+
+export interface DeliveryProcess {
+    id: number;
+    customerName: string;
+    carModel: string;
+    chassisNumber: string;
+    status: DeliveryStatus;
+    scheduledDate: string; // ISO date string
+    deliveredDate: string | null;
+    notes: string;
 }
