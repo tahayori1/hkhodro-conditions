@@ -15,16 +15,23 @@
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
       html, body {
         height: 100%;
         overscroll-behavior-y: none; /* Prevent pull-to-refresh on body to allow app-like feel */
       }
       body {
-        font-family: 'Vazirmatn', sans-serif;
         background-color: #f8fafc;
         -webkit-tap-highlight-color: transparent;
+      }
+      /* Strict Font Enforcement */
+      body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, p, span, div, a {
+        font-family: 'Vazirmatn', sans-serif !important;
+      }
+      /* Prevent iOS zoom on inputs by ensuring font size is at least 16px */
+      input, select, textarea {
+        font-size: 16px !important;
       }
       /* Use Vazirmatn for monospaced elements to ensure Persian digits and prices use this font */
       .font-mono, [class*="font-mono"] {
