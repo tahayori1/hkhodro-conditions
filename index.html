@@ -7,9 +7,9 @@
     <title>AutoLead</title>
     <meta name="description" content="AutoLead: A modern, responsive web application to manage car sales leads and conditions." />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0ea5e9"/>
+    <meta name="theme-color" content="#F2F4F7"/>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
     <link rel="apple-touch-icon" href="/vite.svg">
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
@@ -19,33 +19,47 @@
     <style>
       html, body {
         height: 100%;
-        overscroll-behavior-y: none; /* Prevent pull-to-refresh on body to allow app-like feel */
-      }
-      body {
-        background-color: #f8fafc;
+        overscroll-behavior-y: none; /* Prevent pull-to-refresh */
         -webkit-tap-highlight-color: transparent;
+        background-color: #F2F4F7;
       }
-      /* Strict Font Enforcement */
-      body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, p, span, div, a {
-        font-family: 'Vazirmatn', sans-serif !important;
+      
+      /* Global Font Enforcement */
+      :root {
+        --font-primary: 'Vazirmatn', system-ui, -apple-system, sans-serif;
       }
-      /* Prevent iOS zoom on inputs by ensuring font size is at least 16px */
+
+      body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, p, span, div, a, table, th, td {
+        font-family: var(--font-primary) !important;
+      }
+
+      /* Optimize for Persian Numbers */
+      .font-mono, [class*="font-mono"], .price-text, .numeric-data {
+        font-family: var(--font-primary) !important;
+        font-feature-settings: "tnum";
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Prevent iOS zoom on inputs */
       input, select, textarea {
         font-size: 16px !important;
       }
-      /* Use Vazirmatn for monospaced elements to ensure Persian digits and prices use this font */
-      .font-mono, [class*="font-mono"] {
-        font-family: 'Vazirmatn', sans-serif !important;
-        font-feature-settings: 'tnum' on;
-      }
-      /* Hide scrollbar for Chrome, Safari and Opera */
+
+      /* Scrollbar Hiding */
       .no-scrollbar::-webkit-scrollbar {
           display: none;
       }
-      /* Hide scrollbar for IE, Edge and Firefox */
       .no-scrollbar {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+      }
+
+      /* Safe Area Support */
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .pt-safe {
+        padding-top: env(safe-area-inset-top);
       }
     </style>
   <script src="https://cdn.jsdelivr.net/npm/jalali-moment@3.3.11/dist/jalali-moment.browser.js"></script>

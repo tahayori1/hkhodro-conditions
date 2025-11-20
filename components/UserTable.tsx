@@ -7,7 +7,6 @@ import { ChatIcon } from './icons/ChatIcon';
 import { PhoneIcon } from './icons/PhoneIcon';
 import { UsersIcon } from './icons/UsersIcon';
 
-
 interface UserTableProps {
     users: User[];
     onEdit: (user: User) => void;
@@ -23,7 +22,7 @@ interface UserTableProps {
 const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails, onSort, sortConfig, selectedUserIds, onSelectionChange, onSelectAllChange }) => {
     if (users.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-100 border-dashed">
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-3xl border border-slate-100 border-dashed mx-4">
                 <UsersIcon className="w-16 h-16 mb-4 opacity-30" />
                 <p className="font-medium">هیچ سرنخی یافت نشد.</p>
             </div>
@@ -36,8 +35,6 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
             return new Intl.DateTimeFormat('fa-IR', {
                 month: 'short',
                 day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
             }).format(new Date(parsableDateString));
         } catch (e) {
             return dateString;
@@ -140,53 +137,38 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
             </div>
 
             {/* Mobile List View (Native App Style) */}
-            <div className="md:hidden space-y-3">
+            <div className="md:hidden flex flex-col gap-3 pb-20">
                 {users.map((user) => (
                     <div 
                         key={user.id} 
-                        className={`relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.99] transition-transform ${selectedUserIds.has(user.id) ? 'ring-2 ring-sky-500 ring-offset-2' : ''}`}
                         onClick={() => onViewDetails(user)}
+                        className={`relative bg-white rounded-2xl p-4 shadow-sm border transition-all active:scale-[0.98] ${selectedUserIds.has(user.id) ? 'border-sky-500 ring-1 ring-sky-500 bg-sky-50' : 'border-slate-100'}`}
                     >
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                                <div 
-                                    className="flex-shrink-0"
-                                    onClick={(e) => { e.stopPropagation(); onSelectionChange(user.id); }}
-                                >
-                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedUserIds.has(user.id) ? 'bg-sky-500 border-sky-500' : 'border-slate-300 bg-white'}`}>
-                                        {selectedUserIds.has(user.id) && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-slate-900 text-base leading-tight">{user.FullName}</h3>
-                                    <div className="flex items-center text-xs text-slate-400 mt-1">
-                                        <PhoneIcon className="w-3 h-3 ml-1" />
-                                        <span dir="ltr" className="font-mono">{user.Number}</span>
-                                    </div>
-                                </div>
+                        <div className="flex items-center gap-3">
+                            {/* Selection Circle */}
+                            <div 
+                                onClick={(e) => { e.stopPropagation(); onSelectionChange(user.id); }}
+                                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedUserIds.has(user.id) ? 'bg-sky-500 border-sky-500' : 'border-slate-300 bg-white'}`}
+                            >
+                                {selectedUserIds.has(user.id) && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
                             </div>
-                            <span className="text-[10px] text-slate-400 bg-slate-50 px-2 py-1 rounded-full">{formatDate(user.RegisterTime)}</span>
-                        </div>
 
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-dashed border-slate-100">
-                             <div className="flex gap-2">
-                                <span className="bg-sky-50 text-sky-700 px-2.5 py-1 rounded-lg text-[11px] font-bold">
-                                    {user.CarModel || 'نامشخص'}
-                                </span>
-                                {(user.City || user.Province) && (
-                                    <span className="bg-slate-50 text-slate-500 px-2.5 py-1 rounded-lg text-[11px]">
-                                        {user.City || user.Province}
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start">
+                                    <h3 className="font-bold text-slate-900 text-base truncate">{user.FullName}</h3>
+                                    <span className="text-[10px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full flex-shrink-0 font-mono">{formatDate(user.RegisterTime)}</span>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[10px] font-bold truncate max-w-[100px]">
+                                        {user.CarModel || 'بدون خودرو'}
                                     </span>
-                                )}
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                                 <button onClick={(e) => { e.stopPropagation(); onEdit(user); }} className="text-slate-400 hover:text-sky-600 p-1">
-                                    <EditIcon className="w-5 h-5" />
-                                </button>
-                                 <button onClick={(e) => { e.stopPropagation(); onDelete(user.id); }} className="text-slate-400 hover:text-red-600 p-1">
-                                    <TrashIcon className="w-5 h-5" />
-                                </button>
+                                    <div className="flex items-center text-xs text-slate-400 font-mono" dir="ltr">
+                                        <PhoneIcon className="w-3 h-3 mr-1" />
+                                        {user.Number}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
