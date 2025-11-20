@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import HomePage from './pages/HomePage';
 import ConditionsPage from './pages/ConditionsPage';
@@ -9,6 +8,7 @@ import CarsPage from './pages/CarsPage';
 import HotLeadsPage from './pages/HotLeadsPage';
 import CarPricesPage from './pages/CarPricesPage';
 import DeliveryProcessPage from './pages/DeliveryProcessPage';
+import TransferPaksPage from './pages/TransferPaksPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -24,8 +24,10 @@ import { DeliveryIcon } from './components/icons/DeliveryIcon';
 import { MoreIcon } from './components/icons/MoreIcon';
 import { SunIcon } from './components/icons/SunIcon';
 import { MoonIcon } from './components/icons/MoonIcon';
+import { ShieldCheckIcon } from './components/icons/ShieldCheckIcon';
+import { ArrowRightIcon } from './components/icons/ArrowRightIcon';
 
-export type ActiveView = 'home' | 'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'delivery-process' | 'settings';
+export type ActiveView = 'home' | 'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'delivery-process' | 'transfer-paks' | 'settings';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -224,8 +226,8 @@ const App: React.FC = () => {
             <div className="grid grid-cols-5 h-16 items-end pb-2">
                 <NavItem id="home" icon={<HomeIcon className="w-6 h-6" />} label="خانه" isMobile />
                 <NavItem id="hot-leads" icon={<BoltIcon className="w-6 h-6" />} label="داغ" isMobile badge={unreadHotLeads} />
+                <NavItem id="transfer-paks" icon={<ShieldCheckIcon className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />} label="معامله" isMobile />
                 <NavItem id="users" icon={<UsersIcon className="w-6 h-6" />} label="مشتریان" isMobile />
-                <NavItem id="cars" icon={<CarIcon className="w-6 h-6" />} label="خودروها" isMobile />
                 <NavItem id="more" icon={<MoreIcon className="w-6 h-6" />} label="منو" isMobile />
             </div>
         </div>
@@ -247,6 +249,7 @@ const App: React.FC = () => {
                 <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-2">اصلی</p>
                 <NavItem id="home" icon={<HomeIcon />} label="داشبورد" />
                 <NavItem id="hot-leads" icon={<BoltIcon />} label="سرنخ های داغ" badge={unreadHotLeads} />
+                <NavItem id="transfer-paks" icon={<ShieldCheckIcon className="text-emerald-500" />} label="معامله پاک" />
                 <NavItem id="users" icon={<UsersIcon />} label="مشتریان و سرنخ‌ها" />
                 
                 <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">مدیریت</p>
@@ -285,10 +288,26 @@ const App: React.FC = () => {
                     <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mb-6"></div>
 
                     <div className="grid grid-cols-4 gap-4 mb-6">
+                        <DrawerItem id="cars" icon={<CarIcon className="w-6 h-6 text-white" />} label="خودروها" color="bg-blue-500" />
                         <DrawerItem id="conditions" icon={<ConditionsIcon className="w-6 h-6 text-white" />} label="شرایط" color="bg-green-500" />
                         <DrawerItem id="car-prices" icon={<PriceIcon className="w-6 h-6 text-white" />} label="قیمت‌ها" color="bg-purple-500" />
                         <DrawerItem id="delivery-process" icon={<DeliveryIcon className="w-6 h-6 text-white" />} label="تحویل" color="bg-orange-500" />
-                        <DrawerItem id="settings" icon={<SettingsIcon className="w-6 h-6 text-white" />} label="تنظیمات" color="bg-slate-500" />
+                    </div>
+                    
+                    <div className="mb-4">
+                         <button 
+                            onClick={() => { setActiveView('transfer-paks'); setIsMoreMenuOpen(false); }}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-emerald-200 dark:shadow-none"
+                        >
+                            <div className="flex items-center gap-3">
+                                <ShieldCheckIcon className="w-6 h-6" />
+                                <div className="text-right">
+                                    <p className="font-bold">معامله پاک</p>
+                                    <p className="text-xs opacity-80">خرید و فروش امن خودرو</p>
+                                </div>
+                            </div>
+                            <ArrowRightIcon className="w-5 h-5 rotate-180" />
+                        </button>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 flex flex-col gap-2">
@@ -298,6 +317,13 @@ const App: React.FC = () => {
                         >
                             {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
                             {isDarkMode ? 'تغییر به حالت روز' : 'تغییر به حالت شب'}
+                        </button>
+                        <button 
+                            onClick={() => { setActiveView('settings'); setIsMoreMenuOpen(false); }}
+                            className="flex items-center justify-center gap-2 w-full py-3 text-slate-600 dark:text-slate-300 font-bold text-sm active:scale-95 transition-transform rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700"
+                        >
+                            <SettingsIcon className="w-5 h-5" />
+                            تنظیمات
                         </button>
                         <div className="h-px bg-slate-100 dark:bg-slate-700 w-full"></div>
                         <button 
@@ -356,6 +382,7 @@ const App: React.FC = () => {
                     {activeView === 'cars' && <CarsPage onNavigateToLeads={handleNavigateToUsersWithFilter} />}
                     {activeView === 'car-prices' && <CarPricesPage />}
                     {activeView === 'delivery-process' && <DeliveryProcessPage />}
+                    {activeView === 'transfer-paks' && <TransferPaksPage />}
                     {activeView === 'settings' && <SettingsPage />}
                 </main>
             </div>

@@ -163,3 +163,40 @@ export interface DeliveryProcess {
     deliveredDate: string | null;
     notes: string;
 }
+
+// --- TransferPaks (Secure Transaction) Types ---
+
+export type TransactionType = 'ZERO' | 'USED' | 'HAVALEH';
+
+export type TransactionRole = 'ADMIN' | 'TECH_EXPERT' | 'LEGAL_EXPERT' | 'FINANCE_EXPERT' | 'CUSTOMER';
+
+export enum TransactionStatus {
+    DRAFT = 'پیش‌نویس',
+    TECH_CHECK = 'کارشناسی فنی',
+    LEGAL_CHECK = 'استعلام حقوقی',
+    FINANCE_CHECK = 'تایید مالی',
+    CONTRACT_SIGN = 'امضای قرارداد',
+    COMPLETED = 'تکمیل شده',
+    REJECTED = 'رد شده',
+}
+
+export interface TransactionStep {
+    id: number;
+    title: string;
+    roleRequired: TransactionRole[];
+    isCompleted: boolean;
+    data?: any;
+}
+
+export interface SecureTransaction {
+    id: string;
+    type: TransactionType;
+    status: TransactionStatus;
+    carModel: string;
+    sellerName: string;
+    buyerName: string;
+    price: number;
+    currentStep: number;
+    createdAt: string;
+    steps: TransactionStep[];
+}
