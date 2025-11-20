@@ -3,27 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>AutoLead</title>
-    <meta name="description" content="AutoLead: A modern, responsive web application to manage car sales leads and conditions. It features filtering, adding, editing, and deleting functionalities with a clean UI." />
+    <meta name="description" content="AutoLead: A modern, responsive web application to manage car sales leads and conditions." />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0ea5e9"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
     <link rel="apple-touch-icon" href="/vite.svg">
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+      html, body {
+        height: 100%;
+        overscroll-behavior-y: none; /* Prevent pull-to-refresh on body to allow app-like feel */
+      }
       body {
         font-family: 'Vazirmatn', sans-serif;
+        background-color: #f8fafc;
+        -webkit-tap-highlight-color: transparent;
       }
       /* Use Vazirmatn for monospaced elements to ensure Persian digits and prices use this font */
       .font-mono, [class*="font-mono"] {
         font-family: 'Vazirmatn', sans-serif !important;
-        /* Enable tabular figures for better number alignment in tables */
         font-feature-settings: 'tnum' on;
       }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+      }
     </style>
+  <script src="https://cdn.jsdelivr.net/npm/jalali-moment@3.3.11/dist/jalali-moment.browser.js"></script>
   <script type="importmap">
 {
   "imports": {
@@ -36,7 +54,7 @@
 </script>
 </head>
   <body>
-    <div id="root"></div>
+    <div id="root" class="h-full"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

@@ -1,9 +1,11 @@
+
 import React from 'react';
 import type { User } from '../types';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { SortIcon } from './icons/SortIcon';
 import { ChatIcon } from './icons/ChatIcon';
+import { PhoneIcon } from './icons/PhoneIcon';
 
 
 interface UserTableProps {
@@ -20,15 +22,19 @@ interface UserTableProps {
 
 const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails, onSort, sortConfig, selectedUserIds, onSelectionChange, onSelectAllChange }) => {
     if (users.length === 0) {
-        return <p className="text-center text-slate-500 py-10">هیچ سرنخی یافت نشد.</p>;
+        return (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                <UsersIcon className="w-16 h-16 mb-4 opacity-50" />
+                <p>هیچ سرنخی یافت نشد.</p>
+            </div>
+        );
     }
 
     const formatDate = (dateString: string) => {
         try {
             const parsableDateString = dateString.replace(' ', 'T');
             return new Intl.DateTimeFormat('fa-IR', {
-                year: 'numeric',
-                month: 'long',
+                month: 'short',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
@@ -55,14 +61,19 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
         );
     };
 
+    // Helper for avatar initials
+    const getInitials = (name: string) => {
+        return name ? name.split(' ').map(n => n[0]).join('').slice(0, 2) : '??';
+    };
+
     return (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             {/* Desktop Table */}
-            <div className="hidden md:block">
+            <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm text-right text-slate-600">
-                    <thead className="text-xs text-slate-700 bg-slate-50">
+                    <thead className="text-xs text-slate-700 bg-slate-50 border-b">
                         <tr>
-                            <th scope="col" className="p-4">
+                            <th scope="col" className="p-4 w-4">
                                 <div className="flex items-center">
                                     <input
                                         id="checkbox-all-desktop"
@@ -70,21 +81,20 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                                         className="w-4 h-4 text-sky-600 bg-gray-100 border-gray-300 rounded focus:ring-sky-500"
                                         checked={users.length > 0 && selectedUserIds.size === users.length}
                                         onChange={(e) => onSelectAllChange(e.target.checked)}
-                                        aria-label="Select all users on this page"
                                     />
                                 </div>
                             </th>
-                            <SortableHeader title="نام کامل" sortKey="FullName" />
-                            <SortableHeader title="شماره تماس" sortKey="Number" />
-                            <SortableHeader title="خودروی درخواستی" sortKey="CarModel" />
-                            <SortableHeader title="استان / شهر" sortKey="Province" />
-                            <SortableHeader title="زمان ثبت" sortKey="RegisterTime" />
+                            <SortableHeader title="کاربر" sortKey="FullName" />
+                            <SortableHeader title="تماس" sortKey="Number" />
+                            <SortableHeader title="خودرو" sortKey="CarModel" />
+                            <SortableHeader title="موقعیت" sortKey="Province" />
+                            <SortableHeader title="تاریخ" sortKey="RegisterTime" />
                             <th scope="col" className="px-6 py-3"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {users.map((user) => (
-                            <tr key={user.id} className={`bg-white border-b hover:bg-slate-50 ${selectedUserIds.has(user.id) ? 'bg-sky-50' : ''}`}>
+                            <tr key={user.id} className={`border-b hover:bg-slate-50 transition-colors ${selectedUserIds.has(user.id) ? 'bg-sky-50/60' : ''}`}>
                                 <td className="p-4">
                                     <div className="flex items-center">
                                         <input
@@ -93,24 +103,32 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                                             className="w-4 h-4 text-sky-600 bg-gray-100 border-gray-300 rounded focus:ring-sky-500"
                                             checked={selectedUserIds.has(user.id)}
                                             onChange={() => onSelectionChange(user.id)}
-                                            aria-labelledby={`user-name-${user.id}`}
                                         />
                                     </div>
                                 </td>
-                                <td id={`user-name-${user.id}`} className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{user.FullName}</td>
-                                <td className="px-6 py-4" dir="ltr">{user.Number}</td>
-                                <td className="px-6 py-4">{user.CarModel}</td>
-                                <td className="px-6 py-4">{user.Province} / {user.City}</td>
-                                <td className="px-6 py-4">{formatDate(user.RegisterTime)}</td>
                                 <td className="px-6 py-4">
-                                    <div className="flex items-center justify-end gap-4">
-                                         <button onClick={() => onViewDetails(user)} className="text-slate-500 hover:text-slate-800" title="جزئیات و تاریخچه گفتگو">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">
+                                            {getInitials(user.FullName)}
+                                        </div>
+                                        <span className="font-medium text-slate-900">{user.FullName}</span>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 font-mono" dir="ltr">{user.Number}</td>
+                                <td className="px-6 py-4">
+                                    <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs">{user.CarModel || '-'}</span>
+                                </td>
+                                <td className="px-6 py-4">{user.City || user.Province || '-'}</td>
+                                <td className="px-6 py-4 text-xs">{formatDate(user.RegisterTime)}</td>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center justify-end gap-2">
+                                         <button onClick={() => onViewDetails(user)} className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors" title="گفتگو">
                                             <ChatIcon />
                                         </button>
-                                        <button onClick={() => onEdit(user)} className="text-sky-600 hover:text-sky-800" title="ویرایش">
+                                        <button onClick={() => onEdit(user)} className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors" title="ویرایش">
                                             <EditIcon />
                                         </button>
-                                        <button onClick={() => onDelete(user.id)} className="text-red-600 hover:text-red-800" title="حذف">
+                                        <button onClick={() => onDelete(user.id)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="حذف">
                                             <TrashIcon />
                                         </button>
                                     </div>
@@ -121,39 +139,50 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                 </table>
             </div>
 
-            {/* Mobile Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 md:hidden">
+            {/* Mobile List View (Native App Style) */}
+            <div className="md:hidden divide-y divide-slate-100">
                 {users.map((user) => (
-                    <div key={user.id} className={`relative bg-slate-50 border rounded-lg p-4 flex flex-col justify-between ${selectedUserIds.has(user.id) ? 'border-sky-400 ring-2 ring-sky-200' : 'border-slate-200'}`}>
-                        <div className="absolute top-3 left-3 z-10">
-                            <input
+                    <div 
+                        key={user.id} 
+                        className={`flex items-center p-4 active:bg-slate-50 transition-colors ${selectedUserIds.has(user.id) ? 'bg-sky-50' : ''}`}
+                    >
+                        {/* Checkbox (Left side) */}
+                        <div className="ml-3 flex-shrink-0">
+                             <input
                                 type="checkbox"
-                                className="w-5 h-5 text-sky-600 bg-white border-slate-300 rounded focus:ring-sky-500"
+                                className="w-5 h-5 text-sky-600 bg-white border-slate-300 rounded-full focus:ring-sky-500"
                                 checked={selectedUserIds.has(user.id)}
                                 onChange={() => onSelectionChange(user.id)}
-                                aria-label={`Select ${user.FullName}`}
                             />
                         </div>
-                        <div>
-                            <div className="flex justify-between items-start mb-2 pr-8">
-                                <h3 className="font-bold text-slate-800">{user.FullName}</h3>
+                        
+                        {/* Main Content (Click to View Details) */}
+                        <div className="flex-grow min-w-0 cursor-pointer" onClick={() => onViewDetails(user)}>
+                            <div className="flex justify-between items-baseline mb-1">
+                                <h3 className="font-bold text-slate-900 truncate text-base">{user.FullName}</h3>
+                                <span className="text-[10px] text-slate-400 flex-shrink-0">{formatDate(user.RegisterTime)}</span>
                             </div>
-                            <div className="text-sm text-slate-600 space-y-1">
-                                <p><strong>شماره تماس:</strong> <span dir="ltr">{user.Number}</span></p>
-                                <p><strong>خودرو:</strong> {user.CarModel}</p>
-                                <p><strong>محل:</strong> {user.Province} / {user.City}</p>
-                                <p><strong>زمان ثبت:</strong> {formatDate(user.RegisterTime)}</p>
+                            <div className="flex items-center text-xs text-slate-500 mb-1">
+                                <PhoneIcon className="w-3 h-3 ml-1" />
+                                <span dir="ltr" className="font-mono">{user.Number}</span>
+                            </div>
+                             <div className="flex items-center justify-between">
+                                <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-medium">
+                                    {user.CarModel || 'خودرو نامشخص'}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                    {user.City}
+                                </span>
                             </div>
                         </div>
-                        <div className="flex items-center justify-end gap-4 mt-4 pt-4 border-t border-slate-200">
-                             <button onClick={() => onViewDetails(user)} className="flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm">
-                                <ChatIcon /> جزئیات
+
+                        {/* Quick Actions (Right side) */}
+                         <div className="mr-3 flex flex-col gap-3 border-r border-slate-100 pr-3">
+                             <button onClick={(e) => { e.stopPropagation(); onEdit(user); }} className="text-slate-400 hover:text-sky-600">
+                                <EditIcon className="w-5 h-5" />
                             </button>
-                            <button onClick={() => onEdit(user)} className="flex items-center gap-1 text-sky-600 hover:text-sky-800 text-sm">
-                                <EditIcon /> ویرایش
-                            </button>
-                            <button onClick={() => onDelete(user.id)} className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm">
-                                <TrashIcon /> حذف
+                             <button onClick={(e) => { e.stopPropagation(); onDelete(user.id); }} className="text-slate-400 hover:text-red-600">
+                                <TrashIcon className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
@@ -162,5 +191,8 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
         </div>
     );
 };
+
+// Import at the top needed
+import { UsersIcon } from './icons/UsersIcon'; 
 
 export default UserTable;

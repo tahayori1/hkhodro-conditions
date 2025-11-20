@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import type { DeliveryProcess } from '../types';
 import { DeliveryStatus } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
+import PersianDatePicker from './PersianDatePicker';
 
 interface DeliveryProcessModalProps {
     isOpen: boolean;
@@ -93,8 +93,10 @@ const DeliveryProcessModal: React.FC<DeliveryProcessModalProps> = ({ isOpen, onC
                      </div>
                      <div>
                         <label htmlFor="scheduledDate" className="block text-sm font-medium text-slate-700 mb-1">تاریخ تحویل برنامه‌ریزی شده</label>
-                        <input type="date" id="scheduledDate" value={formState.scheduledDate} onChange={(e) => handleChange('scheduledDate', e.target.value)}
-                            className={`w-full px-3 py-2 border rounded-md ${errors.scheduledDate ? 'border-red-500' : 'border-slate-300'}`} />
+                        <PersianDatePicker
+                            value={formState.scheduledDate}
+                            onChange={(date) => handleChange('scheduledDate', date)}
+                        />
                         {errors.scheduledDate && <p className="text-red-500 text-xs mt-1">{errors.scheduledDate}</p>}
                     </div>
                      <div>
