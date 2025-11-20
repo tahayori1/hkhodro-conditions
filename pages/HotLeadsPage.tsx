@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getActiveLeads, getLeadHistory, getUserByNumber, sendMessage, getCars, getConditions } from '../services/api';
 import type { ActiveLead, LeadMessage, User, Car, CarSaleCondition } from '../types';
@@ -42,21 +43,21 @@ const LeadListItem: React.FC<{ lead: ActiveLead, isSelected: boolean, onSelect: 
     }, [lead.updatedAt]);
 
     return (
-        <button onClick={onSelect} className={`w-full text-right p-4 border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150 ${isSelected ? 'bg-sky-100' : 'bg-white'}`}>
+        <button onClick={onSelect} className={`w-full text-right p-4 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 ${isSelected ? 'bg-sky-100 dark:bg-sky-900/30' : 'bg-white dark:bg-slate-900'}`}>
             <div className="flex justify-between items-center">
-                <h3 className="font-bold text-slate-800 truncate">{lead.FullName}</h3>
-                <span className="text-xs text-slate-500 flex-shrink-0">{timeAgoText}</span>
+                <h3 className={`font-bold truncate ${isSelected ? 'text-sky-800 dark:text-sky-300' : 'text-slate-800 dark:text-slate-200'}`}>{lead.FullName}</h3>
+                <span className="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">{timeAgoText}</span>
             </div>
-            <p className="text-sm text-slate-600 truncate">{lead.CarModel || 'خودرو مشخص نشده'}</p>
-            <p className="text-sm text-slate-500 mt-1 truncate">{lead.Message}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 truncate">{lead.CarModel || 'خودرو مشخص نشده'}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-500 mt-1 truncate">{lead.Message}</p>
         </button>
     );
 };
 
 const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ label, value }) => (
     <div>
-        <span className="text-xs text-slate-500">{label}</span>
-        <p className="text-sm font-semibold text-slate-800">{value || '-'}</p>
+        <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{value || '-'}</p>
     </div>
 );
 
@@ -196,25 +197,25 @@ ${descriptionsText}`;
     
     return (
         <>
-            <div className="flex flex-col h-full w-full">
-                <header className="p-3 border-b flex items-center justify-between flex-shrink-0 bg-slate-50 z-10">
+            <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-900">
+                <header className="p-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0 bg-white dark:bg-slate-800 z-10">
                     <div className="flex items-center gap-3">
-                        <button onClick={onBack} className="lg:hidden text-slate-600 hover:text-sky-700 p-2 rounded-full">
+                        <button onClick={onBack} className="lg:hidden text-slate-600 dark:text-slate-300 hover:text-sky-700 p-2 rounded-full">
                             <ArrowRightIcon />
                         </button>
                         <div>
-                            <h2 className="font-bold text-slate-800">{lead.FullName}</h2>
-                            <p className="text-sm text-slate-500" dir="ltr">{lead.number}</p>
+                            <h2 className="font-bold text-slate-800 dark:text-white">{lead.FullName}</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400" dir="ltr">{lead.number}</p>
                         </div>
                     </div>
-                    <button onClick={() => setIsDetailsVisible(!isDetailsVisible)} className="text-slate-600 hover:text-sky-700 p-2 rounded-full" title="مشاهده اطلاعات">
+                    <button onClick={() => setIsDetailsVisible(!isDetailsVisible)} className="text-slate-600 dark:text-slate-300 hover:text-sky-700 p-2 rounded-full" title="مشاهده اطلاعات">
                         <InfoIcon />
                     </button>
                 </header>
 
                 <div className={`collapsible ${isDetailsVisible ? 'open' : ''}`}>
-                    <div className="p-4 bg-white border-b shadow-inner">
-                        <h3 className="text-md font-bold text-slate-700 mb-3">اطلاعات سرنخ</h3>
+                    <div className="p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-inner">
+                        <h3 className="text-md font-bold text-slate-700 dark:text-slate-300 mb-3">اطلاعات سرنخ</h3>
                         {fullUser ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                                 <DetailItem label="خودروی درخواستی" value={fullUser.CarModel} />
@@ -229,52 +230,52 @@ ${descriptionsText}`;
                                 )}
                             </div>
                         ) : (
-                            <p className="text-slate-500 text-sm">در حال بارگذاری اطلاعات...</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">در حال بارگذاری اطلاعات...</p>
                         )}
                     </div>
                 </div>
 
-                <main className="flex-grow overflow-y-auto p-4 space-y-4 bg-slate-100" style={{backgroundImage: `url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="1" fill="%23e2e8f0"/><circle cx="50" cy="50" r="1" fill="%23e2e8f0"/><circle cx="80" cy="80" r="1" fill="%23e2e8f0"/><circle cx="20" cy="80" r="1" fill="%23e2e8f0"/><circle cx="80" cy="20" r="1" fill="%23e2e8f0"/></svg>')`}}>
+                <main className="flex-grow overflow-y-auto p-4 space-y-4 bg-[#e0e7ff] dark:bg-[#1e293b]">
                     {chatLoading && <div className="flex justify-center items-center h-full"><Spinner /></div>}
                     {chatError && <div className="flex justify-center items-center h-full"><p className="text-red-500">{chatError}</p></div>}
                     {!chatLoading && messages.map(msg => (
                         <div key={msg.id} className={`flex items-end gap-2 ${msg.receive === 1 ? 'justify-start' : 'justify-end'}`}>
-                            <div className={`max-w-xs md:max-w-md p-3 ${msg.receive === 1 ? 'bg-white shadow-sm rounded-t-xl rounded-br-xl' : 'bg-sky-500 text-white rounded-t-xl rounded-bl-xl'}`}>
+                            <div className={`max-w-xs md:max-w-md p-3 ${msg.receive === 1 ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm rounded-t-xl rounded-br-xl' : 'bg-sky-600 dark:bg-sky-700 text-white rounded-t-xl rounded-bl-xl'}`}>
                                 <p className="text-sm whitespace-pre-wrap break-words">{msg.Message}</p>
-                                <p className={`text-xs mt-2 ${msg.receive === 1 ? 'text-slate-400' : 'text-sky-200'}`}>{formatDate(msg.createdAt)}</p>
+                                <p className={`text-xs mt-2 ${msg.receive === 1 ? 'text-slate-400 dark:text-slate-400' : 'text-sky-200'}`}>{formatDate(msg.createdAt)}</p>
                             </div>
                         </div>
                     ))}
                     <div ref={messagesEndRef} />
                 </main>
 
-                <footer className="p-3 border-t bg-white flex-shrink-0">
-                    <div className="p-2 mb-2 border rounded-lg bg-slate-50">
+                <footer className="p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex-shrink-0">
+                    <div className="p-2 mb-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-700/50">
                         <div className="flex flex-wrap items-center gap-2">
                              <select
                                 value={quickSendCarModel}
                                 onChange={(e) => setQuickSendCarModel(e.target.value)}
-                                className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-xs focus:ring-sky-500 focus:border-sky-500"
+                                className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-xs text-slate-800 dark:text-slate-200 focus:ring-sky-500 focus:border-sky-500"
                             >
                                 <option value="">ارسال سریع...</option>
                                 {cars.map(car => <option key={car.id} value={car.name}>{car.name}</option>)}
                             </select>
                             <button type="button" onClick={() => setIsConditionModalOpen(true)} disabled={!selectedCarForQuickSend || conditionsForSelectedCar.length === 0}
-                                className="text-xs px-3 py-1 bg-white border border-slate-300 text-slate-700 rounded-full hover:bg-slate-100 disabled:opacity-50 transition-colors">
+                                className="text-xs px-3 py-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors">
                                 شرایط فروش
                             </button>
                             <button type="button" onClick={() => handleQuickSend(`مشخصات فنی ${selectedCarForQuickSend?.name}:\n\n${selectedCarForQuickSend?.technical_specs}`)}
-                                disabled={!selectedCarForQuickSend?.technical_specs} className="text-xs px-3 py-1 bg-white border border-slate-300 text-slate-700 rounded-full hover:bg-slate-100 disabled:opacity-50 transition-colors">
+                                disabled={!selectedCarForQuickSend?.technical_specs} className="text-xs px-3 py-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors">
                                 مشخصات فنی
                             </button>
                         </div>
                     </div>
                     <form onSubmit={handleSendMessage} className="flex items-end gap-2">
                         <textarea ref={textareaRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="پیام شما..."
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none transition resize-none min-h-[44px] max-h-36 text-sm"
+                            className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none transition resize-none min-h-[44px] max-h-36 text-sm placeholder-slate-400"
                             rows={1} disabled={isSending} />
                         <button type="submit" disabled={isSending || !newMessage.trim()}
-                            className="p-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-sky-300 transition-colors flex-shrink-0">
+                            className="p-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-sky-300 dark:disabled:bg-slate-600 transition-colors flex-shrink-0">
                             {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <SendIcon />}
                         </button>
                     </form>
@@ -328,15 +329,15 @@ const HotLeadsPage: React.FC = () => {
     };
 
     return (
-        <div className="flex h-[calc(100vh-68px)] bg-white">
-            <aside className={`w-full lg:w-1/3 xl:w-1/4 border-l flex flex-col ${showChatView ? 'hidden lg:flex' : 'flex'}`}>
-                <header className="p-4 border-b flex-shrink-0">
-                    <h2 className="text-xl font-bold text-slate-800">سرنخ‌های داغ</h2>
+        <div className="flex h-[calc(100vh-68px)] bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 md:border-none">
+            <aside className={`w-full lg:w-1/3 xl:w-1/4 border-l border-slate-200 dark:border-slate-800 flex flex-col ${showChatView ? 'hidden lg:flex' : 'flex'}`}>
+                <header className="p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 bg-slate-50 dark:bg-slate-900">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">سرنخ‌های داغ</h2>
                 </header>
-                <div className="overflow-y-auto flex-grow">
+                <div className="overflow-y-auto flex-grow bg-white dark:bg-slate-900">
                     {leadsLoading && <div className="flex justify-center p-8"><Spinner /></div>}
                     {leadsError && <p className="text-center text-red-500 p-4">{leadsError}</p>}
-                    {!leadsLoading && activeLeads.length === 0 && <p className="text-center text-slate-500 p-4">سرنخ داغی وجود ندارد.</p>}
+                    {!leadsLoading && activeLeads.length === 0 && <p className="text-center text-slate-500 dark:text-slate-400 p-4">سرنخ داغی وجود ندارد.</p>}
                     {!leadsLoading && activeLeads.map(lead => (
                         <LeadListItem
                             key={`${lead.number}-${lead.updatedAt}`}
@@ -356,8 +357,8 @@ const HotLeadsPage: React.FC = () => {
                         onBack={() => setShowChatView(false)}
                     />
                 ) : (
-                    <div className="flex flex-col justify-center items-center h-full text-center text-slate-500 p-4 bg-slate-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                    <div className="flex flex-col justify-center items-center h-full text-center text-slate-500 dark:text-slate-400 p-4 bg-slate-50 dark:bg-slate-800 w-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 text-slate-400 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                         <h3 className="font-semibold text-lg">گفتگویی انتخاب نشده است</h3>

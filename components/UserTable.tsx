@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { User } from '../types';
 import { EditIcon } from './icons/EditIcon';
@@ -22,7 +23,7 @@ interface UserTableProps {
 const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails, onSort, sortConfig, selectedUserIds, onSelectionChange, onSelectAllChange }) => {
     if (users.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-3xl border border-slate-100 border-dashed mx-4">
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-600 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 border-dashed mx-4">
                 <UsersIcon className="w-16 h-16 mb-4 opacity-30" />
                 <p className="font-medium">هیچ سرنخی یافت نشد.</p>
             </div>
@@ -48,7 +49,7 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
         return (
             <th scope="col" className="px-6 py-4">
                 <button
-                    className="flex items-center gap-1 uppercase font-bold text-xs text-slate-700 group hover:text-sky-600 transition-colors"
+                    className="flex items-center gap-1 uppercase font-bold text-xs text-slate-700 dark:text-slate-300 group hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
                     onClick={() => onSort(sortKey)}
                 >
                     {title}
@@ -64,18 +65,18 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
     };
 
     return (
-        <div className="bg-transparent md:bg-white md:rounded-[24px] md:shadow-sm md:border md:border-slate-200 overflow-hidden">
+        <div className="bg-transparent md:bg-white md:dark:bg-slate-800 md:rounded-[24px] md:shadow-sm md:border md:border-slate-200 md:dark:border-slate-700 overflow-hidden">
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm text-right text-slate-600">
-                    <thead className="text-xs text-slate-700 bg-slate-50/50 border-b border-slate-100">
+                <table className="w-full text-sm text-right text-slate-600 dark:text-slate-300">
+                    <thead className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
                         <tr>
                             <th scope="col" className="p-4 w-4">
                                 <div className="flex items-center">
                                     <input
                                         id="checkbox-all-desktop"
                                         type="checkbox"
-                                        className="w-4 h-4 text-sky-600 bg-white border-gray-300 rounded focus:ring-sky-500 transition-all cursor-pointer"
+                                        className="w-4 h-4 text-sky-600 bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 rounded focus:ring-sky-500 dark:focus:ring-sky-600 transition-all cursor-pointer"
                                         checked={users.length > 0 && selectedUserIds.size === users.length}
                                         onChange={(e) => onSelectAllChange(e.target.checked)}
                                     />
@@ -91,13 +92,13 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                     </thead>
                     <tbody>
                         {users.map((user) => (
-                            <tr key={user.id} className={`border-b border-slate-50 hover:bg-slate-50/80 transition-colors ${selectedUserIds.has(user.id) ? 'bg-sky-50/60' : ''}`}>
+                            <tr key={user.id} className={`border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors ${selectedUserIds.has(user.id) ? 'bg-sky-50/60 dark:bg-sky-900/20' : ''}`}>
                                 <td className="p-4">
                                     <div className="flex items-center">
                                         <input
                                             id={`checkbox-desktop-${user.id}`}
                                             type="checkbox"
-                                            className="w-4 h-4 text-sky-600 bg-white border-gray-300 rounded focus:ring-sky-500 transition-all cursor-pointer"
+                                            className="w-4 h-4 text-sky-600 bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 rounded focus:ring-sky-500 dark:focus:ring-sky-600 transition-all cursor-pointer"
                                             checked={selectedUserIds.has(user.id)}
                                             onChange={() => onSelectionChange(user.id)}
                                         />
@@ -105,27 +106,27 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-100 to-blue-100 text-sky-700 flex items-center justify-center text-xs font-bold shadow-sm">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-100 to-blue-100 dark:from-sky-900 dark:to-blue-900 text-sky-700 dark:text-sky-300 flex items-center justify-center text-xs font-bold shadow-sm">
                                             {getInitials(user.FullName)}
                                         </div>
-                                        <span className="font-bold text-slate-800">{user.FullName}</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-100">{user.FullName}</span>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 font-mono font-medium text-slate-600" dir="ltr">{user.Number}</td>
+                                <td className="px-6 py-4 font-mono font-medium text-slate-600 dark:text-slate-400" dir="ltr">{user.Number}</td>
                                 <td className="px-6 py-4">
-                                    <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200">{user.CarModel || '-'}</span>
+                                    <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600">{user.CarModel || '-'}</span>
                                 </td>
-                                <td className="px-6 py-4 text-slate-500">{user.City || user.Province || '-'}</td>
-                                <td className="px-6 py-4 text-xs text-slate-400">{formatDate(user.RegisterTime)}</td>
+                                <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{user.City || user.Province || '-'}</td>
+                                <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500">{formatDate(user.RegisterTime)}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-1">
-                                         <button onClick={() => onViewDetails(user)} className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-colors" title="گفتگو">
+                                         <button onClick={() => onViewDetails(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-colors" title="گفتگو">
                                             <ChatIcon />
                                         </button>
-                                        <button onClick={() => onEdit(user)} className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-colors" title="ویرایش">
+                                        <button onClick={() => onEdit(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-colors" title="ویرایش">
                                             <EditIcon />
                                         </button>
-                                        <button onClick={() => onDelete(user.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="حذف">
+                                        <button onClick={() => onDelete(user.id)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors" title="حذف">
                                             <TrashIcon />
                                         </button>
                                     </div>
@@ -142,13 +143,13 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                     <div 
                         key={user.id} 
                         onClick={() => onViewDetails(user)}
-                        className={`relative bg-white rounded-2xl p-4 shadow-sm border transition-all active:scale-[0.98] ${selectedUserIds.has(user.id) ? 'border-sky-500 ring-1 ring-sky-500 bg-sky-50' : 'border-slate-100'}`}
+                        className={`relative bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border transition-all active:scale-[0.98] ${selectedUserIds.has(user.id) ? 'border-sky-500 ring-1 ring-sky-500 bg-sky-50 dark:bg-sky-900/20' : 'border-slate-100 dark:border-slate-700'}`}
                     >
                         <div className="flex items-center gap-3">
                             {/* Selection Circle */}
                             <div 
                                 onClick={(e) => { e.stopPropagation(); onSelectionChange(user.id); }}
-                                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedUserIds.has(user.id) ? 'bg-sky-500 border-sky-500' : 'border-slate-300 bg-white'}`}
+                                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedUserIds.has(user.id) ? 'bg-sky-500 border-sky-500' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'}`}
                             >
                                 {selectedUserIds.has(user.id) && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
                             </div>
@@ -156,15 +157,15 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                             {/* Content */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start">
-                                    <h3 className="font-bold text-slate-900 text-base truncate">{user.FullName}</h3>
-                                    <span className="text-[10px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full flex-shrink-0 font-mono">{formatDate(user.RegisterTime)}</span>
+                                    <h3 className="font-bold text-slate-900 dark:text-white text-base truncate">{user.FullName}</h3>
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded-full flex-shrink-0 font-mono">{formatDate(user.RegisterTime)}</span>
                                 </div>
                                 
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[10px] font-bold truncate max-w-[100px]">
+                                    <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] font-bold truncate max-w-[100px]">
                                         {user.CarModel || 'بدون خودرو'}
                                     </span>
-                                    <div className="flex items-center text-xs text-slate-400 font-mono" dir="ltr">
+                                    <div className="flex items-center text-xs text-slate-400 dark:text-slate-500 font-mono" dir="ltr">
                                         <PhoneIcon className="w-3 h-3 mr-1" />
                                         {user.Number}
                                     </div>

@@ -22,6 +22,8 @@ import { BoltIcon } from './components/icons/BoltIcon';
 import { HomeIcon } from './components/icons/HomeIcon';
 import { DeliveryIcon } from './components/icons/DeliveryIcon';
 import { MoreIcon } from './components/icons/MoreIcon';
+import { SunIcon } from './components/icons/SunIcon';
+import { MoonIcon } from './components/icons/MoonIcon';
 
 export type ActiveView = 'home' | 'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'delivery-process' | 'settings';
 
@@ -32,6 +34,7 @@ const App: React.FC = () => {
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
     const [unreadHotLeads, setUnreadHotLeads] = useState<number>(0);
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
     const knownLeadsRef = useRef<Set<string>>(new Set());
     const isInitialLoadRef = useRef(true);
@@ -42,6 +45,15 @@ const App: React.FC = () => {
             setIsAuthenticated(true);
         }
         setIsLoading(false);
+
+        // Initialize Theme
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            setIsDarkMode(true);
+            document.documentElement.classList.add('dark');
+        } else {
+            setIsDarkMode(false);
+            document.documentElement.classList.remove('dark');
+        }
     }, []);
 
     useEffect(() => {
@@ -120,6 +132,20 @@ const App: React.FC = () => {
         setIsAuthenticated(false);
         setActiveView('home');
     };
+    
+    const toggleTheme = () => {
+        if (isDarkMode) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+            setIsDarkMode(false);
+            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#F2F4F7');
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+            setIsDarkMode(true);
+            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0f172a');
+        }
+    };
 
     const handleNavigateToUsersWithFilter = (carModel: string) => {
         setUserPageInitialFilters({ carModel });
@@ -128,7 +154,7 @@ const App: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="bg-[#F2F4F7] min-h-screen flex justify-center items-center">
+            <div className="bg-[#F2F4F7] dark:bg-slate-900 min-h-screen flex justify-center items-center transition-colors duration-300">
                 <Spinner />
             </div>
         );
@@ -158,15 +184,15 @@ const App: React.FC = () => {
                     onClick={handleClick}
                     className={`flex flex-col items-center justify-center w-full h-full relative group`}
                 >
-                    <div className={`relative p-1.5 rounded-2xl transition-all duration-300 ${isActive ? 'bg-sky-100 text-sky-600 -translate-y-2 shadow-sm' : 'text-slate-400'}`}>
+                    <div className={`relative p-1.5 rounded-2xl transition-all duration-300 ${isActive ? 'bg-sky-100 text-sky-600 dark:bg-sky-900 dark:text-sky-300 -translate-y-2 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}>
                         {icon}
                         {badge !== undefined && badge > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800 shadow-sm">
                                 {badge > 99 ? '!' : badge.toLocaleString('fa-IR')}
                             </span>
                         )}
                     </div>
-                    <span className={`text-[10px] mt-1 transition-colors ${isActive ? 'font-bold text-sky-700' : 'text-slate-400'}`}>{label}</span>
+                    <span className={`text-[10px] mt-1 transition-colors ${isActive ? 'font-bold text-sky-700 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500'}`}>{label}</span>
                 </button>
             );
         }
@@ -176,14 +202,14 @@ const App: React.FC = () => {
                 onClick={handleClick}
                 className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 w-full group ${
                     isActive 
-                    ? 'bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-md shadow-sky-200' 
-                    : 'text-slate-500 hover:bg-white hover:text-slate-700'
+                    ? 'bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-md shadow-sky-200 dark:shadow-none' 
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
             >
                 <div className="relative">
-                     {React.cloneElement(icon as React.ReactElement<any>, { className: `w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}` })}
+                     {React.cloneElement(icon as React.ReactElement<any>, { className: `w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}` })}
                      {badge !== undefined && badge > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white">
+                        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white dark:border-slate-800">
                             {badge > 99 ? '+99' : badge.toLocaleString('fa-IR')}
                         </span>
                     )}
@@ -194,7 +220,7 @@ const App: React.FC = () => {
     };
 
     const MobileBottomNav = () => (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200/60 pb-[env(safe-area-inset-bottom)] z-40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/60 pb-[env(safe-area-inset-bottom)] z-40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
             <div className="grid grid-cols-5 h-16 items-end pb-2">
                 <NavItem id="home" icon={<HomeIcon className="w-6 h-6" />} label="خانه" isMobile />
                 <NavItem id="hot-leads" icon={<BoltIcon className="w-6 h-6" />} label="داغ" isMobile badge={unreadHotLeads} />
@@ -206,35 +232,42 @@ const App: React.FC = () => {
     );
 
     const DesktopSidebar = () => (
-        <aside className="hidden md:flex flex-col w-72 bg-[#F2F4F7] border-l border-slate-200 h-screen fixed right-0 top-0 z-40">
+        <aside className="hidden md:flex flex-col w-72 bg-[#F2F4F7] dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-screen fixed right-0 top-0 z-40 transition-colors duration-300">
             <div className="p-6 flex items-center gap-3 mb-4">
-                 <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-200">
+                 <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-200 dark:shadow-none">
                     <CarIcon className="text-white w-6 h-6"/>
                  </div>
                  <div>
-                     <h1 className="text-lg font-black text-slate-800 tracking-tight leading-tight">AutoLead</h1>
-                     <p className="text-[10px] text-slate-400 font-bold">پنل مدیریت فروش</p>
+                     <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight leading-tight">AutoLead</h1>
+                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">پنل مدیریت فروش</p>
                  </div>
             </div>
             
             <div className="flex-1 overflow-y-auto px-4 space-y-1 no-scrollbar">
-                <p className="px-4 text-[11px] font-bold text-slate-400 mb-2 mt-2">اصلی</p>
+                <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-2">اصلی</p>
                 <NavItem id="home" icon={<HomeIcon />} label="داشبورد" />
                 <NavItem id="hot-leads" icon={<BoltIcon />} label="سرنخ های داغ" badge={unreadHotLeads} />
                 <NavItem id="users" icon={<UsersIcon />} label="مشتریان و سرنخ‌ها" />
                 
-                <p className="px-4 text-[11px] font-bold text-slate-400 mb-2 mt-6">مدیریت</p>
+                <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">مدیریت</p>
                 <NavItem id="cars" icon={<CarIcon />} label="خودروها" />
                 <NavItem id="conditions" icon={<ConditionsIcon />} label="شرایط فروش" />
                 <NavItem id="car-prices" icon={<PriceIcon />} label="قیمت روز بازار" />
                 <NavItem id="delivery-process" icon={<DeliveryIcon />} label="فرایند تحویل" />
             </div>
 
-            <div className="p-4 m-4 bg-white rounded-2xl shadow-sm border border-slate-100">
+            <div className="p-4 m-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                <button 
+                    onClick={toggleTheme}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium text-sm mb-2"
+                >
+                    {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+                    <span>{isDarkMode ? 'حالت روز' : 'حالت شب'}</span>
+                </button>
                 <NavItem id="settings" icon={<SettingsIcon />} label="تنظیمات" />
                 <button 
                     onClick={handleLogout}
-                    className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl transition-all duration-200 w-full text-red-500 hover:bg-red-50 font-medium text-sm"
+                    className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl transition-all duration-200 w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium text-sm"
                 >
                     <LogoutIcon className="w-5 h-5" />
                     <span>خروج</span>
@@ -247,9 +280,9 @@ const App: React.FC = () => {
         if (!isMoreMenuOpen) return null;
         return (
             <div className="fixed inset-0 z-50 md:hidden flex flex-col justify-end">
-                <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity" onClick={() => setIsMoreMenuOpen(false)}></div>
-                <div className="relative bg-[#F2F4F7] rounded-t-[32px] p-6 animate-slide-up shadow-2xl border-t border-white/50">
-                    <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-6"></div>
+                <div className="absolute inset-0 bg-slate-900/20 dark:bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setIsMoreMenuOpen(false)}></div>
+                <div className="relative bg-[#F2F4F7] dark:bg-slate-900 rounded-t-[32px] p-6 animate-slide-up shadow-2xl border-t border-white/50 dark:border-slate-700">
+                    <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mb-6"></div>
 
                     <div className="grid grid-cols-4 gap-4 mb-6">
                         <DrawerItem id="conditions" icon={<ConditionsIcon className="w-6 h-6 text-white" />} label="شرایط" color="bg-green-500" />
@@ -258,10 +291,18 @@ const App: React.FC = () => {
                         <DrawerItem id="settings" icon={<SettingsIcon className="w-6 h-6 text-white" />} label="تنظیمات" color="bg-slate-500" />
                     </div>
 
-                    <div className="bg-white rounded-2xl p-1">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 flex flex-col gap-2">
+                         <button 
+                            onClick={toggleTheme}
+                            className="flex items-center justify-center gap-2 w-full py-3 text-slate-600 dark:text-slate-300 font-bold text-sm active:scale-95 transition-transform rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700"
+                        >
+                            {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+                            {isDarkMode ? 'تغییر به حالت روز' : 'تغییر به حالت شب'}
+                        </button>
+                        <div className="h-px bg-slate-100 dark:bg-slate-700 w-full"></div>
                         <button 
                             onClick={handleLogout}
-                            className="flex items-center justify-center gap-2 w-full py-4 text-red-500 font-bold text-sm active:scale-95 transition-transform"
+                            className="flex items-center justify-center gap-2 w-full py-3 text-red-500 font-bold text-sm active:scale-95 transition-transform"
                         >
                             <LogoutIcon className="w-5 h-5" />
                             خروج از حساب کاربری
@@ -278,28 +319,28 @@ const App: React.FC = () => {
             onClick={() => { setActiveView(id); setIsMoreMenuOpen(false); }}
             className="flex flex-col items-center gap-2 active:scale-95 transition-transform"
         >
-            <div className={`w-14 h-14 rounded-2xl ${color} shadow-lg shadow-slate-200 flex items-center justify-center`}>
+            <div className={`w-14 h-14 rounded-2xl ${color} shadow-lg shadow-slate-200 dark:shadow-none flex items-center justify-center`}>
                 {icon}
             </div>
-            <span className="text-xs font-bold text-slate-600">{label}</span>
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{label}</span>
         </button>
     );
 
     return (
-        <div className="min-h-screen bg-[#F2F4F7] text-slate-800 selection:bg-sky-100 selection:text-sky-700 font-vazir">
+        <div className="min-h-screen bg-[#F2F4F7] dark:bg-slate-900 text-slate-800 dark:text-slate-100 selection:bg-sky-100 dark:selection:bg-sky-900 selection:text-sky-700 dark:selection:text-sky-300 font-vazir transition-colors duration-300">
             <DesktopSidebar />
             
             <div className="md:mr-72 min-h-screen flex flex-col">
                 {/* Mobile Header */}
-                <header className="md:hidden bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 px-4 h-14 flex items-center justify-between shadow-sm">
+                <header className="md:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 px-4 h-14 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-2">
                          <div className="w-8 h-8 bg-gradient-to-br from-sky-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
                             <CarIcon className="text-white w-4 h-4"/>
                          </div>
-                        <h1 className="text-lg font-black text-slate-800 tracking-tight">AutoLead</h1>
+                        <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">AutoLead</h1>
                     </div>
                     {unreadHotLeads > 0 && activeView !== 'hot-leads' && (
-                        <button onClick={() => setActiveView('hot-leads')} className="flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-xs font-bold animate-pulse shadow-sm border border-amber-200">
+                        <button onClick={() => setActiveView('hot-leads')} className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold animate-pulse shadow-sm border border-amber-200 dark:border-amber-800">
                             <BoltIcon className="w-3.5 h-3.5" />
                             <span>{unreadHotLeads.toLocaleString('fa-IR')}</span>
                         </button>
