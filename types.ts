@@ -1,5 +1,3 @@
-
-
 export enum ConditionStatus {
     AVAILABLE = 'موجود',
     SOLD_OUT = 'فروخته شد',
@@ -23,13 +21,6 @@ export enum PayType {
 export enum DocumentStatus {
     FREE = 'آزاد',
     PLEDGED = 'در رهن',
-}
-
-export enum DeliveryStatus {
-    AWAITING_DOCUMENTS = "در انتظار مدارک",
-    PREPARING_VEHICLE = "آماده‌سازی خودرو",
-    READY_FOR_PICKUP = "آماده تحویل",
-    DELIVERED = "تحویل داده شد",
 }
 
 export interface CarSaleCondition {
@@ -153,22 +144,29 @@ export interface CarPriceStats {
     computed_at: string;
 }
 
+// New types for Delivery Process
+export enum DeliveryStatus {
+    AWAITING_DOCUMENTS = 'در انتظار مدارک',
+    PREPARING_VEHICLE = 'آماده‌سازی خودرو',
+    READY_FOR_PICKUP = 'آماده تحویل',
+    DELIVERED = 'تحویل شده',
+}
+
 export interface DeliveryProcess {
     id: number;
     customerName: string;
     carModel: string;
     chassisNumber: string;
     status: DeliveryStatus;
-    scheduledDate: string; // ISO date string
+    scheduledDate: string;
     deliveredDate: string | null;
     notes: string;
 }
 
-// --- TransferPaks (Secure Transaction) Types ---
+// New types for Transfer Paks (Secure Transaction)
+export type TransactionRole = 'ADMIN' | 'TECH_EXPERT' | 'LEGAL_EXPERT' | 'FINANCE_EXPERT' | 'CUSTOMER';
 
 export type TransactionType = 'ZERO' | 'USED' | 'HAVALEH';
-
-export type TransactionRole = 'ADMIN' | 'TECH_EXPERT' | 'LEGAL_EXPERT' | 'FINANCE_EXPERT' | 'CUSTOMER';
 
 export enum TransactionStatus {
     DRAFT = 'پیش‌نویس',
@@ -177,7 +175,6 @@ export enum TransactionStatus {
     FINANCE_CHECK = 'تایید مالی',
     CONTRACT_SIGN = 'امضای قرارداد',
     COMPLETED = 'تکمیل شده',
-    REJECTED = 'رد شده',
 }
 
 export interface TransactionStep {
@@ -185,7 +182,6 @@ export interface TransactionStep {
     title: string;
     roleRequired: TransactionRole[];
     isCompleted: boolean;
-    data?: any;
 }
 
 export interface SecureTransaction {

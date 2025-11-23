@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import type { ActiveView } from '../App';
 import { UsersIcon } from '../components/icons/UsersIcon';
@@ -6,7 +5,7 @@ import { BoltIcon } from '../components/icons/BoltIcon';
 import { ConditionsIcon } from '../components/icons/ConditionsIcon';
 import { CarIcon } from '../components/icons/CarIcon';
 import { PriceIcon } from '../components/icons/PriceIcon';
-import { DeliveryIcon } from '../components/icons/DeliveryIcon';
+import { ExitFormIcon } from '../components/icons/ExitFormIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { HomeIcon } from '../components/icons/HomeIcon';
 import { getCarPriceStats } from '../services/api';
@@ -137,11 +136,11 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, unreadHotLeads }) => {
                     onClick={() => onNavigate('users')}
                     />
                     <StatCard 
-                    label="تحویل شده" 
-                    value="۴۵" 
-                    icon={<DeliveryIcon />} 
+                    label="فرم خروج" 
+                    value="ثبت جدید" 
+                    icon={<ExitFormIcon />} 
                     gradient="bg-gradient-to-br from-teal-400 to-emerald-500"
-                    onClick={() => onNavigate('delivery-process')}
+                    onClick={() => onNavigate('vehicle-exit')}
                     />
                     <StatCard 
                     label="موجودی" 
@@ -181,10 +180,10 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, unreadHotLeads }) => {
                         textClass="text-green-600 dark:text-green-400"
                     />
                     <ActionCard 
-                        icon={<DeliveryIcon className="w-6 h-6" />}
-                        title="تحویل"
-                        description="وضعیت خودروها"
-                        onClick={() => onNavigate('delivery-process')}
+                        icon={<ExitFormIcon className="w-6 h-6" />}
+                        title="خروج خودرو"
+                        description="فرم تحویل نهایی"
+                        onClick={() => onNavigate('vehicle-exit')}
                         bgClass="bg-teal-500"
                         textClass="text-teal-600 dark:text-teal-400"
                     />

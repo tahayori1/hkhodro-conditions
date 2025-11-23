@@ -7,6 +7,7 @@ import Spinner from '../components/Spinner';
 import Toast from '../components/Toast';
 import DeliveryCard from '../components/DeliveryCard';
 import DeliveryProcessModal from '../components/DeliveryProcessModal';
+import VehicleExitFormModal from '../components/VehicleExitFormModal';
 import { PlusIcon } from '../components/icons/PlusIcon';
 
 const STATUS_ORDER: DeliveryStatus[] = [
@@ -28,7 +29,11 @@ const DeliveryProcessPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    // Modal states
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isExitFormOpen, setIsExitFormOpen] = useState(false);
+    const [selectedDeliveryForExit, setSelectedDeliveryForExit] = useState<DeliveryProcess | null>(null);
     
     const fetchDeliveries = useCallback(async () => {
         setLoading(true);
@@ -88,11 +93,16 @@ const DeliveryProcessPage: React.FC = () => {
         try {
             await createDeliveryProcess(deliveryData);
             showToast('مورد جدید با موفقیت اضافه شد', 'success');
-            setIsModalOpen(false);
+            setIsAddModalOpen(false);
             fetchDeliveries();
         } catch (err) {
             showToast('عملیات با خطا مواجه شد', 'error');
         }
+    };
+
+    const handleOpenExitForm = (delivery: DeliveryProcess) => {
+        setSelectedDeliveryForExit(delivery);
+        setIsExitFormOpen(true);
     };
 
     const renderContent = () => {
@@ -118,7 +128,12 @@ const DeliveryProcessPage: React.FC = () => {
                             {deliveries.filter(d => d.status === status)
                                 .sort((a,b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
                                 .map(delivery => (
-                                    <DeliveryCard key={delivery.id} delivery={delivery} onDragStart={handleDragStart} />
+                                    <DeliveryCard 
+                                        key={delivery.id} 
+                                        delivery={delivery} 
+                                        onDragStart={handleDragStart} 
+                                        onOpenExitForm={handleOpenExitForm}
+                                    />
                             ))}
                         </div>
                     </div>
@@ -134,7 +149,7 @@ const DeliveryProcessPage: React.FC = () => {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <h2 className="text-xl font-bold text-slate-700">فرایند تحویل خودرو</h2>
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={() => setIsAddModalOpen(true)}
                             className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
                         >
                             <PlusIcon />
@@ -150,7 +165,16 @@ const DeliveryProcessPage: React.FC = () => {
                 </div>
             </main>
             
-            {isModalOpen && <DeliveryProcessModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} />}
+            {isAddModalOpen && <DeliveryProcessModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={handleSave} />}
+            
+            {isExitFormOpen && (
+                <VehicleExitFormModal 
+                    isOpen={isExitFormOpen} 
+                    onClose={() => setIsExitFormOpen(false)} 
+                    delivery={selectedDeliveryForExit} 
+                />
+            )}
+
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </>
     );

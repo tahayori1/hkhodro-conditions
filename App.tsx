@@ -7,8 +7,7 @@ import LoginPage from './pages/LoginPage';
 import CarsPage from './pages/CarsPage';
 import HotLeadsPage from './pages/HotLeadsPage';
 import CarPricesPage from './pages/CarPricesPage';
-import DeliveryProcessPage from './pages/DeliveryProcessPage';
-import TransferPaksPage from './pages/TransferPaksPage';
+import VehicleExitPage from './pages/VehicleExitPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -20,14 +19,12 @@ import { CarIcon } from './components/icons/CarIcon';
 import { PriceIcon } from './components/icons/PriceIcon';
 import { BoltIcon } from './components/icons/BoltIcon';
 import { HomeIcon } from './components/icons/HomeIcon';
-import { DeliveryIcon } from './components/icons/DeliveryIcon';
 import { MoreIcon } from './components/icons/MoreIcon';
 import { SunIcon } from './components/icons/SunIcon';
 import { MoonIcon } from './components/icons/MoonIcon';
-import { ShieldCheckIcon } from './components/icons/ShieldCheckIcon';
-import { ArrowRightIcon } from './components/icons/ArrowRightIcon';
+import { ExitFormIcon } from './components/icons/ExitFormIcon';
 
-export type ActiveView = 'home' | 'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'delivery-process' | 'transfer-paks' | 'settings';
+export type ActiveView = 'home' | 'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -226,7 +223,7 @@ const App: React.FC = () => {
             <div className="grid grid-cols-5 h-16 items-end pb-2">
                 <NavItem id="home" icon={<HomeIcon className="w-6 h-6" />} label="خانه" isMobile />
                 <NavItem id="hot-leads" icon={<BoltIcon className="w-6 h-6" />} label="داغ" isMobile badge={unreadHotLeads} />
-                <NavItem id="transfer-paks" icon={<ShieldCheckIcon className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />} label="معامله" isMobile />
+                <NavItem id="vehicle-exit" icon={<ExitFormIcon className="w-6 h-6" />} label="خروج" isMobile />
                 <NavItem id="users" icon={<UsersIcon className="w-6 h-6" />} label="مشتریان" isMobile />
                 <NavItem id="more" icon={<MoreIcon className="w-6 h-6" />} label="منو" isMobile />
             </div>
@@ -249,14 +246,13 @@ const App: React.FC = () => {
                 <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-2">اصلی</p>
                 <NavItem id="home" icon={<HomeIcon />} label="داشبورد" />
                 <NavItem id="hot-leads" icon={<BoltIcon />} label="سرنخ های داغ" badge={unreadHotLeads} />
-                <NavItem id="transfer-paks" icon={<ShieldCheckIcon className="text-emerald-500" />} label="معامله پاک" />
+                <NavItem id="vehicle-exit" icon={<ExitFormIcon />} label="فرم خروج خودرو" />
                 <NavItem id="users" icon={<UsersIcon />} label="مشتریان و سرنخ‌ها" />
                 
                 <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">مدیریت</p>
                 <NavItem id="cars" icon={<CarIcon />} label="خودروها" />
                 <NavItem id="conditions" icon={<ConditionsIcon />} label="شرایط فروش" />
                 <NavItem id="car-prices" icon={<PriceIcon />} label="قیمت روز بازار" />
-                <NavItem id="delivery-process" icon={<DeliveryIcon />} label="فرایند تحویل" />
             </div>
 
             <div className="p-4 m-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
@@ -291,23 +287,7 @@ const App: React.FC = () => {
                         <DrawerItem id="cars" icon={<CarIcon className="w-6 h-6 text-white" />} label="خودروها" color="bg-blue-500" />
                         <DrawerItem id="conditions" icon={<ConditionsIcon className="w-6 h-6 text-white" />} label="شرایط" color="bg-green-500" />
                         <DrawerItem id="car-prices" icon={<PriceIcon className="w-6 h-6 text-white" />} label="قیمت‌ها" color="bg-purple-500" />
-                        <DrawerItem id="delivery-process" icon={<DeliveryIcon className="w-6 h-6 text-white" />} label="تحویل" color="bg-orange-500" />
-                    </div>
-                    
-                    <div className="mb-4">
-                         <button 
-                            onClick={() => { setActiveView('transfer-paks'); setIsMoreMenuOpen(false); }}
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-emerald-200 dark:shadow-none"
-                        >
-                            <div className="flex items-center gap-3">
-                                <ShieldCheckIcon className="w-6 h-6" />
-                                <div className="text-right">
-                                    <p className="font-bold">معامله پاک</p>
-                                    <p className="text-xs opacity-80">خرید و فروش امن خودرو</p>
-                                </div>
-                            </div>
-                            <ArrowRightIcon className="w-5 h-5 rotate-180" />
-                        </button>
+                        <DrawerItem id="vehicle-exit" icon={<ExitFormIcon className="w-6 h-6 text-white" />} label="فرم خروج" color="bg-orange-500" />
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 flex flex-col gap-2">
@@ -381,8 +361,7 @@ const App: React.FC = () => {
                     {activeView === 'users' && <UsersPage initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} />}
                     {activeView === 'cars' && <CarsPage onNavigateToLeads={handleNavigateToUsersWithFilter} />}
                     {activeView === 'car-prices' && <CarPricesPage />}
-                    {activeView === 'delivery-process' && <DeliveryProcessPage />}
-                    {activeView === 'transfer-paks' && <TransferPaksPage />}
+                    {activeView === 'vehicle-exit' && <VehicleExitPage />}
                     {activeView === 'settings' && <SettingsPage />}
                 </main>
             </div>

@@ -1,5 +1,17 @@
-import type { Car, CarSaleCondition, User, ActiveLead, LeadMessage, DealershipInfo, CarPrice, ScrapedCarPrice, CarPriceSource, CarPriceStats, DeliveryProcess, DeliveryStatus } from '../types';
-import { DeliveryStatus as DeliveryStatusEnum } from '../types';
+import type { 
+    Car, 
+    CarSaleCondition, 
+    User, 
+    ActiveLead, 
+    LeadMessage, 
+    DealershipInfo, 
+    CarPrice, 
+    ScrapedCarPrice, 
+    CarPriceSource, 
+    CarPriceStats,
+    DeliveryProcess,
+    DeliveryStatus
+} from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
 
@@ -370,6 +382,34 @@ export const getCarPriceStats = async (): Promise<CarPriceStats[]> => {
     }));
 };
 
+// --- Delivery Process ---
+
+export const getDeliveryProcesses = async (): Promise<DeliveryProcess[]> => {
+    const response = await fetch(`${API_BASE_URL}/delivery`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+};
+
+export const createDeliveryProcess = async (delivery: Omit<DeliveryProcess, 'id'>): Promise<DeliveryProcess> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/delivery`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(delivery),
+    });
+    return handleResponse(response);
+};
+
+export const updateDeliveryProcessStatus = async (id: number, status: DeliveryStatus): Promise<void> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/delivery/${id}/status`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status }),
+    });
+    return handleResponse(response);
+};
+
 
 // --- WhatsApp ---
 export const sendMessage = async (number: string, message: string): Promise<{ Sent: string }> => {
@@ -440,46 +480,4 @@ export const updateUserCredentials = async (
     });
     
     return handleResponse(response);
-};
-
-// --- Car Delivery Process (Mocked) ---
-
-let mockDeliveries: DeliveryProcess[] = [
-    { id: 1, customerName: 'علی رضایی', carModel: 'KMC J7', chassisNumber: 'KM12345J7', status: DeliveryStatusEnum.AWAITING_DOCUMENTS, scheduledDate: '2024-08-15', deliveredDate: null, notes: 'منتظر تکمیل پرونده لیزینگ' },
-    { id: 2, customerName: 'زهرا احمدی', carModel: 'JAC S5', chassisNumber: 'JC67890S5', status: DeliveryStatusEnum.PREPARING_VEHICLE, scheduledDate: '2024-08-12', deliveredDate: null, notes: 'نصب آپشن‌های اضافی' },
-    { id: 3, customerName: 'محمد حسینی', carModel: 'KMC T8', chassisNumber: 'KM54321T8', status: DeliveryStatusEnum.READY_FOR_PICKUP, scheduledDate: '2024-08-10', deliveredDate: null, notes: 'با مشتری جهت تحویل هماهنگ شده' },
-    { id: 4, customerName: 'فاطمه کریمی', carModel: 'JAC J4', chassisNumber: 'JC11223J4', status: DeliveryStatusEnum.DELIVERED, scheduledDate: '2024-08-05', deliveredDate: '2024-08-06', notes: 'تحویل با یک روز تاخیر' },
-    { id: 5, customerName: 'رضا محمودی', carModel: 'KMC X5', chassisNumber: 'KM99887X5', status: DeliveryStatusEnum.PREPARING_VEHICLE, scheduledDate: '2024-08-18', deliveredDate: null, notes: '' },
-];
-let nextDeliveryId = 6;
-
-export const getDeliveryProcesses = async (): Promise<DeliveryProcess[]> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return Promise.resolve([...mockDeliveries]);
-};
-
-export const createDeliveryProcess = async (deliveryData: Omit<DeliveryProcess, 'id'>): Promise<DeliveryProcess> => {
-    ensureOnline();
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const newDelivery: DeliveryProcess = {
-        id: nextDeliveryId++,
-        ...deliveryData,
-    };
-    mockDeliveries.push(newDelivery);
-    return Promise.resolve(newDelivery);
-};
-
-export const updateDeliveryProcessStatus = async (id: number, status: DeliveryStatus): Promise<DeliveryProcess> => {
-    ensureOnline();
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const deliveryIndex = mockDeliveries.findIndex(d => d.id === id);
-    if (deliveryIndex > -1) {
-        mockDeliveries[deliveryIndex].status = status;
-        if (status === DeliveryStatusEnum.DELIVERED) {
-            mockDeliveries[deliveryIndex].deliveredDate = new Date().toISOString().split('T')[0];
-        }
-        return Promise.resolve({ ...mockDeliveries[deliveryIndex] });
-    }
-    return Promise.reject(new Error('فرایند تحویل یافت نشد.'));
 };
