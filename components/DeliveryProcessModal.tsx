@@ -26,21 +26,24 @@ const initialFormState: Omit<DeliveryProcess, 'id' | 'deliveredDate'> = {
 
 const DeliveryProcessModal: React.FC<DeliveryProcessModalProps> = ({ isOpen, onClose, onSave }) => {
     const [formState, setFormState] = useState(initialFormState);
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    // FIX: Corrected the typing for the 'errors' state to be more specific and avoid index type errors.
+    const [errors, setErrors] = useState<Partial<Record<keyof typeof initialFormState, string>>>({});
 
     const handleChange = (field: keyof typeof initialFormState, value: string) => {
         setFormState(prevState => ({ ...prevState, [field]: value }));
         if (errors[field]) {
             setErrors(prev => {
                 const newErrors = { ...prev };
-                delete newErrors[field as keyof typeof errors];
+                // FIX: Removed unnecessary type casting which caused the error.
+                delete newErrors[field];
                 return newErrors;
             });
         }
     };
 
     const validate = (): boolean => {
-        const newErrors: Record<string, string> = {};
+        // FIX: Ensured newErrors matches the more specific type of the errors state.
+        const newErrors: Partial<Record<keyof typeof initialFormState, string>> = {};
         if (!formState.customerName.trim()) newErrors.customerName = 'نام مشتری الزامی است.';
         if (!formState.chassisNumber.trim()) newErrors.chassisNumber = 'شماره شاسی الزامی است.';
         if (!formState.scheduledDate) newErrors.scheduledDate = 'تاریخ تحویل الزامی است.';

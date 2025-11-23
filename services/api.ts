@@ -1,4 +1,3 @@
-// FIX: Import the ActiveLead type to support the hot leads feature.
 import type { 
     Car, 
     CarSaleCondition, 
@@ -9,9 +8,10 @@ import type {
     ScrapedCarPrice, 
     CarPriceSource, 
     CarPriceStats,
+    // FIX: Added missing type imports
+    ActiveLead,
     DeliveryProcess,
     DeliveryStatus,
-    ActiveLead
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -254,13 +254,6 @@ export const deleteUser = async (id: number): Promise<void> => {
     return handleResponse(response);
 };
 
-// FIX: Add the missing getActiveLeads function to fetch data for the hot leads feature.
-export const getActiveLeads = async (): Promise<ActiveLead[]> => {
-    const response = await fetch(`${API_BASE_URL}/users/active-leads`, { headers: getAuthHeaders() });
-    const data = await handleResponse(response);
-    return Array.isArray(data) ? data : [];
-};
-
 // --- Cars ---
 export const getCars = async (): Promise<Car[]> => {
     const response = await fetch(`${API_BASE_URL}/cars`, { headers: getAuthHeaders() });
@@ -384,17 +377,25 @@ export const getCarPriceStats = async (): Promise<CarPriceStats[]> => {
     }));
 };
 
-// --- Delivery Process ---
+// --- Active Leads (for dashboard/hot leads) ---
+// FIX: Added missing getActiveLeads function.
+export const getActiveLeads = async (): Promise<ActiveLead[]> => {
+    const response = await fetch(`${API_BASE_URL}/users/active`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+};
 
+// --- Delivery Process ---
+// FIX: Added missing delivery process functions.
 export const getDeliveryProcesses = async (): Promise<DeliveryProcess[]> => {
-    const response = await fetch(`${API_BASE_URL}/delivery`, { headers: getAuthHeaders() });
+    const response = await fetch(`${API_BASE_URL}/deliveries`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
 };
 
 export const createDeliveryProcess = async (delivery: Omit<DeliveryProcess, 'id'>): Promise<DeliveryProcess> => {
     ensureOnline();
-    const response = await fetch(`${API_BASE_URL}/delivery`, {
+    const response = await fetch(`${API_BASE_URL}/deliveries`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(delivery),
@@ -402,9 +403,9 @@ export const createDeliveryProcess = async (delivery: Omit<DeliveryProcess, 'id'
     return handleResponse(response);
 };
 
-export const updateDeliveryProcessStatus = async (id: number, status: DeliveryStatus): Promise<void> => {
+export const updateDeliveryProcessStatus = async (id: number, status: DeliveryStatus): Promise<DeliveryProcess> => {
     ensureOnline();
-    const response = await fetch(`${API_BASE_URL}/delivery/${id}/status`, {
+    const response = await fetch(`${API_BASE_URL}/deliveries/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ status }),

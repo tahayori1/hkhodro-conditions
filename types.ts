@@ -63,15 +63,6 @@ export interface LeadMessage {
     updatedAt: string;
 }
 
-// FIX: Define and export the missing ActiveLead type for hot leads feature.
-export interface ActiveLead {
-    FullName: string;
-    CarModel: string | null;
-    Message: string;
-    number: string;
-    updatedAt: string;
-}
-
 export interface Car {
     id: number;
     name: string;
@@ -138,12 +129,20 @@ export interface CarPriceStats {
     computed_at: string;
 }
 
-// New types for Delivery Process
+// FIX: Added missing type definitions for ActiveLead, DeliveryProcess, and SecureTransaction.
+export interface ActiveLead {
+    FullName: string;
+    CarModel: string | null;
+    Message: string;
+    number: string;
+    updatedAt: string;
+}
+
 export enum DeliveryStatus {
     AWAITING_DOCUMENTS = 'در انتظار مدارک',
     PREPARING_VEHICLE = 'آماده‌سازی خودرو',
     READY_FOR_PICKUP = 'آماده تحویل',
-    DELIVERED = 'تحویل شده',
+    DELIVERED = 'تحویل داده شد',
 }
 
 export interface DeliveryProcess {
@@ -152,24 +151,22 @@ export interface DeliveryProcess {
     carModel: string;
     chassisNumber: string;
     status: DeliveryStatus;
-    scheduledDate: string;
-    deliveredDate: string | null;
-    notes: string;
+    scheduledDate: string; // ISO date string
+    deliveredDate: string | null; // ISO date string
+    notes?: string;
 }
-
-// New types for Transfer Paks (Secure Transaction)
-export type TransactionRole = 'ADMIN' | 'TECH_EXPERT' | 'LEGAL_EXPERT' | 'FINANCE_EXPERT' | 'CUSTOMER';
-
-export type TransactionType = 'ZERO' | 'USED' | 'HAVALEH';
 
 export enum TransactionStatus {
     DRAFT = 'پیش‌نویس',
     TECH_CHECK = 'کارشناسی فنی',
-    LEGAL_CHECK = 'استعلام حقوقی',
+    LEGAL_CHECK = 'استعلامات حقوقی',
     FINANCE_CHECK = 'تایید مالی',
     CONTRACT_SIGN = 'امضای قرارداد',
     COMPLETED = 'تکمیل شده',
 }
+
+export type TransactionRole = 'ADMIN' | 'TECH_EXPERT' | 'LEGAL_EXPERT' | 'FINANCE_EXPERT' | 'CUSTOMER';
+export type TransactionType = 'ZERO' | 'USED' | 'HAVALEH';
 
 export interface TransactionStep {
     id: number;
