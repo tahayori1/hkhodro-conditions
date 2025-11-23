@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getUsers, createUser, updateUser, deleteUser, getLeadHistory, sendMessage, getUserByNumber, getCars, getConditions, getReferences } from '../services/api';
 import type { Reference } from '../services/api';
-import type { User, ActiveLead, LeadMessage, Car, CarSaleCondition } from '../types';
+import type { User, LeadMessage, Car, CarSaleCondition } from '../types';
 import UserTable from '../components/UserTable';
 import UserModal from '../components/UserModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -20,7 +19,7 @@ import { PlusIcon } from '../components/icons/PlusIcon';
 const ITEMS_PER_PAGE = 50;
 
 type SortConfig = { key: keyof User; direction: 'ascending' | 'descending' } | null;
-type UserFilters = { query: string; carModel: string; reference: string };
+type UserFilters = { query: string; carModel: string; reference: string; };
 
 interface UsersPageProps {
     initialFilters: { carModel?: string };
@@ -39,7 +38,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     
     const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
-    const [selectedLead, setSelectedLead] = useState<User | ActiveLead | null>(null);
+    const [selectedLead, setSelectedLead] = useState<User | null>(null);
     const [modalMessages, setModalMessages] = useState<LeadMessage[]>([]);
     const [modalFullUser, setModalFullUser] = useState<User | null>(null);
     const [modalLoading, setModalLoading] = useState<boolean>(false);
@@ -51,7 +50,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
     const [currentPage, setCurrentPage] = useState(1);
-    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'RegisterTime', direction: 'descending' });
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'descending' });
     const [filters, setFilters] = useState<UserFilters>({ query: '', carModel: 'all', reference: 'all' });
 
     const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
@@ -72,6 +71,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
                 getConditions(),
                 getReferences()
             ]);
+            
             setUsers(usersData);
             setCars(carsData);
             setConditions(conditionsData);
@@ -165,7 +165,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
         setIsDeleteModalOpen(true);
     };
 
-    const handleViewDetails = async (lead: User | ActiveLead) => {
+    const handleViewDetails = async (lead: User) => {
         setIsDetailModalOpen(true);
         setSelectedLead(lead);
         setModalLoading(true);
@@ -173,13 +173,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
         setModalMessages([]);
         setModalFullUser(null);
         try {
-            const numberToFetch = 'number' in lead ? lead.number : lead.Number;
-            
-            const historyPromise = getLeadHistory(numberToFetch);
-            // If the lead is already a full User object, just use it. Otherwise, fetch it.
-            const userPromise = 'id' in lead ? Promise.resolve(lead) : getUserByNumber(numberToFetch);
-
-            const [historyData, userData] = await Promise.all([historyPromise, userPromise]);
+            const [historyData, userData] = await Promise.all([
+                getLeadHistory(lead.Number),
+                getUserByNumber(lead.Number)
+            ]);
             
             const parseDate = (dateString: string) => new Date(dateString.replace(' ', 'T'));
             setModalMessages(historyData.sort((a, b) => parseDate(a.createdAt).getTime() - parseDate(b.createdAt).getTime()));
@@ -243,7 +240,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
             throw new Error("No active lead selected for sending message.");
         }
         
-        const number = 'number' in selectedLead ? selectedLead.number : selectedLead.Number;
+        const number = selectedLead.Number;
 
         try {
             await sendMessage(number, message);
@@ -310,15 +307,15 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
     return (
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-white p-6 rounded-lg shadow-md mb-8 space-y-4">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-8 space-y-4">
                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h2 className="text-xl font-bold text-slate-700">مدیریت سرنخ‌ها</h2>
+                        <h2 className="text-xl font-bold text-slate-700 dark:text-slate-100">مدیریت مشتریان</h2>
                         <button
                             onClick={handleAddNew}
                             className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
                         >
                             <PlusIcon />
-                            افزودن سرنخ جدید
+                            افزودن مشتری جدید
                         </button>
                     </div>
                     <UserFilterPanel
@@ -407,8 +404,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
                     isOpen={isDeleteModalOpen}
                     onClose={() => setIsDeleteModalOpen(false)}
                     onConfirm={confirmDelete}
-                    title="حذف سرنخ فروش"
-                    message="آیا از حذف این سرنخ فروش اطمینان دارید؟ این عملیات قابل بازگشت نیست."
+                    title="حذف مشتری"
+                    message="آیا از حذف این مشتری اطمینان دارید؟ این عملیات قابل بازگشت نیست."
                 />
             )}
             

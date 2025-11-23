@@ -1,42 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import ConditionsPage from './pages/ConditionsPage';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import CarsPage from './pages/CarsPage';
-import HotLeadsPage from './pages/HotLeadsPage';
 import CarPricesPage from './pages/CarPricesPage';
 import VehicleExitPage from './pages/VehicleExitPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
-import { getActiveLeads } from './services/api';
-import type { ActiveLead } from './types';
 import { UsersIcon } from './components/icons/UsersIcon';
 import { ConditionsIcon } from './components/icons/ConditionsIcon';
 import { CarIcon } from './components/icons/CarIcon';
 import { PriceIcon } from './components/icons/PriceIcon';
-import { BoltIcon } from './components/icons/BoltIcon';
 import { HomeIcon } from './components/icons/HomeIcon';
 import { MoreIcon } from './components/icons/MoreIcon';
 import { SunIcon } from './components/icons/SunIcon';
 import { MoonIcon } from './components/icons/MoonIcon';
 import { ExitFormIcon } from './components/icons/ExitFormIcon';
 
-export type ActiveView = 'home' | 'hot-leads' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings';
+export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [activeView, setActiveView] = useState<ActiveView>('home');
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
-    const [unreadHotLeads, setUnreadHotLeads] = useState<number>(0);
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-
-    const knownLeadsRef = useRef<Set<string>>(new Set());
-    const isInitialLoadRef = useRef(true);
 
     useEffect(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -54,67 +46,6 @@ const App: React.FC = () => {
             document.documentElement.classList.remove('dark');
         }
     }, []);
-
-    useEffect(() => {
-        if (!isAuthenticated) return;
-
-        const checkHotLeads = async () => {
-            try {
-                const activeLeads = await getActiveLeads();
-                setUnreadHotLeads(activeLeads.length);
-                
-                // Notification logic
-                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                    const newLeads: ActiveLead[] = [];
-                    const currentLeadIds = new Set<string>();
-
-                    activeLeads.forEach(lead => {
-                        const leadId = `${lead.number}-${lead.updatedAt}`;
-                        currentLeadIds.add(leadId);
-
-                        if (!isInitialLoadRef.current && !knownLeadsRef.current.has(leadId)) {
-                            newLeads.push(lead);
-                        }
-                    });
-                    
-                    if (isInitialLoadRef.current) {
-                        knownLeadsRef.current = currentLeadIds;
-                        isInitialLoadRef.current = false;
-                        return;
-                    }
-
-                    if (newLeads.length > 0) {
-                        const registration = await navigator.serviceWorker.ready;
-                        const leadToShow = newLeads[0];
-                        let notificationTitle = 'سرنخ داغ جدید';
-                        let notificationBody = `یک سرنخ داغ جدید از ${leadToShow.FullName} دریافت شد.`;
-                        
-                        if (newLeads.length > 1) {
-                            notificationTitle = `${newLeads.length.toLocaleString('fa-IR')} سرنخ داغ جدید`;
-                            notificationBody = `شما ${newLeads.length.toLocaleString('fa-IR')} سرنخ داغ جدید پاسخ داده نشده دارید.`;
-                        }
-
-                        registration.showNotification(notificationTitle, {
-                            body: notificationBody,
-                            icon: '/vite.svg',
-                            badge: '/vite.svg',
-                            tag: 'new-hot-lead',
-                        });
-                    }
-                    knownLeadsRef.current = currentLeadIds;
-                }
-
-            } catch (error) {
-                console.error('Failed to check for new hot leads:', error);
-            }
-        };
-        
-        isInitialLoadRef.current = true;
-        checkHotLeads();
-        const intervalId = setInterval(checkHotLeads, 60000); 
-
-        return () => clearInterval(intervalId);
-    }, [isAuthenticated]);
     
     const handleLoginSuccess = (token: string, remember: boolean) => {
         if (remember) {
@@ -165,7 +96,7 @@ const App: React.FC = () => {
 
     // --- Components ---
 
-    const NavItem: React.FC<{ id: ActiveView | 'more', icon: React.ReactNode, label: string, isMobile?: boolean, badge?: number }> = ({ id, icon, label, isMobile, badge }) => {
+    const NavItem: React.FC<{ id: ActiveView | 'more', icon: React.ReactNode, label: string, isMobile?: boolean }> = ({ id, icon, label, isMobile }) => {
         const isActive = activeView === id;
         const handleClick = () => {
             if (id === 'more') {
@@ -185,11 +116,6 @@ const App: React.FC = () => {
                 >
                     <div className={`relative p-1.5 rounded-2xl transition-all duration-300 ${isActive ? 'bg-sky-100 text-sky-600 dark:bg-sky-900 dark:text-sky-300 -translate-y-2 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}>
                         {icon}
-                        {badge !== undefined && badge > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800 shadow-sm">
-                                {badge > 99 ? '!' : badge.toLocaleString('fa-IR')}
-                            </span>
-                        )}
                     </div>
                     <span className={`text-[10px] mt-1 transition-colors ${isActive ? 'font-bold text-sky-700 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500'}`}>{label}</span>
                 </button>
@@ -207,11 +133,6 @@ const App: React.FC = () => {
             >
                 <div className="relative">
                      {React.cloneElement(icon as React.ReactElement<any>, { className: `w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}` })}
-                     {badge !== undefined && badge > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white dark:border-slate-800">
-                            {badge > 99 ? '+99' : badge.toLocaleString('fa-IR')}
-                        </span>
-                    )}
                 </div>
                 <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>{label}</span>
             </button>
@@ -220,11 +141,10 @@ const App: React.FC = () => {
 
     const MobileBottomNav = () => (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/60 pb-[env(safe-area-inset-bottom)] z-40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-            <div className="grid grid-cols-5 h-16 items-end pb-2">
+            <div className="grid grid-cols-4 h-16 items-end pb-2">
                 <NavItem id="home" icon={<HomeIcon className="w-6 h-6" />} label="خانه" isMobile />
-                <NavItem id="hot-leads" icon={<BoltIcon className="w-6 h-6" />} label="داغ" isMobile badge={unreadHotLeads} />
-                <NavItem id="vehicle-exit" icon={<ExitFormIcon className="w-6 h-6" />} label="خروج" isMobile />
                 <NavItem id="users" icon={<UsersIcon className="w-6 h-6" />} label="مشتریان" isMobile />
+                <NavItem id="vehicle-exit" icon={<ExitFormIcon className="w-6 h-6" />} label="خروج" isMobile />
                 <NavItem id="more" icon={<MoreIcon className="w-6 h-6" />} label="منو" isMobile />
             </div>
         </div>
@@ -245,9 +165,8 @@ const App: React.FC = () => {
             <div className="flex-1 overflow-y-auto px-4 space-y-1 no-scrollbar">
                 <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-2">اصلی</p>
                 <NavItem id="home" icon={<HomeIcon />} label="داشبورد" />
-                <NavItem id="hot-leads" icon={<BoltIcon />} label="سرنخ های داغ" badge={unreadHotLeads} />
+                <NavItem id="users" icon={<UsersIcon />} label="مشتریان" />
                 <NavItem id="vehicle-exit" icon={<ExitFormIcon />} label="فرم خروج خودرو" />
-                <NavItem id="users" icon={<UsersIcon />} label="مشتریان و سرنخ‌ها" />
                 
                 <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">مدیریت</p>
                 <NavItem id="cars" icon={<CarIcon />} label="خودروها" />
@@ -345,18 +264,11 @@ const App: React.FC = () => {
                          </div>
                         <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">AutoLead</h1>
                     </div>
-                    {unreadHotLeads > 0 && activeView !== 'hot-leads' && (
-                        <button onClick={() => setActiveView('hot-leads')} className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold animate-pulse shadow-sm border border-amber-200 dark:border-amber-800">
-                            <BoltIcon className="w-3.5 h-3.5" />
-                            <span>{unreadHotLeads.toLocaleString('fa-IR')}</span>
-                        </button>
-                    )}
                 </header>
 
                 {/* Main Content */}
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden w-full max-w-[1600px] mx-auto">
-                    {activeView === 'home' && <HomePage onNavigate={setActiveView} unreadHotLeads={unreadHotLeads} />}
-                    {activeView === 'hot-leads' && <HotLeadsPage />}
+                    {activeView === 'home' && <HomePage onNavigate={setActiveView} />}
                     {activeView === 'conditions' && <ConditionsPage />}
                     {activeView === 'users' && <UsersPage initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} />}
                     {activeView === 'cars' && <CarsPage onNavigateToLeads={handleNavigateToUsersWithFilter} />}

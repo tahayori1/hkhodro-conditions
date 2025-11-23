@@ -1,8 +1,8 @@
+// FIX: Import the ActiveLead type to support the hot leads feature.
 import type { 
     Car, 
     CarSaleCondition, 
     User, 
-    ActiveLead, 
     LeadMessage, 
     DealershipInfo, 
     CarPrice, 
@@ -10,7 +10,8 @@ import type {
     CarPriceSource, 
     CarPriceStats,
     DeliveryProcess,
-    DeliveryStatus
+    DeliveryStatus,
+    ActiveLead
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -198,12 +199,6 @@ export const getUserByNumber = async (number: string): Promise<User | null> => {
     return (Array.isArray(data) && data.length > 0) ? data[0] : null;
 };
 
-export const getActiveLeads = async (): Promise<ActiveLead[]> => {
-    const response = await fetch(`${API_BASE_URL}/users/active/`, { headers: getAuthHeaders() });
-    const data: ActiveLead[] = await handleResponse(response) || [];
-    return Array.isArray(data) ? data : [];
-};
-
 export const getLeadHistory = async (number: string): Promise<LeadMessage[]> => {
     const response = await fetch(`${API_BASE_URL}/users/history?number=${number}`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
@@ -257,6 +252,13 @@ export const deleteUser = async (id: number): Promise<void> => {
         body: JSON.stringify({ id }),
     });
     return handleResponse(response);
+};
+
+// FIX: Add the missing getActiveLeads function to fetch data for the hot leads feature.
+export const getActiveLeads = async (): Promise<ActiveLead[]> => {
+    const response = await fetch(`${API_BASE_URL}/users/active-leads`, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
 };
 
 // --- Cars ---
@@ -375,9 +377,9 @@ export const getCarPriceStats = async (): Promise<CarPriceStats[]> => {
     return data.map((item: any, index: number) => ({
         id: index, // Synthetic ID for React keys
         model_name: item.model_name,
-        minimum: item.min_price,
-        maximum: item.max_price,
-        average: parseFloat(item.avg_price),
+        minimum: item.min_price || 0,
+        maximum: item.max_price || 0,
+        average: parseFloat(item.avg_price) || 0,
         computed_at: new Date().toISOString(), // This is in the type but not the API
     }));
 };

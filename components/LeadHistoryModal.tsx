@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { User, ActiveLead, LeadMessage, Car, CarSaleCondition } from '../types';
+import type { User, LeadMessage, Car, CarSaleCondition } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
 import Spinner from './Spinner';
 import { SendIcon } from './icons/SendIcon';
@@ -8,7 +8,7 @@ import ConditionSelectionModal from './ConditionSelectionModal';
 interface LeadDetailHistoryModalProps {
     isOpen: boolean;
     onClose: () => void;
-    lead: User | ActiveLead | null;
+    lead: User | null;
     fullUserDetails: User | null;
     messages: LeadMessage[];
     isLoading: boolean;
@@ -45,7 +45,7 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
 
     useEffect(() => {
         if (isOpen && (lead || fullUserDetails)) {
-            const initialCarModel = fullUserDetails?.CarModel || ('CarModel' in lead! ? lead.CarModel : '') || '';
+            const initialCarModel = fullUserDetails?.CarModel || lead?.CarModel || '';
             setQuickSendCarModel(initialCarModel);
         } else if (!isOpen) {
             // Reset state on close
@@ -137,8 +137,8 @@ ${descriptionsText}`;
         }
     };
     
-    const leadName = ('FullName' in lead && lead.FullName) || (fullUserDetails?.FullName);
-    const leadNumber = 'number' in lead ? lead.number : lead.Number;
+    const leadName = lead.FullName || fullUserDetails?.FullName;
+    const leadNumber = lead.Number;
 
     return (
         <>
@@ -147,7 +147,7 @@ ${descriptionsText}`;
                     <header className="p-4 border-b flex justify-between items-center flex-shrink-0">
                         <div>
                             <h2 className="text-lg font-bold text-slate-800">
-                               جزئیات و تاریخچه سرنخ
+                               جزئیات و تاریخچه مشتری
                             </h2>
                             <p className="text-sm text-slate-500" dir="ltr">
                                 {leadNumber} {leadName && `(${leadName})`}
@@ -167,7 +167,7 @@ ${descriptionsText}`;
                             <>
                                 {/* User Details Section */}
                                 <div className="p-4 bg-slate-50 border-b">
-                                    <h3 className="text-md font-bold text-slate-700 mb-3">اطلاعات سرنخ</h3>
+                                    <h3 className="text-md font-bold text-slate-700 mb-3">اطلاعات مشتری</h3>
                                     {fullUserDetails ? (
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                                             <DetailItem label="خودروی درخواستی" value={fullUserDetails.CarModel} />

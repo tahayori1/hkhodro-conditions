@@ -53,21 +53,6 @@ export interface User {
     updatedAt: string;
 }
 
-export interface ActiveLead {
-    number: string;
-    Message: string;
-    media: string | null;
-    receive: 0 | 1;
-    updatedAt: string;
-    Province: string;
-    City: string;
-    Decription: string;
-    RegisterTime: string;
-    reference: string;
-    CarModel: string;
-    FullName: string;
-}
-
 export interface LeadMessage {
     id: number;
     number: string;
@@ -75,6 +60,15 @@ export interface LeadMessage {
     media: string | null;
     receive: 0 | 1; // 1 for incoming (customer), 0 for outgoing (agent/system)
     createdAt: string;
+    updatedAt: string;
+}
+
+// FIX: Define and export the missing ActiveLead type for hot leads feature.
+export interface ActiveLead {
+    FullName: string;
+    CarModel: string | null;
+    Message: string;
+    number: string;
     updatedAt: string;
 }
 

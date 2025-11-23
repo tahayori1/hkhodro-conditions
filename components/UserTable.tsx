@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { User } from '../types';
 import { EditIcon } from './icons/EditIcon';
@@ -86,13 +85,15 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                             <SortableHeader title="تماس" sortKey="Number" />
                             <SortableHeader title="خودرو" sortKey="CarModel" />
                             <SortableHeader title="موقعیت" sortKey="Province" />
-                            <SortableHeader title="تاریخ" sortKey="RegisterTime" />
+                            <SortableHeader title="آخرین بروزرسانی" sortKey="updatedAt" />
                             <th scope="col" className="px-6 py-3"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {users.map((user) => (
-                            <tr key={user.id} className={`border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors ${selectedUserIds.has(user.id) ? 'bg-sky-50/60 dark:bg-sky-900/20' : ''}`}>
+                            <tr key={user.id} className={`border-b border-slate-50 dark:border-slate-700/50 transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-700/50 
+                                ${selectedUserIds.has(user.id) ? 'bg-sky-50/60 dark:bg-sky-900/20' : ''}
+                            `}>
                                 <td className="p-4">
                                     <div className="flex items-center">
                                         <input
@@ -117,7 +118,7 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                                     <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600">{user.CarModel || '-'}</span>
                                 </td>
                                 <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{user.City || user.Province || '-'}</td>
-                                <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500">{formatDate(user.RegisterTime)}</td>
+                                <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500">{formatDate(user.updatedAt)}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-1">
                                          <button onClick={() => onViewDetails(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-colors" title="گفتگو">
@@ -143,7 +144,9 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                     <div 
                         key={user.id} 
                         onClick={() => onViewDetails(user)}
-                        className={`relative bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border transition-all active:scale-[0.98] ${selectedUserIds.has(user.id) ? 'border-sky-500 ring-1 ring-sky-500 bg-sky-50 dark:bg-sky-900/20' : 'border-slate-100 dark:border-slate-700'}`}
+                        className={`relative bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border transition-all active:scale-[0.98] 
+                        ${selectedUserIds.has(user.id) ? 'border-sky-500 ring-1 ring-sky-500 bg-sky-50 dark:bg-sky-900/20' : 'border-slate-100 dark:border-slate-700'}
+                        `}
                     >
                         <div className="flex items-center gap-3">
                             {/* Selection Circle */}
@@ -158,7 +161,7 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start">
                                     <h3 className="font-bold text-slate-900 dark:text-white text-base truncate">{user.FullName}</h3>
-                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded-full flex-shrink-0 font-mono">{formatDate(user.RegisterTime)}</span>
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded-full flex-shrink-0 font-mono">{formatDate(user.updatedAt)}</span>
                                 </div>
                                 
                                 <div className="flex items-center gap-2 mt-1">

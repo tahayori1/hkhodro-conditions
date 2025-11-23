@@ -22,24 +22,24 @@ const UserFilterPanel: React.FC<UserFilterPanelProps> = ({ filters, onFilterChan
 
     return (
         <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-            <div className="lg:col-span-2">
-                <label htmlFor="user-search" className="block text-sm font-medium text-slate-600 mb-1">جستجو</label>
+            <div className="lg:col-span-4">
+                <label htmlFor="user-search" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">جستجو</label>
                 <input
                     id="user-search"
                     name="query"
                     type="text"
                     placeholder="جستجو بر اساس نام، شماره، خودرو، استان، شهر..."
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition bg-white dark:bg-slate-700"
                     value={filters.query}
                     onChange={handleChange}
                 />
             </div>
              <div>
-                <label htmlFor="car-model-filter" className="block text-sm font-medium text-slate-600 mb-1">خودروی درخواستی</label>
+                <label htmlFor="car-model-filter" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">خودروی درخواستی</label>
                 <select
                     id="car-model-filter"
                     name="carModel"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
                     value={filters.carModel}
                     onChange={handleChange}
                 >
@@ -50,11 +50,11 @@ const UserFilterPanel: React.FC<UserFilterPanelProps> = ({ filters, onFilterChan
                 </select>
             </div>
             <div>
-                <label htmlFor="reference-filter" className="block text-sm font-medium text-slate-600 mb-1">مرجع</label>
+                <label htmlFor="reference-filter" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">مرجع</label>
                 <select
                     id="reference-filter"
                     name="reference"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
                     value={filters.reference}
                     onChange={handleChange}
                 >
@@ -64,10 +64,11 @@ const UserFilterPanel: React.FC<UserFilterPanelProps> = ({ filters, onFilterChan
                     ))}
                 </select>
             </div>
-             <div className="lg:col-span-4 flex justify-end">
-                <button
+            <div className="flex items-center gap-2">
+                 <button
                     onClick={onClear}
-                    className="px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 transition-colors"
+                    className="w-full px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+                    title="پاک کردن فیلترها"
                 >
                     پاک کردن فیلترها
                 </button>

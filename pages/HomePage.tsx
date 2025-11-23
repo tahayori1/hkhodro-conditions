@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { ActiveView } from '../App';
 import { UsersIcon } from '../components/icons/UsersIcon';
-import { BoltIcon } from '../components/icons/BoltIcon';
 import { ConditionsIcon } from '../components/icons/ConditionsIcon';
 import { CarIcon } from '../components/icons/CarIcon';
 import { PriceIcon } from '../components/icons/PriceIcon';
@@ -14,7 +13,6 @@ import Spinner from '../components/Spinner';
 
 interface HomePageProps {
     onNavigate: (view: ActiveView) => void;
-    unreadHotLeads: number;
 }
 
 const StatCard: React.FC<{ label: string, value: string | number, icon: React.ReactNode, gradient: string, onClick?: () => void }> = ({ label, value, icon, gradient, onClick }) => (
@@ -93,7 +91,7 @@ const PriceTicker: React.FC = () => {
     );
 }
 
-const HomePage: React.FC<HomePageProps> = ({ onNavigate, unreadHotLeads }) => {
+const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     
     const today = new Date().toLocaleDateString('fa-IR', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -120,14 +118,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, unreadHotLeads }) => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <StatCard 
-                    label="سرنخ‌های داغ" 
-                    value={unreadHotLeads} 
-                    icon={<BoltIcon />} 
-                    gradient="bg-gradient-to-br from-amber-400 to-orange-500"
-                    onClick={() => onNavigate('hot-leads')}
-                    />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <StatCard 
                     label="کل مشتریان" 
                     value="۱۲۸" 
@@ -154,19 +145,11 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, unreadHotLeads }) => {
             {/* Quick Actions */}
             <div>
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 px-1">دسترسی سریع</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    <ActionCard 
-                        icon={<BoltIcon className="w-6 h-6" />}
-                        title="سرنخ داغ"
-                        description="پاسخگویی فوری"
-                        onClick={() => onNavigate('hot-leads')}
-                        bgClass="bg-amber-500"
-                        textClass="text-amber-600 dark:text-amber-400"
-                    />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <ActionCard 
                         icon={<UsersIcon className="w-6 h-6" />}
                         title="مشتریان"
-                        description="مدیریت لیست"
+                        description="مدیریت لیست مشتریان"
                         onClick={() => onNavigate('users')}
                         bgClass="bg-sky-500"
                         textClass="text-sky-600 dark:text-sky-400"
@@ -174,7 +157,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, unreadHotLeads }) => {
                     <ActionCard 
                         icon={<ConditionsIcon className="w-6 h-6" />}
                         title="شرایط فروش"
-                        description="بخشنامه‌ها"
+                        description="بررسی و مدیریت بخشنامه‌ها"
                         onClick={() => onNavigate('conditions')}
                         bgClass="bg-green-500"
                         textClass="text-green-600 dark:text-green-400"
@@ -182,7 +165,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, unreadHotLeads }) => {
                     <ActionCard 
                         icon={<ExitFormIcon className="w-6 h-6" />}
                         title="خروج خودرو"
-                        description="فرم تحویل نهایی"
+                        description="ثبت فرم تحویل نهایی"
                         onClick={() => onNavigate('vehicle-exit')}
                         bgClass="bg-teal-500"
                         textClass="text-teal-600 dark:text-teal-400"
@@ -190,7 +173,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, unreadHotLeads }) => {
                     <ActionCard 
                         icon={<PriceIcon className="w-6 h-6" />}
                         title="قیمت روز"
-                        description="رصد بازار"
+                        description="رصد و مقایسه قیمت بازار"
                         onClick={() => onNavigate('car-prices')}
                         bgClass="bg-purple-500"
                         textClass="text-purple-600 dark:text-purple-400"
