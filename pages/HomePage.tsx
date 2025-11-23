@@ -116,31 +116,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
                 <PriceTicker />
             </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <StatCard 
-                    label="کل مشتریان" 
-                    value="۱۲۸" 
-                    icon={<UsersIcon />} 
-                    gradient="bg-gradient-to-br from-sky-400 to-blue-500"
-                    onClick={() => onNavigate('users')}
-                    />
-                    <StatCard 
-                    label="فرم خروج" 
-                    value="ثبت جدید" 
-                    icon={<ExitFormIcon />} 
-                    gradient="bg-gradient-to-br from-teal-400 to-emerald-500"
-                    onClick={() => onNavigate('vehicle-exit')}
-                    />
-                    <StatCard 
-                    label="موجودی" 
-                    value="۱۲" 
-                    icon={<CarIcon />} 
-                    gradient="bg-gradient-to-br from-indigo-400 to-purple-500"
-                    onClick={() => onNavigate('cars')}
-                    />
-            </div>
             
             {/* Quick Actions */}
             <div>

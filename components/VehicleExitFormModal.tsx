@@ -134,7 +134,7 @@ const VehicleExitFormModal: React.FC<VehicleExitFormModalProps> = ({ isOpen, onC
                     
                     {/* Header Logo/Title */}
                     <div className="text-center border-b-2 border-slate-800 pb-4 mb-4">
-                        <h1 className="text-2xl font-black text-slate-900 mb-2">نمایندگی حسین‌خودرو شیراز</h1>
+                        <h1 className="text-2xl font-black text-slate-900 mb-2">حسینی خودرو شیراز</h1>
                         <h2 className="text-lg font-bold text-slate-700">فرم خروج خودرو / سند تحویل نهایی</h2>
                         <p className="text-xs text-slate-500 mt-2 text-justify px-4">
                             این سند مطابق مقررات داخلی نمایندگی و الزامات قانونی تنظیم شده و هرگونه خروج خودرو از محوطه بدون تکمیل و امضای این فرم «ممنوع» است. تمامی امضاکنندگان، مسئول صحت اطلاعات مرتبط با واحد خود هستند.
