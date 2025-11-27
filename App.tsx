@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import ConditionsPage from './pages/ConditionsPage';
@@ -7,6 +8,8 @@ import LoginPage from './pages/LoginPage';
 import CarsPage from './pages/CarsPage';
 import CarPricesPage from './pages/CarPricesPage';
 import VehicleExitPage from './pages/VehicleExitPage';
+import AccessControlPage from './pages/AccessControlPage';
+import PollPage from './pages/PollPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -19,8 +22,10 @@ import { MoreIcon } from './components/icons/MoreIcon';
 import { SunIcon } from './components/icons/SunIcon';
 import { MoonIcon } from './components/icons/MoonIcon';
 import { ExitFormIcon } from './components/icons/ExitFormIcon';
+import { SecurityIcon } from './components/icons/SecurityIcon';
+import { PollIcon } from './components/icons/PollIcon';
 
-export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings';
+export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -172,6 +177,8 @@ const App: React.FC = () => {
                 <NavItem id="cars" icon={<CarIcon />} label="خودروها" />
                 <NavItem id="conditions" icon={<ConditionsIcon />} label="شرایط فروش" />
                 <NavItem id="car-prices" icon={<PriceIcon />} label="قیمت روز بازار" />
+                <NavItem id="access-control" icon={<SecurityIcon />} label="کاربران و دسترسی" />
+                <NavItem id="poll" icon={<PollIcon />} label="نظرسنجی" />
             </div>
 
             <div className="p-4 m-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
@@ -206,7 +213,8 @@ const App: React.FC = () => {
                         <DrawerItem id="cars" icon={<CarIcon className="w-6 h-6 text-white" />} label="خودروها" color="bg-blue-500" />
                         <DrawerItem id="conditions" icon={<ConditionsIcon className="w-6 h-6 text-white" />} label="شرایط" color="bg-green-500" />
                         <DrawerItem id="car-prices" icon={<PriceIcon className="w-6 h-6 text-white" />} label="قیمت‌ها" color="bg-purple-500" />
-                        <DrawerItem id="vehicle-exit" icon={<ExitFormIcon className="w-6 h-6 text-white" />} label="فرم خروج" color="bg-orange-500" />
+                        <DrawerItem id="access-control" icon={<SecurityIcon className="w-6 h-6 text-white" />} label="دسترسی" color="bg-rose-500" />
+                        <DrawerItem id="poll" icon={<PollIcon className="w-6 h-6 text-white" />} label="نظرسنجی" color="bg-amber-500" />
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 flex flex-col gap-2">
@@ -275,6 +283,8 @@ const App: React.FC = () => {
                     {activeView === 'car-prices' && <CarPricesPage />}
                     {activeView === 'vehicle-exit' && <VehicleExitPage />}
                     {activeView === 'settings' && <SettingsPage />}
+                    {activeView === 'access-control' && <AccessControlPage />}
+                    {activeView === 'poll' && <PollPage />}
                 </main>
             </div>
 

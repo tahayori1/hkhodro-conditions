@@ -1,3 +1,4 @@
+
 import type { 
     Car, 
     CarSaleCondition, 
@@ -8,10 +9,14 @@ import type {
     ScrapedCarPrice, 
     CarPriceSource, 
     CarPriceStats,
-    // FIX: Added missing type imports
     ActiveLead,
     DeliveryProcess,
     DeliveryStatus,
+    StaffUser,
+    ApiSystemUser,
+    Permission,
+    PollApiResponseItem,
+    ProcessedPollData
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -59,6 +64,15 @@ const ensureOnline = () => {
 
 // --- Auth ---
 
+export const hashPassword = async (password: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+};
+
 export const login = async (username: string, password: string): Promise<{ token: string }> => {
     ensureOnline();
     const response = await fetch(`${API_BASE_URL}/auth`, {
@@ -71,11 +85,9 @@ export const login = async (username: string, password: string): Promise<{ token
 
     if (response.ok) {
         const data = await response.json();
-        // The API now returns the token inside an array.
         if (Array.isArray(data) && data.length > 0) {
             return data[0];
         }
-        // Fallback in case the format is a direct object.
         if (data && typeof data === 'object' && !Array.isArray(data) && data.token) {
             return data;
         }
@@ -95,9 +107,7 @@ export const createUserAccount = async (username: string, password: string): Pro
     ensureOnline();
     const response = await fetch(`${API_BASE_URL}/auth/new`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ username, password }),
     });
 
@@ -113,6 +123,122 @@ export const createUserAccount = async (username: string, password: string): Pro
         throw new Error(errorData.message || `خطا در ایجاد کاربر: ${response.status}`);
     }
 };
+
+// --- Staff Management ---
+
+const PERMISSIONS_STORAGE_KEY = 'auto_lead_staff_permissions';
+const USER_MGMT_URL = `${API_BASE_URL}/auth/user`;
+
+// This function merges the user list from the API with granular permissions stored locally.
+const mergePermissions = (apiUsers: ApiSystemUser[]): StaffUser[] => {
+    const storedPermissionsJSON = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
+    const storedPermissions: Record<string, Permission[]> = storedPermissionsJSON ? JSON.parse(storedPermissionsJSON) : {};
+
+    return apiUsers.map(user => {
+        const isAdmin = user.isAdmin === 1;
+        // If user is admin, they have full permissions. Otherwise, use stored permissions.
+        const permissions = isAdmin ? [] : (storedPermissions[user.username] || []);
+        
+        return {
+            id: user.id,
+            username: user.username,
+            fullName: user.full_name || user.username,
+            role: isAdmin ? 'ADMIN' : 'STAFF',
+            permissions: permissions,
+            lastLogin: user.last_update,
+            isActive: true // Assuming all users from API are active
+        };
+    });
+};
+
+export const getStaffUsers = async (): Promise<StaffUser[]> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/auth/userslist`, { headers: getAuthHeaders() });
+    const apiUsers: ApiSystemUser[] = await handleResponse(response);
+    
+    if (!Array.isArray(apiUsers)) {
+        console.error("Expected an array of users from API, but got:", apiUsers);
+        return [];
+    }
+
+    return mergePermissions(apiUsers);
+};
+
+const addApiUser = async (payload: any) => {
+    const response = await fetch(USER_MGMT_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
+    });
+    return handleResponse(response);
+};
+
+const updateApiUser = async (payload: any) => {
+    const response = await fetch(USER_MGMT_URL, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
+    });
+    return handleResponse(response);
+};
+
+const deleteApiUser = async (id: number) => {
+    const response = await fetch(USER_MGMT_URL, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ id })
+    });
+    return handleResponse(response);
+};
+
+export const saveStaffUser = async (user: Partial<StaffUser>): Promise<void> => {
+    ensureOnline();
+    
+    // Prepare payload for API
+    const apiPayload: any = {
+        username: user.username,
+        full_name: user.fullName,
+        isAdmin: user.role === 'ADMIN' ? 1 : 0,
+        permission_level: 1, // Default permission level
+    };
+
+    if (user.password) {
+        apiPayload.password = user.password;
+    }
+
+    // Determine if it's an Add or Update operation
+    if (typeof user.id === 'number') {
+        apiPayload.id = user.id;
+        await updateApiUser(apiPayload);
+    } else {
+        await addApiUser(apiPayload);
+    }
+    
+    // Save granular permissions locally for non-admin users.
+    if (user.username && user.role === 'STAFF' && user.permissions) {
+        const storedPermissionsJSON = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
+        const storedPermissions: Record<string, Permission[]> = storedPermissionsJSON ? JSON.parse(storedPermissionsJSON) : {};
+        
+        storedPermissions[user.username] = user.permissions;
+        localStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(storedPermissions));
+    }
+};
+
+export const deleteStaffUser = async (id: number, username: string): Promise<void> => {
+    ensureOnline();
+    
+    // Server-side deletion
+    await deleteApiUser(id);
+
+    // Local permissions cleanup
+    const storedPermissionsJSON = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
+    if (storedPermissionsJSON) {
+        const storedPermissions: Record<string, Permission[]> = JSON.parse(storedPermissionsJSON);
+        delete storedPermissions[username];
+        localStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(storedPermissions));
+    }
+};
+
 
 // --- Car Sale Conditions ---
 
@@ -378,7 +504,6 @@ export const getCarPriceStats = async (): Promise<CarPriceStats[]> => {
 };
 
 // --- Active Leads (for dashboard/hot leads) ---
-// FIX: Added missing getActiveLeads function.
 export const getActiveLeads = async (): Promise<ActiveLead[]> => {
     const response = await fetch(`${API_BASE_URL}/users/active`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
@@ -386,7 +511,6 @@ export const getActiveLeads = async (): Promise<ActiveLead[]> => {
 };
 
 // --- Delivery Process ---
-// FIX: Added missing delivery process functions.
 export const getDeliveryProcesses = async (): Promise<DeliveryProcess[]> => {
     const response = await fetch(`${API_BASE_URL}/deliveries`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
@@ -424,6 +548,45 @@ export const sendMessage = async (number: string, message: string): Promise<{ Se
     });
     return handleResponse(response);
 };
+
+// --- Poll / Survey ---
+export const getPollAverages = async (): Promise<ProcessedPollData> => {
+    const response = await fetch(`${API_BASE_URL}/poll/avg`, { headers: getAuthHeaders() });
+    const rawData: PollApiResponseItem[] = await handleResponse(response);
+    
+    const result: ProcessedPollData = {
+        averages: {},
+        customers: [],
+        inProgress: [],
+        notAnswered: [],
+        questions: {}
+    };
+
+    if (Array.isArray(rawData)) {
+        rawData.forEach(item => {
+            if (item.AverageAll) {
+                result.averages = item.AverageAll;
+            }
+            if (item.perCustomerResults) {
+                result.customers = item.perCustomerResults;
+            }
+            if (item.inProgress) {
+                result.inProgress = item.inProgress;
+            }
+            if (item.NotAnswered) {
+                result.notAnswered = item.NotAnswered;
+            }
+            if (item.fieldsGuid) {
+                item.fieldsGuid.forEach(field => {
+                    result.questions[field.Key] = field.Title;
+                });
+            }
+        });
+    }
+
+    return result;
+};
+
 
 // --- Settings ---
 

@@ -1,3 +1,4 @@
+
 export enum ConditionStatus {
     AVAILABLE = 'موجود',
     SOLD_OUT = 'فروخته شد',
@@ -129,7 +130,6 @@ export interface CarPriceStats {
     computed_at: string;
 }
 
-// FIX: Added missing type definitions for ActiveLead, DeliveryProcess, and SecureTransaction.
 export interface ActiveLead {
     FullName: string;
     CarModel: string | null;
@@ -156,17 +156,19 @@ export interface DeliveryProcess {
     notes?: string;
 }
 
+
 export enum TransactionStatus {
     DRAFT = 'پیش‌نویس',
-    TECH_CHECK = 'کارشناسی فنی',
-    LEGAL_CHECK = 'استعلامات حقوقی',
-    FINANCE_CHECK = 'تایید مالی',
-    CONTRACT_SIGN = 'امضای قرارداد',
+    TECH_CHECK = 'در انتظار کارشناسی',
+    LEGAL_CHECK = 'در انتظار حقوقی',
+    FINANCE_CHECK = 'در انتظار مالی',
+    CONTRACT_SIGN = 'آماده امضا',
     COMPLETED = 'تکمیل شده',
+    CANCELLED = 'لغو شده',
 }
 
-export type TransactionRole = 'ADMIN' | 'TECH_EXPERT' | 'LEGAL_EXPERT' | 'FINANCE_EXPERT' | 'CUSTOMER';
 export type TransactionType = 'ZERO' | 'USED' | 'HAVALEH';
+export type TransactionRole = 'ADMIN' | 'TECH_EXPERT' | 'LEGAL_EXPERT' | 'FINANCE_EXPERT' | 'CUSTOMER';
 
 export interface TransactionStep {
     id: number;
@@ -186,4 +188,83 @@ export interface SecureTransaction {
     currentStep: number;
     createdAt: string;
     steps: TransactionStep[];
+}
+
+
+// --- Access Control Types ---
+
+export type AppModule = 'users' | 'conditions' | 'cars' | 'prices' | 'vehicle-exit' | 'settings';
+export type ActionType = 'view' | 'add' | 'edit' | 'delete';
+
+export interface Permission {
+    module: AppModule;
+    actions: ActionType[];
+}
+
+export interface ApiSystemUser {
+    id: number;
+    username: string;
+    full_name: string | null;
+    whatsapp_apikey: string | null;
+    permission_level: number; // 0 or 1
+    isAdmin: number; // 0 or 1
+    register_time: string;
+    last_update: string;
+    mobile: string | null;
+    email: string | null;
+    password?: string; // Optional field for request payloads
+}
+
+export interface StaffUser {
+    id: number | string; // string for new users
+    username: string;
+    password?: string; // Optional, used only for creation
+    fullName: string;
+    role: 'ADMIN' | 'STAFF';
+    permissions: Permission[];
+    lastLogin?: string;
+    isActive: boolean;
+}
+
+// --- Poll Types ---
+
+export interface PollQuestionMap {
+    Title: string;
+    Key: string;
+}
+
+export interface PollCustomerFields {
+    [key: string]: string | number;
+}
+
+export interface PollCustomerContact {
+    DisplayName: string;
+    MobilePhone: string;
+}
+
+export interface PollCustomerResult {
+    Fields: PollCustomerFields;
+    Description: string; // HTML string with car info
+    Contact: PollCustomerContact;
+    PipelineChangeTime: string;
+}
+
+export interface PollAverages {
+    [key: string]: number;
+}
+
+export interface PollApiResponseItem {
+    AverageAll?: PollAverages;
+    perCustomerResults?: PollCustomerResult[];
+    inProgress?: PollCustomerResult[];
+    NotAnswered?: PollCustomerResult[];
+    fieldsGuid?: PollQuestionMap[];
+}
+
+export interface ProcessedPollData {
+    averages: PollAverages;
+    customers: PollCustomerResult[]; // Completed
+    inProgress: PollCustomerResult[]; // In Progress
+    notAnswered: PollCustomerResult[]; // Not Answered
+    questions: Record<string, string>; // Key -> Title Mapping
 }

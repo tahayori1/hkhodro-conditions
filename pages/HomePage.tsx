@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import type { ActiveView } from '../App';
 import { UsersIcon } from '../components/icons/UsersIcon';
@@ -7,6 +8,8 @@ import { PriceIcon } from '../components/icons/PriceIcon';
 import { ExitFormIcon } from '../components/icons/ExitFormIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { HomeIcon } from '../components/icons/HomeIcon';
+import { SecurityIcon } from '../components/icons/SecurityIcon';
+import { PollIcon } from '../components/icons/PollIcon';
 import { getCarPriceStats } from '../services/api';
 import type { CarPriceStats } from '../types';
 import Spinner from '../components/Spinner';
@@ -137,6 +140,22 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         bgClass="bg-green-500"
                         textClass="text-green-600 dark:text-green-400"
                     />
+                     <ActionCard 
+                        icon={<CarIcon className="w-6 h-6" />}
+                        title="خودروها"
+                        description="مدیریت لیست خودروهای نمایندگی"
+                        onClick={() => onNavigate('cars')}
+                        bgClass="bg-blue-500"
+                        textClass="text-blue-600 dark:text-blue-400"
+                    />
+                    <ActionCard 
+                        icon={<PriceIcon className="w-6 h-6" />}
+                        title="قیمت روز"
+                        description="رصد و مقایسه قیمت بازار"
+                        onClick={() => onNavigate('car-prices')}
+                        bgClass="bg-purple-500"
+                        textClass="text-purple-600 dark:text-purple-400"
+                    />
                     <ActionCard 
                         icon={<ExitFormIcon className="w-6 h-6" />}
                         title="خروج خودرو"
@@ -146,12 +165,20 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         textClass="text-teal-600 dark:text-teal-400"
                     />
                     <ActionCard 
-                        icon={<PriceIcon className="w-6 h-6" />}
-                        title="قیمت روز"
-                        description="رصد و مقایسه قیمت بازار"
-                        onClick={() => onNavigate('car-prices')}
-                        bgClass="bg-purple-500"
-                        textClass="text-purple-600 dark:text-purple-400"
+                        icon={<SecurityIcon className="w-6 h-6" />}
+                        title="مدیریت کاربران"
+                        description="دسترسی و سطوح کاربری"
+                        onClick={() => onNavigate('access-control')}
+                        bgClass="bg-rose-500"
+                        textClass="text-rose-600 dark:text-rose-400"
+                    />
+                     <ActionCard 
+                        icon={<PollIcon className="w-6 h-6" />}
+                        title="نتایج نظرسنجی"
+                        description="مشاهده نتایج رضایت مشتریان"
+                        onClick={() => onNavigate('poll')}
+                        bgClass="bg-amber-500"
+                        textClass="text-amber-600 dark:text-amber-400"
                     />
                 </div>
             </div>
