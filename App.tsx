@@ -10,6 +10,7 @@ import CarPricesPage from './pages/CarPricesPage';
 import VehicleExitPage from './pages/VehicleExitPage';
 import AccessControlPage from './pages/AccessControlPage';
 import PollPage from './pages/PollPage';
+import ReportsPage from './pages/ReportsPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -24,8 +25,9 @@ import { MoonIcon } from './components/icons/MoonIcon';
 import { ExitFormIcon } from './components/icons/ExitFormIcon';
 import { SecurityIcon } from './components/icons/SecurityIcon';
 import { PollIcon } from './components/icons/PollIcon';
+import { ChartBarIcon } from './components/icons/ChartBarIcon';
 
-export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll';
+export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -171,6 +173,7 @@ const App: React.FC = () => {
                 <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-2">اصلی</p>
                 <NavItem id="home" icon={<HomeIcon />} label="داشبورد" />
                 <NavItem id="users" icon={<UsersIcon />} label="مشتریان" />
+                <NavItem id="reports" icon={<ChartBarIcon />} label="گزارشات" />
                 <NavItem id="vehicle-exit" icon={<ExitFormIcon />} label="فرم خروج خودرو" />
                 
                 <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">مدیریت</p>
@@ -212,6 +215,7 @@ const App: React.FC = () => {
                     <div className="grid grid-cols-4 gap-4 mb-6">
                         <DrawerItem id="cars" icon={<CarIcon className="w-6 h-6 text-white" />} label="خودروها" color="bg-blue-500" />
                         <DrawerItem id="conditions" icon={<ConditionsIcon className="w-6 h-6 text-white" />} label="شرایط" color="bg-green-500" />
+                        <DrawerItem id="reports" icon={<ChartBarIcon className="w-6 h-6 text-white" />} label="گزارشات" color="bg-indigo-500" />
                         <DrawerItem id="car-prices" icon={<PriceIcon className="w-6 h-6 text-white" />} label="قیمت‌ها" color="bg-purple-500" />
                         <DrawerItem id="access-control" icon={<SecurityIcon className="w-6 h-6 text-white" />} label="دسترسی" color="bg-rose-500" />
                         <DrawerItem id="poll" icon={<PollIcon className="w-6 h-6 text-white" />} label="نظرسنجی" color="bg-amber-500" />
@@ -285,6 +289,7 @@ const App: React.FC = () => {
                     {activeView === 'settings' && <SettingsPage />}
                     {activeView === 'access-control' && <AccessControlPage />}
                     {activeView === 'poll' && <PollPage />}
+                    {activeView === 'reports' && <ReportsPage />}
                 </main>
             </div>
 

@@ -10,6 +10,7 @@ import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { HomeIcon } from '../components/icons/HomeIcon';
 import { SecurityIcon } from '../components/icons/SecurityIcon';
 import { PollIcon } from '../components/icons/PollIcon';
+import { ChartBarIcon } from '../components/icons/ChartBarIcon';
 import { getCarPriceStats } from '../services/api';
 import type { CarPriceStats } from '../types';
 import Spinner from '../components/Spinner';
@@ -179,6 +180,14 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         onClick={() => onNavigate('poll')}
                         bgClass="bg-amber-500"
                         textClass="text-amber-600 dark:text-amber-400"
+                    />
+                    <ActionCard 
+                        icon={<ChartBarIcon className="w-6 h-6" />}
+                        title="گزارشات"
+                        description="آمار ثبت نام و تقاضای خودرو"
+                        onClick={() => onNavigate('reports')}
+                        bgClass="bg-indigo-500"
+                        textClass="text-indigo-600 dark:text-indigo-400"
                     />
                 </div>
             </div>
