@@ -12,6 +12,10 @@ import { SecurityIcon } from '../components/icons/SecurityIcon';
 import { PollIcon } from '../components/icons/PollIcon';
 import { ChartBarIcon } from '../components/icons/ChartBarIcon';
 import { CalculatorIcon } from '../components/icons/CalculatorIcon';
+import { ClipboardIcon } from '../components/icons/ClipboardIcon';
+import { UserGroupIcon } from '../components/icons/UserGroupIcon';
+import { CalendarIcon } from '../components/icons/CalendarIcon';
+import { GhostIcon } from '../components/icons/GhostIcon';
 import { getCarPriceStats } from '../services/api';
 import type { CarPriceStats } from '../types';
 import Spinner from '../components/Spinner';
@@ -19,22 +23,6 @@ import Spinner from '../components/Spinner';
 interface HomePageProps {
     onNavigate: (view: ActiveView) => void;
 }
-
-const StatCard: React.FC<{ label: string, value: string | number, icon: React.ReactNode, gradient: string, onClick?: () => void }> = ({ label, value, icon, gradient, onClick }) => (
-    <button onClick={onClick} disabled={!onClick} className="relative overflow-hidden bg-white dark:bg-slate-800 p-5 rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col justify-between h-32 hover:shadow-md transition-all text-right w-full group active:scale-[0.98]">
-        <div className={`absolute top-0 left-0 w-full h-1 ${gradient}`}></div>
-        <div className="flex justify-between items-start w-full">
-             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${gradient} text-white shadow-lg bg-opacity-90`}>
-                {icon}
-            </div>
-            {onClick && <ArrowRightIcon className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors rotate-180" />}
-        </div>
-        <div>
-            <p className="text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">{label}</p>
-            <p className="text-2xl font-black text-slate-800 dark:text-slate-100 font-mono tracking-tight">{value}</p>
-        </div>
-    </button>
-);
 
 const ActionCard: React.FC<{ icon: React.ReactNode, title: string, description: string, onClick: () => void, bgClass: string, textClass: string }> = ({ icon, title, description, onClick, bgClass, textClass }) => (
     <button onClick={onClick} className={`group p-4 rounded-[24px] border border-transparent transition-all duration-300 text-right w-full flex flex-col justify-between h-full hover:shadow-lg active:scale-[0.98] bg-white dark:bg-slate-800 shadow-sm hover:border-slate-200 dark:hover:border-slate-600 relative overflow-hidden min-h-[140px]`}>
@@ -97,7 +85,6 @@ const PriceTicker: React.FC = () => {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
-    
     const today = new Date().toLocaleDateString('fa-IR', { weekday: 'long', day: 'numeric', month: 'long' });
 
     return (
@@ -113,7 +100,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
             </div>
 
-            {/* Market Watch Widget */}
+            {/* Market Watch */}
             <div>
                  <div className="flex items-center justify-between mb-3 px-1">
                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">خلاصه بازار (میلیون تومان)</h3>
@@ -122,9 +109,9 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 <PriceTicker />
             </div>
             
-            {/* Quick Actions */}
+            {/* Sales Section */}
             <div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 px-1">دسترسی سریع</h3>
+                <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 px-1 uppercase tracking-wider">فروش و عملیات</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <ActionCard 
                         icon={<UsersIcon className="w-6 h-6" />}
@@ -145,58 +132,96 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                      <ActionCard 
                         icon={<CarIcon className="w-6 h-6" />}
                         title="خودروها"
-                        description="مدیریت لیست خودروهای نمایندگی"
+                        description="لیست خودروهای نمایندگی"
                         onClick={() => onNavigate('cars')}
                         bgClass="bg-blue-500"
                         textClass="text-blue-600 dark:text-blue-400"
                     />
                     <ActionCard 
-                        icon={<PriceIcon className="w-6 h-6" />}
-                        title="قیمت روز"
-                        description="رصد و مقایسه قیمت بازار"
-                        onClick={() => onNavigate('car-prices')}
-                        bgClass="bg-purple-500"
-                        textClass="text-purple-600 dark:text-purple-400"
+                        icon={<ExitFormIcon className="w-6 h-6" />}
+                        title="خروج خودرو"
+                        description="فرم تحویل نهایی"
+                        onClick={() => onNavigate('vehicle-exit')}
+                        bgClass="bg-orange-500"
+                        textClass="text-orange-600 dark:text-orange-400"
                     />
+                </div>
+            </div>
+
+            {/* HR & Finance Section */}
+            <div>
+                <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 px-1 uppercase tracking-wider">منابع انسانی و مالی</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <ActionCard 
                         icon={<CalculatorIcon className="w-6 h-6" />}
-                        title="محاسبه پورسانت"
-                        description="مدل سه ضریبی حقوق و دستمزد"
+                        title="پورسانت"
+                        description="محاسبه حقوق و دستمزد"
                         onClick={() => onNavigate('commission')}
                         bgClass="bg-teal-600"
                         textClass="text-teal-700 dark:text-teal-400"
                     />
                     <ActionCard 
-                        icon={<ExitFormIcon className="w-6 h-6" />}
-                        title="خروج خودرو"
-                        description="ثبت فرم تحویل نهایی"
-                        onClick={() => onNavigate('vehicle-exit')}
-                        bgClass="bg-orange-500"
-                        textClass="text-orange-600 dark:text-orange-400"
+                        icon={<CalendarIcon className="w-6 h-6" />}
+                        title="مرخصی"
+                        description="درخواست ساعتی/روزانه"
+                        onClick={() => onNavigate('leave')}
+                        bgClass="bg-indigo-500"
+                        textClass="text-indigo-600 dark:text-indigo-400"
                     />
                     <ActionCard 
-                        icon={<SecurityIcon className="w-6 h-6" />}
-                        title="مدیریت کاربران"
-                        description="دسترسی و سطوح کاربری"
-                        onClick={() => onNavigate('access-control')}
+                        icon={<UserGroupIcon className="w-6 h-6" />}
+                        title="جلسات"
+                        description="صورت‌جلسات داخلی"
+                        onClick={() => onNavigate('meetings')}
+                        bgClass="bg-blue-400"
+                        textClass="text-blue-600 dark:text-blue-300"
+                    />
+                    <ActionCard 
+                        icon={<ClipboardIcon className="w-6 h-6" />}
+                        title="اقدامات اصلاحی"
+                        description="ثبت عدم انطباق ISO"
+                        onClick={() => onNavigate('corrective-actions')}
                         bgClass="bg-rose-500"
                         textClass="text-rose-600 dark:text-rose-400"
                     />
-                     <ActionCard 
+                </div>
+            </div>
+
+            {/* Customer Success Section */}
+            <div>
+                <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 px-1 uppercase tracking-wider">موفقیت مشتری</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <ActionCard 
                         icon={<PollIcon className="w-6 h-6" />}
-                        title="نتایج نظرسنجی"
-                        description="مشاهده نتایج رضایت مشتریان"
+                        title="نظرسنجی"
+                        description="نتایج رضایت مشتریان"
                         onClick={() => onNavigate('poll')}
                         bgClass="bg-amber-500"
                         textClass="text-amber-600 dark:text-amber-400"
                     />
                     <ActionCard 
+                        icon={<GhostIcon className="w-6 h-6" />}
+                        title="انتقاد ناشناس"
+                        description="صندوق پیشنهادات"
+                        onClick={() => onNavigate('feedback')}
+                        bgClass="bg-slate-400"
+                        textClass="text-slate-600 dark:text-slate-400"
+                    />
+                    <ActionCard 
                         icon={<ChartBarIcon className="w-6 h-6" />}
                         title="گزارشات"
-                        description="آمار ثبت نام و تقاضای خودرو"
+                        description="آمار جامع تحلیلی"
                         onClick={() => onNavigate('reports')}
                         bgClass="bg-indigo-500"
                         textClass="text-indigo-600 dark:text-indigo-400"
+                    />
+                    <ActionCard 
+                        icon={<SecurityIcon className="w-6 h-6" />}
+                        title="مدیریت کاربران"
+                        description="دسترسی‌ها"
+                        onClick={() => onNavigate('access-control')}
+                        bgClass="bg-rose-500"
+                        textClass="text-rose-600 dark:text-rose-400"
                     />
                 </div>
             </div>
