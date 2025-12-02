@@ -1,0 +1,296 @@
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { CalculatorIcon } from '../components/icons/CalculatorIcon';
+
+// --- Types ---
+interface KPI {
+    id: string;
+    label: string;
+    weight: number; // Percentage (e.g., 30 for 30%)
+    score: number; // 0-100
+}
+
+interface AttendanceZone {
+    name: string;
+    label: string;
+    color: string;
+    bgColor: string;
+    factor: number;
+    range: [number, number]; // [min, max] minutes
+}
+
+const CommissionPage: React.FC = () => {
+    // --- State ---
+    // 1. Raw Commission
+    const [inputMode, setInputMode] = useState<'percentage' | 'fixed'>('percentage');
+    const [salesAmount, setSalesAmount] = useState<number | ''>('');
+    const [commissionRate, setCommissionRate] = useState<number | ''>(2);
+    const [fixedCommission, setFixedCommission] = useState<number | ''>('');
+
+    // 2. Quality KPIs
+    const [kpis, setKpis] = useState<KPI[]>([
+        { id: 'acquisition', label: 'جذب مشتری جدید', weight: 30, score: 90 },
+        { id: 'reporting', label: 'گزارش‌دهی و پیگیری', weight: 20, score: 100 },
+        { id: 'teamwork', label: 'روحیه کار تیمی', weight: 30, score: 80 },
+        { id: 'csat', label: 'رضایت مشتری (CSAT)', weight: 20, score: 95 },
+    ]);
+
+    // 3. Attendance
+    const [delayMinutes, setDelayMinutes] = useState<number | ''>(0);
+
+    // --- Logic ---
+
+    // Zone Definitions
+    const ZONES: AttendanceZone[] = [
+        { name: 'green', label: 'ناحیه سبز (عالی)', color: 'text-emerald-600', bgColor: 'bg-emerald-100 dark:bg-emerald-900/30', factor: 1.0, range: [0, 60] },
+        { name: 'yellow1', label: 'ناحیه زرد ۱ (خفیف)', color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30', factor: 0.9, range: [61, 120] },
+        { name: 'yellow2', label: 'ناحیه زرد ۲ (متوسط)', color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900/30', factor: 0.7, range: [121, 180] },
+        { name: 'red', label: 'ناحیه قرمز (خطر)', color: 'text-rose-600', bgColor: 'bg-rose-100 dark:bg-rose-900/30', factor: 0.0, range: [181, Infinity] },
+    ];
+
+    const currentZone = useMemo(() => {
+        const delays = Number(delayMinutes) || 0;
+        return ZONES.find(z => delays >= z.range[0] && delays <= z.range[1]) || ZONES[3];
+    }, [delayMinutes]);
+
+    // Calculations
+    const rawCommission = useMemo(() => {
+        if (inputMode === 'fixed') {
+            return Number(fixedCommission) || 0;
+        }
+        const sales = Number(salesAmount) || 0;
+        const rate = Number(commissionRate) || 0;
+        return sales * (rate / 100);
+    }, [salesAmount, commissionRate, inputMode, fixedCommission]);
+
+    const qualityScore = useMemo(() => {
+        // Sum(Score * Weight) / 100
+        const totalWeightedScore = kpis.reduce((acc, kpi) => acc + (kpi.score * kpi.weight), 0);
+        return totalWeightedScore / 100; // Returns score out of 100
+    }, [kpis]);
+
+    const qualityFactor = qualityScore / 100; // Returns factor 0.0 - 1.0
+
+    const finalCommission = rawCommission * qualityFactor * currentZone.factor;
+
+    // Handlers
+    const handleKpiChange = (id: string, val: number) => {
+        setKpis(prev => prev.map(k => k.id === id ? { ...k, score: Math.min(100, Math.max(0, val)) } : k));
+    };
+
+    return (
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in pb-20">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-8">
+                <div className="p-3 bg-teal-100 dark:bg-teal-900/30 rounded-xl text-teal-600 dark:text-teal-400">
+                    <CalculatorIcon className="w-6 h-6" />
+                </div>
+                <div>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-white">محاسبه پورسانت</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">مدل سه ضریبی (عملکرد، کیفیت، انضباط)</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Left Column: Inputs */}
+                <div className="lg:col-span-2 space-y-6">
+                    
+                    {/* Step 1: Raw Commission */}
+                    <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">۱</span>
+                                پورسانت خام
+                            </h3>
+                            <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-lg self-start sm:self-auto">
+                                <button
+                                    onClick={() => setInputMode('percentage')}
+                                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${inputMode === 'percentage' ? 'bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
+                                >
+                                    محاسبه درصدی
+                                </button>
+                                <button
+                                    onClick={() => setInputMode('fixed')}
+                                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${inputMode === 'fixed' ? 'bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
+                                >
+                                    ورود مستقیم مبلغ
+                                </button>
+                            </div>
+                        </div>
+
+                        {inputMode === 'percentage' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">مبلغ فروش کل (تومان)</label>
+                                    <input 
+                                        type="number" 
+                                        value={salesAmount} 
+                                        onChange={e => setSalesAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-lg"
+                                        placeholder="مثال: ۶۰۰,۰۰۰,۰۰۰"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">درصد پورسانت</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="number" 
+                                            value={commissionRate} 
+                                            onChange={e => setCommissionRate(e.target.value === '' ? '' : Number(e.target.value))}
+                                            className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-lg pl-8"
+                                        />
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">مبلغ پایه پورسانت (تومان)</label>
+                                <input 
+                                    type="number" 
+                                    value={fixedCommission} 
+                                    onChange={e => setFixedCommission(e.target.value === '' ? '' : Number(e.target.value))}
+                                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-lg"
+                                    placeholder="مثال: ۱۲,۰۰۰,۰۰۰"
+                                />
+                            </div>
+                        )}
+
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex justify-between items-center">
+                            <span className="text-sm font-medium text-blue-800 dark:text-blue-300">مبلغ پایه (خام):</span>
+                            <span className="font-mono font-bold text-blue-900 dark:text-blue-200 text-lg">
+                                {rawCommission.toLocaleString('fa-IR')} <span className="text-xs font-sans">تومان</span>
+                            </span>
+                        </div>
+                    </section>
+
+                    {/* Step 2: Quality KPIs */}
+                    <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs">۲</span>
+                            ضریب کیفیت (شاخص‌های کیفی)
+                        </h3>
+                        <div className="space-y-4">
+                            {kpis.map(kpi => (
+                                <div key={kpi.id}>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                            {kpi.label} <span className="text-xs text-slate-400">(وزن: {kpi.weight}٪)</span>
+                                        </label>
+                                        <span className="font-mono font-bold text-sm text-purple-600 dark:text-purple-400">{kpi.score}</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="0" 
+                                        max="100" 
+                                        value={kpi.score} 
+                                        onChange={e => handleKpiChange(kpi.id, Number(e.target.value))}
+                                        className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-6 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex justify-between items-center">
+                            <span className="text-sm font-medium text-purple-800 dark:text-purple-300">امتیاز کیفیت نهایی:</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-purple-900 dark:text-purple-200 text-lg">
+                                    {qualityScore.toFixed(1)}
+                                </span>
+                                <span className="text-xs bg-white dark:bg-slate-800 px-2 py-1 rounded border border-purple-200 dark:border-purple-800 font-mono">
+                                    ضریب: {qualityFactor.toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Step 3: Attendance */}
+                    <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-xs">۳</span>
+                            ضریب انضباط (مدل ناحیه‌ای)
+                        </h3>
+                        
+                        <div className="flex flex-col sm:flex-row gap-6 items-start">
+                            <div className="w-full sm:w-1/2">
+                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">مجموع کسر کار/تاخیر ماهانه (دقیقه)</label>
+                                <input 
+                                    type="number" 
+                                    value={delayMinutes} 
+                                    onChange={e => setDelayMinutes(e.target.value === '' ? '' : Number(e.target.value))}
+                                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-teal-500 outline-none transition-all font-mono text-xl"
+                                    placeholder="0"
+                                />
+                            </div>
+                            
+                            <div className={`w-full sm:w-1/2 p-4 rounded-xl border transition-colors duration-300 ${currentZone.bgColor} ${currentZone.color.replace('text-', 'border-').replace('600', '200')}`}>
+                                <p className="text-xs font-bold opacity-80 mb-1">وضعیت:</p>
+                                <div className={`text-lg font-black mb-2 ${currentZone.color}`}>
+                                    {currentZone.label}
+                                </div>
+                                <div className="flex justify-between items-center text-sm font-bold bg-white/50 dark:bg-black/10 p-2 rounded-lg">
+                                    <span>ضریب اعمالی:</span>
+                                    <span className="font-mono text-lg">{currentZone.factor}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Zone Legend */}
+                        <div className="mt-6 flex flex-wrap gap-2">
+                            {ZONES.map(z => (
+                                <div key={z.name} className={`text-[10px] px-2 py-1 rounded border ${Number(delayMinutes) >= z.range[0] && Number(delayMinutes) <= z.range[1] ? 'opacity-100 ring-2 ring-offset-1 ring-teal-500 font-bold' : 'opacity-50 grayscale'}`}
+                                    style={{ backgroundColor: z.name === 'green' ? '#ecfdf5' : z.name === 'yellow1' ? '#fffbeb' : z.name === 'yellow2' ? '#fff7ed' : '#fff1f2', color: '#333' }}
+                                >
+                                    {z.label}: {z.factor}
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                </div>
+
+                {/* Right Column: Result Sticky */}
+                <div className="lg:col-span-1">
+                    <div className="sticky top-6">
+                        <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-teal-500/20 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none"></div>
+                            
+                            <h3 className="text-lg font-bold mb-6 text-center border-b border-white/10 pb-4">نتیجه نهایی محاسبه</h3>
+                            
+                            <div className="space-y-4 mb-8 text-sm">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-400">پورسانت خام:</span>
+                                    <span className="font-mono">{rawCommission.toLocaleString('fa-IR')}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-400">× ضریب کیفیت:</span>
+                                    <span className="font-mono text-purple-300">{qualityFactor.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-400">× ضریب انضباط:</span>
+                                    <span className={`font-mono ${currentZone.name === 'green' ? 'text-emerald-300' : 'text-rose-300'}`}>{currentZone.factor}</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/10 p-4 rounded-2xl text-center">
+                                <p className="text-xs text-slate-400 mb-1">مبلغ قابل پرداخت</p>
+                                <p className="text-3xl font-black font-mono tracking-tight text-teal-400">
+                                    {Math.round(finalCommission).toLocaleString('fa-IR')}
+                                    <span className="text-xs font-sans text-white/60 mr-2">تومان</span>
+                                </p>
+                            </div>
+
+                            <div className="mt-6 text-[10px] text-center text-slate-500">
+                                * این محاسبه بر اساس مدل سه ضریبی انجام شده است.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
+};
+
+export default CommissionPage;

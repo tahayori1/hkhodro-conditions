@@ -11,6 +11,7 @@ import { HomeIcon } from '../components/icons/HomeIcon';
 import { SecurityIcon } from '../components/icons/SecurityIcon';
 import { PollIcon } from '../components/icons/PollIcon';
 import { ChartBarIcon } from '../components/icons/ChartBarIcon';
+import { CalculatorIcon } from '../components/icons/CalculatorIcon';
 import { getCarPriceStats } from '../services/api';
 import type { CarPriceStats } from '../types';
 import Spinner from '../components/Spinner';
@@ -158,12 +159,20 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         textClass="text-purple-600 dark:text-purple-400"
                     />
                     <ActionCard 
+                        icon={<CalculatorIcon className="w-6 h-6" />}
+                        title="محاسبه پورسانت"
+                        description="مدل سه ضریبی حقوق و دستمزد"
+                        onClick={() => onNavigate('commission')}
+                        bgClass="bg-teal-600"
+                        textClass="text-teal-700 dark:text-teal-400"
+                    />
+                    <ActionCard 
                         icon={<ExitFormIcon className="w-6 h-6" />}
                         title="خروج خودرو"
                         description="ثبت فرم تحویل نهایی"
                         onClick={() => onNavigate('vehicle-exit')}
-                        bgClass="bg-teal-500"
-                        textClass="text-teal-600 dark:text-teal-400"
+                        bgClass="bg-orange-500"
+                        textClass="text-orange-600 dark:text-orange-400"
                     />
                     <ActionCard 
                         icon={<SecurityIcon className="w-6 h-6" />}

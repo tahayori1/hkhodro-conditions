@@ -247,6 +247,7 @@ export interface PollCustomerResult {
     Description: string; // HTML string with car info
     Contact: PollCustomerContact;
     PipelineChangeTime: string;
+    DeliveryDate?: string;
 }
 
 export interface PollAverages {

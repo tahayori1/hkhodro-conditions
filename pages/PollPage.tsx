@@ -174,6 +174,7 @@ const CustomerFeedbackCard: React.FC<{
     const commentKey = "Field_8785_1_17"; // Known key for text comment
     const comment = result.Fields[commentKey];
     const averageScore = calculateCustomerAverage(result.Fields);
+    const deliveryDate = result.DeliveryDate || info.deliveryDate;
 
     // Filter out the comment field and non-question fields to get scores
     const scores = Object.entries(result.Fields)
@@ -204,6 +205,7 @@ const CustomerFeedbackCard: React.FC<{
                         {info.car || 'خودرو نامشخص'}
                     </span>
                     <div className="text-[10px] text-slate-400 mt-1 font-mono">شاسی: {info.chassis}</div>
+                    {deliveryDate && <div className="text-[10px] text-slate-500 mt-0.5 font-mono">تحویل: {deliveryDate}</div>}
                 </div>
             </div>
 
@@ -249,6 +251,7 @@ const PendingCustomerCard: React.FC<{
     
     const info = parseInfo(result.Description || '');
     const isProgress = type === 'IN_PROGRESS';
+    const deliveryDate = result.DeliveryDate || info.deliveryDate;
 
     return (
         <div className={`rounded-xl p-5 shadow-sm border transition-all relative overflow-hidden ${
@@ -268,10 +271,16 @@ const PendingCustomerCard: React.FC<{
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 mt-3 text-xs text-slate-600 dark:text-slate-400 border-t border-dashed border-slate-300 pt-3">
+            <div className="flex items-center gap-2 mt-3 text-xs text-slate-600 dark:text-slate-400 border-t border-dashed border-slate-300 pt-3 flex-wrap">
                 <span className="font-bold">{info.car || 'خودرو نامشخص'}</span>
                 <span>|</span>
                 <span className="font-mono">{info.chassis}</span>
+                {deliveryDate && (
+                    <>
+                        <span>|</span>
+                        <span className="font-mono text-[10px]">تحویل: {deliveryDate}</span>
+                    </>
+                )}
             </div>
             
             <div className="mt-2 text-[10px] text-slate-400 dark:text-slate-500">
