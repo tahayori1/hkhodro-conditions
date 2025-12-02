@@ -4,7 +4,6 @@ import type { ActiveView } from '../App';
 import { UsersIcon } from '../components/icons/UsersIcon';
 import { ConditionsIcon } from '../components/icons/ConditionsIcon';
 import { CarIcon } from '../components/icons/CarIcon';
-import { PriceIcon } from '../components/icons/PriceIcon';
 import { ExitFormIcon } from '../components/icons/ExitFormIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { HomeIcon } from '../components/icons/HomeIcon';
@@ -19,6 +18,7 @@ import { GhostIcon } from '../components/icons/GhostIcon';
 import { getCarPriceStats } from '../services/api';
 import type { CarPriceStats } from '../types';
 import Spinner from '../components/Spinner';
+import { CopyIcon } from '../components/icons/CopyIcon';
 
 interface HomePageProps {
     onNavigate: (view: ActiveView) => void;
@@ -151,7 +151,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             {/* HR & Finance Section */}
             <div>
                 <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 px-1 uppercase tracking-wider">منابع انسانی و مالی</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
                     <ActionCard 
                         icon={<CalculatorIcon className="w-6 h-6" />}
                         title="پورسانت"
@@ -184,12 +184,28 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         bgClass="bg-rose-500"
                         textClass="text-rose-600 dark:text-rose-400"
                     />
+                    <ActionCard 
+                        icon={<GhostIcon className="w-6 h-6" />}
+                        title="انتقاد ناشناس"
+                        description="صندوق پیشنهادات"
+                        onClick={() => onNavigate('feedback')}
+                        bgClass="bg-slate-400"
+                        textClass="text-slate-600 dark:text-slate-400"
+                    />
+                    <ActionCard 
+                        icon={<SecurityIcon className="w-6 h-6" />}
+                        title="مدیریت کاربران"
+                        description="دسترسی‌ها"
+                        onClick={() => onNavigate('access-control')}
+                        bgClass="bg-rose-500"
+                        textClass="text-rose-600 dark:text-rose-400"
+                    />
                 </div>
             </div>
 
             {/* Customer Success Section */}
             <div>
-                <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 px-1 uppercase tracking-wider">موفقیت مشتری</h3>
+                <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 px-1 uppercase tracking-wider">موفقیت مشتری و گزارشات</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <ActionCard 
                         icon={<PollIcon className="w-6 h-6" />}
@@ -200,28 +216,12 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         textClass="text-amber-600 dark:text-amber-400"
                     />
                     <ActionCard 
-                        icon={<GhostIcon className="w-6 h-6" />}
-                        title="انتقاد ناشناس"
-                        description="صندوق پیشنهادات"
-                        onClick={() => onNavigate('feedback')}
-                        bgClass="bg-slate-400"
-                        textClass="text-slate-600 dark:text-slate-400"
-                    />
-                    <ActionCard 
                         icon={<ChartBarIcon className="w-6 h-6" />}
                         title="گزارشات"
                         description="آمار جامع تحلیلی"
                         onClick={() => onNavigate('reports')}
                         bgClass="bg-indigo-500"
                         textClass="text-indigo-600 dark:text-indigo-400"
-                    />
-                    <ActionCard 
-                        icon={<SecurityIcon className="w-6 h-6" />}
-                        title="مدیریت کاربران"
-                        description="دسترسی‌ها"
-                        onClick={() => onNavigate('access-control')}
-                        bgClass="bg-rose-500"
-                        textClass="text-rose-600 dark:text-rose-400"
                     />
                 </div>
             </div>
