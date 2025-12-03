@@ -213,6 +213,12 @@ export interface ApiSystemUser {
     mobile: string | null;
     email: string | null;
     password?: string; // Optional field for request payloads
+    // Expanded Profile Fields
+    personality_type?: string;
+    birth_date?: string;
+    org_phone?: string;
+    org_email?: string;
+    didar_username?: string;
 }
 
 export interface StaffUser {
@@ -268,4 +274,70 @@ export interface ProcessedPollData {
     inProgress: PollCustomerResult[]; // In Progress
     notAnswered: PollCustomerResult[]; // Not Answered
     questions: Record<string, string>; // Key -> Title Mapping
+}
+
+// --- HR & Admin Types ---
+
+export interface CorrectiveAction {
+    id: number;
+    title: string;
+    description: string;
+    responsiblePerson: string;
+    dueDate: string;
+    isCompleted: boolean;
+    createdAt: string;
+}
+
+export interface MeetingMinute {
+    id: number;
+    title: string;
+    date: string;
+    attendees: string;
+    decisions: string;
+}
+
+export type LeaveType = 'HOURLY' | 'DAILY';
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface LeaveRequest {
+    id: number;
+    requesterName: string;
+    type: LeaveType;
+    startDate: string;
+    endDate?: string; // For daily
+    hours?: number; // For hourly
+    reason: string;
+    status: LeaveStatus;
+    createdAt: string;
+}
+
+export interface AnonymousFeedback {
+    id: number;
+    subject: string;
+    message: string;
+    createdAt: string;
+    isRead: boolean;
+}
+
+// --- Zero Car Delivery Types ---
+
+export interface ZeroCarDelivery {
+    id: number;
+    // Section 1: Verification
+    customerName: string;
+    carModel: string;
+    color: string;
+    chassisNumber: string;
+    documentDate: string;
+    phoneNumber: string;
+    status: 'VERIFICATION' | 'PROCESSING' | 'DELIVERED';
+    secondOwnerName?: string;
+    verificationNotes?: string;
+
+    // Section 2: Delivery Process (Dates include times)
+    arrivalDateTime?: string;
+    contactDateTime?: string;
+    deliveryDateTime?: string;
+    installedOptions?: string;
+    deliveryNotes?: string;
 }

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { getSettings, updateSettings, updateUserCredentials } from '../services/api';
+import { getSettings, updateSettings } from '../services/api';
 import type { AppSettings } from '../services/api';
 import Spinner from '../components/Spinner';
 import Toast from '../components/Toast';
@@ -16,36 +17,18 @@ const FormField: React.FC<{
     disabled?: boolean
 }> = ({ label, name, value, onChange, type = 'text', rows, placeholder, disabled = false }) => (
     <div>
-        <label htmlFor={name} className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+        <label htmlFor={name} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>
         {type === 'textarea' ? (
             <textarea
                 id={name} name={name} value={value} onChange={onChange} rows={rows || 3} placeholder={placeholder} disabled={disabled}
-                className="w-full px-3 py-2 border rounded-md border-slate-300 focus:ring-sky-500 focus:border-sky-500 disabled:bg-slate-50"
+                className="w-full px-3 py-2 border rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-sky-500 focus:border-sky-500 disabled:bg-slate-50 dark:disabled:bg-slate-800"
             />
         ) : (
             <input
                 id={name} name={name} type={type} value={value} onChange={onChange} placeholder={placeholder} disabled={disabled}
-                className="w-full px-3 py-2 border rounded-md border-slate-300 focus:ring-sky-500 focus:border-sky-500 disabled:bg-slate-50"
+                className="w-full px-3 py-2 border rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-sky-500 focus:border-sky-500 disabled:bg-slate-50 dark:disabled:bg-slate-800"
             />
         )}
-    </div>
-);
-
-
-const CredFormField: React.FC<{ label: string; name: string; type: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; error?: string; disabled?: boolean; }> = 
-    ({ label, name, type, value, onChange, error, disabled = false }) => (
-    <div>
-        <label htmlFor={name} className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
-        <input
-            id={name}
-            name={name}
-            type={type}
-            value={value}
-            onChange={onChange}
-            disabled={disabled}
-            className={`w-full px-3 py-2 border rounded-md ${error ? 'border-red-500' : 'border-slate-300'}`}
-        />
-        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
 );
 
@@ -53,15 +36,6 @@ const SettingsPage: React.FC = () => {
     const [settings, setSettings] = useState<Partial<AppSettings>>({});
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-
-    const [credForm, setCredForm] = useState({
-        username: '',
-        currentPassword: '',
-        newPassword: '',
-        confirmNewPassword: ''
-    });
-    const [credSaving, setCredSaving] = useState(false);
-    const [credErrors, setCredErrors] = useState<Record<string, string>>({});
 
     const [notificationPermission, setNotificationPermission] = useState(
         typeof Notification !== 'undefined' ? Notification.permission : 'default'
@@ -87,6 +61,7 @@ const SettingsPage: React.FC = () => {
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
     };
 
     const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -134,74 +109,16 @@ const SettingsPage: React.FC = () => {
         }
     };
 
-    const hashPassword = async (password: string): Promise<string> => {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
-    };
-
-    const handleCredFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setCredForm(prev => ({ ...prev, [name]: value }));
-        if (credErrors[name]) {
-            setCredErrors(prevErrors => {
-                const newErrors = { ...prevErrors };
-                delete newErrors[name];
-                return newErrors;
-            });
-        }
-    };
-
-    const validateCredentials = (): boolean => {
-        const newErrors: Record<string, string> = {};
-        if (!credForm.currentPassword) {
-            newErrors.currentPassword = 'رمز عبور فعلی الزامی است.';
-        }
-        if (credForm.newPassword && credForm.newPassword !== credForm.confirmNewPassword) {
-            newErrors.confirmNewPassword = 'رمزهای عبور جدید مطابقت ندارند.';
-        }
-        if ((credForm.newPassword || credForm.username) && !credForm.currentPassword) {
-             newErrors.currentPassword = 'برای ایجاد تغییر، رمز عبور فعلی الزامی است.';
-        }
-        if (!credForm.newPassword && !credForm.username) {
-            newErrors.general = 'حداقل نام کاربری جدید یا رمز عبور جدید باید وارد شود.';
-        }
-        setCredErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleChangeCredentialsSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validateCredentials()) return;
-        
-        setCredSaving(true);
-        try {
-            const currentPasswordHash = await hashPassword(credForm.currentPassword);
-            const newPasswordHash = credForm.newPassword ? await hashPassword(credForm.newPassword) : undefined;
-            await updateUserCredentials(currentPasswordHash, credForm.username, newPasswordHash);
-            showToast('اطلاعات کاربری با موفقیت به‌روزرسانی شد. ممکن است لازم باشد دوباره وارد شوید.', 'success');
-            setCredForm({ username: '', currentPassword: '', newPassword: '', confirmNewPassword: '' });
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'خطا در به‌روزرسانی اطلاعات';
-            showToast(errorMessage.includes('401') ? 'رمز عبور فعلی اشتباه است.' : errorMessage, 'error');
-        } finally {
-            setCredSaving(false);
-        }
-    };
-
     return (
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                  <form onSubmit={handleSettingsSubmit}>
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-                        <h2 className="text-3xl font-bold text-slate-800">تنظیمات</h2>
+                        <h2 className="text-3xl font-bold text-slate-800 dark:text-white">تنظیمات سیستم</h2>
                         <button
                             type="submit"
                             disabled={isSaving || loading}
-                            className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-sky-400 flex items-center justify-center w-full sm:w-40"
+                            className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-sky-400 flex items-center justify-center w-full sm:w-40 transition-colors"
                         >
                             {isSaving ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'ذخیره تنظیمات'}
                         </button>
@@ -211,22 +128,22 @@ const SettingsPage: React.FC = () => {
                          <div className="flex justify-center p-8"><Spinner /></div>
                     ) : (
                         <div className="space-y-8">
-                            <div className="bg-white p-6 rounded-lg shadow-md">
-                                <h3 className="text-xl font-bold text-slate-700 mb-4 border-b pb-3 flex items-center gap-2">
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                                <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b pb-3 flex items-center gap-2 dark:border-slate-700">
                                     <NotificationIcon className="w-5 h-5" />
                                     تنظیمات اعلان‌ها
                                 </h3>
                                 <div className="space-y-4">
-                                    <p className="text-sm text-slate-600">
+                                    <p className="text-sm text-slate-600 dark:text-slate-400">
                                         برای دریافت اعلان‌ها در مورد سرنخ‌های داغ جدید، لطفاً اجازه دسترسی را بدهید.
                                     </p>
                                     {notificationPermission === 'granted' && (
-                                        <div className="p-3 bg-green-100 text-green-800 rounded-md text-center font-semibold">
+                                        <div className="p-3 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-md text-center font-semibold">
                                             اعلان‌ها فعال هستند.
                                         </div>
                                     )}
                                     {notificationPermission === 'denied' && (
-                                        <div className="p-3 bg-red-100 text-red-800 rounded-md text-center">
+                                        <div className="p-3 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-md text-center">
                                             <p className="font-semibold">اعلان‌ها مسدود شده‌اند.</p>
                                             <p className="text-xs mt-1">برای فعال‌سازی، لطفاً از تنظیمات مرورگر خود اقدام کنید.</p>
                                         </div>
@@ -246,8 +163,8 @@ const SettingsPage: React.FC = () => {
                                 </div>
                             </div>
                             
-                            <div className="bg-white p-6 rounded-lg shadow-md">
-                                <h3 className="text-xl font-bold text-slate-700 mb-4 border-b pb-3">اطلاعات نمایندگی</h3>
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                                <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b pb-3 dark:border-slate-700">اطلاعات نمایندگی</h3>
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         <FormField label="نام نمایندگی" name="dealership_name" value={settings.dealership_name || ''} onChange={handleSettingsChange} disabled={isSaving} />
@@ -277,8 +194,8 @@ const SettingsPage: React.FC = () => {
                                 </div>
                             </div>
                             
-                            <div className="bg-white p-6 rounded-lg shadow-md">
-                                <h3 className="text-xl font-bold text-slate-700 mb-4 border-b pb-3">تنظیمات API</h3>
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                                <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b pb-3 dark:border-slate-700">تنظیمات API</h3>
                                 <div className="space-y-4">
                                     <FormField label="کلید API واتساپ" name="whatsappApiKey" type="text" value={settings.whatsappApiKey || ''} onChange={handleSettingsChange} disabled={isSaving} />
                                     <FormField label="کلید API پیامک (SMS)" name="smsApiKey" type="text" value={settings.smsApiKey || ''} onChange={handleSettingsChange} disabled={isSaving} />
@@ -289,24 +206,6 @@ const SettingsPage: React.FC = () => {
                         </div>
                     )}
                 </form>
-
-                <div className="bg-white p-6 rounded-lg shadow-md mt-8">
-                    <h3 className="text-xl font-bold text-slate-700 mb-4 border-b pb-3">تغییر اطلاعات کاربری</h3>
-                    <form onSubmit={handleChangeCredentialsSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <CredFormField label="نام کاربری جدید (اختیاری)" name="username" type="text" value={credForm.username} onChange={handleCredFormChange} error={credErrors.username} disabled={credSaving} />
-                           <CredFormField label="رمز عبور فعلی" name="currentPassword" type="password" value={credForm.currentPassword} onChange={handleCredFormChange} error={credErrors.currentPassword} disabled={credSaving} />
-                           <CredFormField label="رمز عبور جدید (اختیاری)" name="newPassword" type="password" value={credForm.newPassword} onChange={handleCredFormChange} error={credErrors.newPassword} disabled={credSaving} />
-                           <CredFormField label="تکرار رمز عبور جدید" name="confirmNewPassword" type="password" value={credForm.confirmNewPassword} onChange={handleCredFormChange} error={credErrors.confirmNewPassword} disabled={credSaving} />
-                        </div>
-                        {credErrors.general && <p className="text-red-500 text-sm text-center">{credErrors.general}</p>}
-                        <div className="pt-2 flex justify-end">
-                            <button type="submit" disabled={credSaving} className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-sky-400 flex items-center justify-center w-36">
-                                 {credSaving ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'به‌روزرسانی'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
             </main>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </>

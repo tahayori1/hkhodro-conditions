@@ -16,7 +16,12 @@ import type {
     ApiSystemUser,
     Permission,
     PollApiResponseItem,
-    ProcessedPollData
+    ProcessedPollData,
+    ZeroCarDelivery,
+    CorrectiveAction,
+    LeaveRequest,
+    AnonymousFeedback,
+    MeetingMinute
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -126,18 +131,38 @@ export const createUserAccount = async (username: string, password: string): Pro
 
 // --- Staff Management ---
 
-const PERMISSIONS_STORAGE_KEY = 'auto_lead_staff_permissions';
 const USER_MGMT_URL = `${API_BASE_URL}/auth/user`;
 
-// This function merges the user list from the API with granular permissions stored locally.
-const mergePermissions = (apiUsers: ApiSystemUser[]): StaffUser[] => {
-    const storedPermissionsJSON = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
-    const storedPermissions: Record<string, Permission[]> = storedPermissionsJSON ? JSON.parse(storedPermissionsJSON) : {};
+export const getStaffUsers = async (): Promise<StaffUser[]> => {
+    ensureOnline();
+    
+    // Fetch users and permissions. We handle permissions failure gracefully.
+    const usersPromise = (async () => {
+        const response = await fetch(`${API_BASE_URL}/auth/userslist`, { headers: getAuthHeaders() });
+        return handleResponse(response);
+    })();
 
-    return apiUsers.map(user => {
+    const permissionsPromise = permissionsService.getAll().catch(() => []); // Return empty array on failure
+
+    const [apiUsers, allPermissions] = await Promise.all([usersPromise, permissionsPromise]);
+    
+    let usersArray: ApiSystemUser[] = [];
+    if (Array.isArray(apiUsers)) {
+        usersArray = apiUsers;
+    } else if (apiUsers && typeof apiUsers === 'object') {
+        // Handle single object response
+        usersArray = [apiUsers as ApiSystemUser];
+    } else {
+        console.error("Expected an array of users from API, but got:", apiUsers);
+        return [];
+    }
+
+    return usersArray.map(user => {
         const isAdmin = user.isAdmin === 1;
-        // If user is admin, they have full permissions. Otherwise, use stored permissions.
-        const permissions = isAdmin ? [] : (storedPermissions[user.username] || []);
+        // Find permission record for this user (assuming username match)
+        const permRecord = (allPermissions as any[]).find((p: any) => p.username === user.username);
+        // If user is admin, they have implicit full permissions. Otherwise, use stored permissions.
+        const permissions = isAdmin ? [] : (permRecord?.permissions || []);
         
         return {
             id: user.id,
@@ -145,23 +170,10 @@ const mergePermissions = (apiUsers: ApiSystemUser[]): StaffUser[] => {
             fullName: user.full_name || user.username,
             role: isAdmin ? 'ADMIN' : 'STAFF',
             permissions: permissions,
-            lastLogin: user.last_update,
-            isActive: true // Assuming all users from API are active
+            lastLogin: user.last_update || user.register_time,
+            isActive: true 
         };
     });
-};
-
-export const getStaffUsers = async (): Promise<StaffUser[]> => {
-    ensureOnline();
-    const response = await fetch(`${API_BASE_URL}/auth/userslist`, { headers: getAuthHeaders() });
-    const apiUsers: ApiSystemUser[] = await handleResponse(response);
-    
-    if (!Array.isArray(apiUsers)) {
-        console.error("Expected an array of users from API, but got:", apiUsers);
-        return [];
-    }
-
-    return mergePermissions(apiUsers);
 };
 
 const addApiUser = async (payload: any) => {
@@ -206,7 +218,7 @@ export const saveStaffUser = async (user: Partial<StaffUser>): Promise<void> => 
         apiPayload.password = user.password;
     }
 
-    // Determine if it's an Add or Update operation
+    // Save User Data
     if (typeof user.id === 'number') {
         apiPayload.id = user.id;
         await updateApiUser(apiPayload);
@@ -214,28 +226,37 @@ export const saveStaffUser = async (user: Partial<StaffUser>): Promise<void> => 
         await addApiUser(apiPayload);
     }
     
-    // Save granular permissions locally for non-admin users.
+    // Save Permissions via API (for non-admin users)
     if (user.username && user.role === 'STAFF' && user.permissions) {
-        const storedPermissionsJSON = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
-        const storedPermissions: Record<string, Permission[]> = storedPermissionsJSON ? JSON.parse(storedPermissionsJSON) : {};
-        
-        storedPermissions[user.username] = user.permissions;
-        localStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(storedPermissions));
+        const allPermissions = await permissionsService.getAll();
+        const existingRecord = allPermissions.find((p: any) => p.username === user.username);
+
+        if (existingRecord) {
+            await permissionsService.update({
+                id: existingRecord.id,
+                username: user.username,
+                permissions: user.permissions
+            });
+        } else {
+            await permissionsService.create({
+                username: user.username,
+                permissions: user.permissions
+            });
+        }
     }
 };
 
 export const deleteStaffUser = async (id: number, username: string): Promise<void> => {
     ensureOnline();
     
-    // Server-side deletion
+    // Server-side deletion of user
     await deleteApiUser(id);
 
-    // Local permissions cleanup
-    const storedPermissionsJSON = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
-    if (storedPermissionsJSON) {
-        const storedPermissions: Record<string, Permission[]> = JSON.parse(storedPermissionsJSON);
-        delete storedPermissions[username];
-        localStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(storedPermissions));
+    // Delete permissions record
+    const allPermissions = await permissionsService.getAll();
+    const existingRecord = allPermissions.find((p: any) => p.username === username);
+    if (existingRecord) {
+        await permissionsService.delete(existingRecord.id);
     }
 };
 
@@ -510,7 +531,7 @@ export const getActiveLeads = async (): Promise<ActiveLead[]> => {
     return Array.isArray(data) ? data : [];
 };
 
-// --- Delivery Process ---
+// --- Delivery Process (Old/Simulated) ---
 export const getDeliveryProcesses = async (): Promise<DeliveryProcess[]> => {
     const response = await fetch(`${API_BASE_URL}/deliveries`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
@@ -645,5 +666,86 @@ export const updateUserCredentials = async (
         body: JSON.stringify(payload),
     });
     
+    return handleResponse(response);
+};
+
+// --- New Service Endpoints ---
+
+const ZERO_CAR_DELIVERY_URL = `${API_BASE_URL}/ZeroCarDelivery`;
+const CORRECTIVE_ACTIONS_URL = `${API_BASE_URL}/CorrectiveActions`;
+const LEAVE_REQUESTS_URL = `${API_BASE_URL}/LeaveReguests`; // Matches provided typo
+const ANONYMOUS_SUGGESTIONS_URL = `${API_BASE_URL}/AnonymousSuggestions`;
+const MY_PROFILE_URL = `${API_BASE_URL}/MyProfile`;
+const PERMISSIONS_URL = `${API_BASE_URL}/Permissions`;
+const MEETING_MINUTES_URL = `${API_BASE_URL}/MeetingMinutes`;
+
+// Generic CRUD helper
+const createCrudService = <T>(url: string) => ({
+    getAll: async (): Promise<T[]> => {
+        const response = await fetch(url, { headers: getAuthHeaders() });
+        const data = await handleResponse(response);
+        if (Array.isArray(data)) return data;
+        if (data && typeof data === 'object') return [data] as T[];
+        return [];
+    },
+    create: async (item: Partial<T>): Promise<T> => {
+        ensureOnline();
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(item),
+        });
+        return handleResponse(response);
+    },
+    update: async (item: Partial<T> & { id: number }): Promise<T> => {
+        ensureOnline();
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(item),
+        });
+        return handleResponse(response);
+    },
+    delete: async (id: number): Promise<void> => {
+        ensureOnline();
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ id }),
+        });
+        return handleResponse(response);
+    }
+});
+
+export const zeroCarDeliveryService = createCrudService<ZeroCarDelivery>(ZERO_CAR_DELIVERY_URL);
+export const correctiveActionsService = createCrudService<CorrectiveAction>(CORRECTIVE_ACTIONS_URL);
+export const leaveRequestsService = createCrudService<LeaveRequest>(LEAVE_REQUESTS_URL);
+export const anonymousSuggestionsService = createCrudService<AnonymousFeedback>(ANONYMOUS_SUGGESTIONS_URL);
+export const permissionsService = createCrudService<any>(PERMISSIONS_URL);
+export const meetingMinutesService = createCrudService<MeetingMinute>(MEETING_MINUTES_URL);
+
+// My Profile Service
+export const getMyProfile = async (): Promise<any> => {
+    const response = await fetch(MY_PROFILE_URL, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    
+    // If no content (204) or empty response, return empty object to prevent crashes
+    if (!data) return {};
+    
+    // If array, take first item or return empty object if array is empty
+    if (Array.isArray(data)) {
+        return data.length > 0 ? data[0] : {};
+    }
+    
+    return data;
+};
+
+export const updateMyProfile = async (profile: any): Promise<any> => {
+    ensureOnline();
+    const response = await fetch(MY_PROFILE_URL, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(profile),
+    });
     return handleResponse(response);
 };

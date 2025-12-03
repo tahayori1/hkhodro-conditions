@@ -16,7 +16,8 @@ import CorrectiveActionsPage from './pages/CorrectiveActionsPage';
 import MeetingMinutesPage from './pages/MeetingMinutesPage';
 import LeaveRequestsPage from './pages/LeaveRequestsPage';
 import AnonymousFeedbackPage from './pages/AnonymousFeedbackPage';
-
+import ZeroCarDeliveryPage from './pages/ZeroCarDeliveryPage';
+import MyProfilePage from './pages/MyProfilePage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -33,15 +34,15 @@ import { SecurityIcon } from './components/icons/SecurityIcon';
 import { PollIcon } from './components/icons/PollIcon';
 import { ChartBarIcon } from './components/icons/ChartBarIcon';
 import { CalculatorIcon } from './components/icons/CalculatorIcon';
-import { ClipboardIcon } from './components/icons/ClipboardIcon';
-import { UserGroupIcon } from './components/icons/UserGroupIcon';
+import { ClipboardCheckIcon } from './components/icons/ClipboardCheckIcon';
 import { CalendarIcon } from './components/icons/CalendarIcon';
-import { GhostIcon } from './components/icons/GhostIcon';
+import { UserMinusIcon } from './components/icons/UserMinusIcon';
+import { SpeakerphoneIcon } from './components/icons/SpeakerphoneIcon';
+import { TruckIcon } from './components/icons/TruckIcon';
+import { UserIcon } from './components/icons/UserIcon';
+import { getMyProfile } from './services/api';
 
-export type ActiveView = 
-    'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 
-    'settings' | 'access-control' | 'poll' | 'reports' | 'commission' |
-    'corrective-actions' | 'meetings' | 'leave' | 'feedback';
+export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -50,6 +51,7 @@ const App: React.FC = () => {
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+    const [currentUser, setCurrentUser] = useState<any>(null);
 
     useEffect(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -67,6 +69,16 @@ const App: React.FC = () => {
             document.documentElement.classList.remove('dark');
         }
     }, []);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            getMyProfile()
+                .then(data => setCurrentUser(data))
+                .catch(err => console.error("Failed to load profile", err));
+        } else {
+            setCurrentUser(null);
+        }
+    }, [isAuthenticated]);
     
     const handleLoginSuccess = (token: string, remember: boolean) => {
         if (remember) {
@@ -82,6 +94,7 @@ const App: React.FC = () => {
         localStorage.removeItem('authToken');
         setIsAuthenticated(false);
         setActiveView('home');
+        setCurrentUser(null);
     };
     
     const toggleTheme = () => {
@@ -160,10 +173,6 @@ const App: React.FC = () => {
         );
     };
 
-    const SectionHeader = ({ title }: { title: string }) => (
-        <p className="px-4 text-[11px] font-bold text-sky-600 dark:text-sky-400 mb-2 mt-6 uppercase tracking-wider opacity-80">{title}</p>
-    );
-
     const MobileBottomNav = () => (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/60 pb-[env(safe-area-inset-bottom)] z-40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
             <div className="grid grid-cols-4 h-16 items-end pb-2">
@@ -177,46 +186,42 @@ const App: React.FC = () => {
 
     const DesktopSidebar = () => (
         <aside className="hidden md:flex flex-col w-72 bg-[#F2F4F7] dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-screen fixed right-0 top-0 z-40 transition-colors duration-300">
-            <div className="p-6 flex items-center gap-3 mb-2">
-                 <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-200 dark:shadow-none">
-                    <CarIcon className="text-white w-6 h-6"/>
+            <div className="p-6 flex items-center gap-3 mb-4">
+                 <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-200 dark:shadow-none text-white font-bold text-lg">
+                    {currentUser?.full_name ? currentUser.full_name.charAt(0) : (currentUser?.username?.charAt(0).toUpperCase() || <CarIcon className="text-white w-6 h-6"/>)}
                  </div>
                  <div>
                      <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight leading-tight">AutoLead</h1>
-                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">پنل مدیریت فروش</p>
+                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold truncate max-w-[150px]">
+                        {currentUser?.full_name || currentUser?.username || "پنل مدیریت فروش"}
+                     </p>
                  </div>
             </div>
             
             <div className="flex-1 overflow-y-auto px-4 space-y-1 no-scrollbar pb-20">
+                <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-2">اصلی</p>
                 <NavItem id="home" icon={<HomeIcon />} label="داشبورد" />
-
-                {/* Sales Section */}
-                <SectionHeader title="بخش فروش" />
                 <NavItem id="users" icon={<UsersIcon />} label="مشتریان" />
-                <NavItem id="conditions" icon={<ConditionsIcon />} label="شرایط فروش" />
-                <NavItem id="cars" icon={<CarIcon />} label="خودروها" />
-                <NavItem id="car-prices" icon={<PriceIcon />} label="قیمت روز بازار" />
-                <NavItem id="vehicle-exit" icon={<ExitFormIcon />} label="فرم خروج خودرو" />
-
-                {/* Finance Section */}
-                <SectionHeader title="بخش مالی" />
-                <NavItem id="commission" icon={<CalculatorIcon />} label="محاسبه پورسانت" />
-
-                {/* HR Section */}
-                <SectionHeader title="منابع انسانی و اداری" />
-                <NavItem id="leave" icon={<CalendarIcon />} label="درخواست مرخصی" />
-                <NavItem id="meetings" icon={<UserGroupIcon />} label="صورت جلسات" />
-                <NavItem id="corrective-actions" icon={<ClipboardIcon />} label="اقدامات اصلاحی" />
-                <NavItem id="feedback" icon={<GhostIcon />} label="انتقاد ناشناس" />
-                <NavItem id="access-control" icon={<SecurityIcon />} label="کاربران و دسترسی" />
-
-                {/* CS Section */}
-                <SectionHeader title="موفقیت مشتری" />
-                <NavItem id="poll" icon={<PollIcon />} label="نظرسنجی" />
                 <NavItem id="reports" icon={<ChartBarIcon />} label="گزارشات" />
+                <NavItem id="commission" icon={<CalculatorIcon />} label="محاسبه پورسانت" />
+                <NavItem id="vehicle-exit" icon={<ExitFormIcon />} label="فرم خروج خودرو" />
+                
+                <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">مدیریت</p>
+                <NavItem id="zero-car-delivery" icon={<TruckIcon />} label="تحویل خودرو صفر" />
+                <NavItem id="cars" icon={<CarIcon />} label="خودروها" />
+                <NavItem id="conditions" icon={<ConditionsIcon />} label="شرایط فروش" />
+                <NavItem id="car-prices" icon={<PriceIcon />} label="قیمت روز بازار" />
+                <NavItem id="access-control" icon={<SecurityIcon />} label="کاربران و دسترسی" />
+                <NavItem id="poll" icon={<PollIcon />} label="نظرسنجی" />
+
+                <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">اداری و منابع انسانی</p>
+                <NavItem id="corrective-actions" icon={<ClipboardCheckIcon />} label="اقدامات اصلاحی" />
+                <NavItem id="meeting-minutes" icon={<CalendarIcon />} label="صورت‌جلسات" />
+                <NavItem id="leave-requests" icon={<UserMinusIcon />} label="درخواست مرخصی" />
+                <NavItem id="anonymous-feedback" icon={<SpeakerphoneIcon />} label="صدای کارمندان" />
             </div>
 
-            <div className="p-4 m-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <div className="p-4 m-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 sticky bottom-4">
                 <button 
                     onClick={toggleTheme}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium text-sm mb-2"
@@ -224,7 +229,8 @@ const App: React.FC = () => {
                     {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
                     <span>{isDarkMode ? 'حالت روز' : 'حالت شب'}</span>
                 </button>
-                <NavItem id="settings" icon={<SettingsIcon />} label="تنظیمات" />
+                <NavItem id="my-profile" icon={<UserIcon />} label="پروفایل من" />
+                <NavItem id="settings" icon={<SettingsIcon />} label="تنظیمات سیستم" />
                 <button 
                     onClick={handleLogout}
                     className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl transition-all duration-200 w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium text-sm"
@@ -238,36 +244,39 @@ const App: React.FC = () => {
 
     const MoreMenuDrawer = () => {
         if (!isMoreMenuOpen) return null;
-        
-        const DrawerHeader = ({ title }: { title: string }) => (
-            <h3 className="col-span-4 text-xs font-bold text-slate-400 mt-4 mb-2 border-b border-slate-200 dark:border-slate-700 pb-1">{title}</h3>
-        );
-
         return (
             <div className="fixed inset-0 z-50 md:hidden flex flex-col justify-end">
                 <div className="absolute inset-0 bg-slate-900/20 dark:bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setIsMoreMenuOpen(false)}></div>
                 <div className="relative bg-[#F2F4F7] dark:bg-slate-900 rounded-t-[32px] p-6 animate-slide-up shadow-2xl border-t border-white/50 dark:border-slate-700 max-h-[85vh] overflow-y-auto">
-                    <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mb-6 flex-shrink-0"></div>
+                    <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mb-6 sticky top-0"></div>
+
+                    {/* Mobile User Info */}
+                    <div className="flex items-center gap-4 mb-6 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm">
+                        <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                            {currentUser?.full_name ? currentUser.full_name.charAt(0) : (currentUser?.username?.charAt(0).toUpperCase() || <UserIcon className="w-6 h-6"/>)}
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-800 dark:text-white text-lg">{currentUser?.full_name || currentUser?.username || 'کاربر'}</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {currentUser?.isAdmin ? 'مدیر سیستم' : 'کارمند'}
+                            </p>
+                        </div>
+                    </div>
 
                     <div className="grid grid-cols-4 gap-4 mb-6">
-                        <DrawerHeader title="فروش" />
+                        <DrawerItem id="zero-car-delivery" icon={<TruckIcon className="w-6 h-6 text-white" />} label="تحویل‌صفر" color="bg-cyan-500" />
                         <DrawerItem id="cars" icon={<CarIcon className="w-6 h-6 text-white" />} label="خودروها" color="bg-blue-500" />
                         <DrawerItem id="conditions" icon={<ConditionsIcon className="w-6 h-6 text-white" />} label="شرایط" color="bg-green-500" />
-                        <DrawerItem id="car-prices" icon={<PriceIcon className="w-6 h-6 text-white" />} label="قیمت‌ها" color="bg-purple-500" />
-                        
-                        <DrawerHeader title="مالی" />
+                        <DrawerItem id="reports" icon={<ChartBarIcon className="w-6 h-6 text-white" />} label="گزارشات" color="bg-indigo-500" />
                         <DrawerItem id="commission" icon={<CalculatorIcon className="w-6 h-6 text-white" />} label="پورسانت" color="bg-teal-600" />
-
-                        <DrawerHeader title="منابع انسانی" />
-                        <DrawerItem id="leave" icon={<CalendarIcon className="w-6 h-6 text-white" />} label="مرخصی" color="bg-indigo-500" />
-                        <DrawerItem id="meetings" icon={<UserGroupIcon className="w-6 h-6 text-white" />} label="جلسات" color="bg-blue-400" />
-                        <DrawerItem id="corrective-actions" icon={<ClipboardIcon className="w-6 h-6 text-white" />} label="اقدامات" color="bg-rose-500" />
-                        <DrawerItem id="feedback" icon={<GhostIcon className="w-6 h-6 text-white" />} label="انتقاد" color="bg-slate-400" />
-                        <DrawerItem id="access-control" icon={<SecurityIcon className="w-6 h-6 text-white" />} label="دسترسی" color="bg-slate-600" />
-
-                        <DrawerHeader title="موفقیت مشتری" />
+                        <DrawerItem id="car-prices" icon={<PriceIcon className="w-6 h-6 text-white" />} label="قیمت‌ها" color="bg-purple-500" />
+                        <DrawerItem id="access-control" icon={<SecurityIcon className="w-6 h-6 text-white" />} label="دسترسی" color="bg-rose-500" />
                         <DrawerItem id="poll" icon={<PollIcon className="w-6 h-6 text-white" />} label="نظرسنجی" color="bg-amber-500" />
-                        <DrawerItem id="reports" icon={<ChartBarIcon className="w-6 h-6 text-white" />} label="گزارشات" color="bg-orange-500" />
+                        
+                        <DrawerItem id="corrective-actions" icon={<ClipboardCheckIcon className="w-6 h-6 text-white" />} label="اصلاحی" color="bg-cyan-600" />
+                        <DrawerItem id="meeting-minutes" icon={<CalendarIcon className="w-6 h-6 text-white" />} label="جلسات" color="bg-emerald-600" />
+                        <DrawerItem id="leave-requests" icon={<UserMinusIcon className="w-6 h-6 text-white" />} label="مرخصی" color="bg-orange-500" />
+                        <DrawerItem id="anonymous-feedback" icon={<SpeakerphoneIcon className="w-6 h-6 text-white" />} label="صدای‌کارمند" color="bg-violet-600" />
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 flex flex-col gap-2">
@@ -279,11 +288,18 @@ const App: React.FC = () => {
                             {isDarkMode ? 'تغییر به حالت روز' : 'تغییر به حالت شب'}
                         </button>
                         <button 
+                            onClick={() => { setActiveView('my-profile'); setIsMoreMenuOpen(false); }}
+                            className="flex items-center justify-center gap-2 w-full py-3 text-slate-600 dark:text-slate-300 font-bold text-sm active:scale-95 transition-transform rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700"
+                        >
+                            <UserIcon className="w-5 h-5" />
+                            پروفایل من
+                        </button>
+                        <button 
                             onClick={() => { setActiveView('settings'); setIsMoreMenuOpen(false); }}
                             className="flex items-center justify-center gap-2 w-full py-3 text-slate-600 dark:text-slate-300 font-bold text-sm active:scale-95 transition-transform rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700"
                         >
                             <SettingsIcon className="w-5 h-5" />
-                            تنظیمات
+                            تنظیمات سیستم
                         </button>
                         <div className="h-px bg-slate-100 dark:bg-slate-700 w-full"></div>
                         <button 
@@ -308,7 +324,7 @@ const App: React.FC = () => {
             <div className={`w-14 h-14 rounded-2xl ${color} shadow-lg shadow-slate-200 dark:shadow-none flex items-center justify-center`}>
                 {icon}
             </div>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{label}</span>
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">{label}</span>
         </button>
     );
 
@@ -320,8 +336,8 @@ const App: React.FC = () => {
                 {/* Mobile Header */}
                 <header className="md:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 px-4 h-14 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-2">
-                         <div className="w-8 h-8 bg-gradient-to-br from-sky-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                            <CarIcon className="text-white w-4 h-4"/>
+                         <div className="w-8 h-8 bg-gradient-to-br from-sky-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md text-white font-bold text-sm">
+                            {currentUser?.full_name ? currentUser.full_name.charAt(0) : (currentUser?.username?.charAt(0).toUpperCase() || <CarIcon className="w-4 h-4"/>)}
                          </div>
                         <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">AutoLead</h1>
                     </div>
@@ -341,9 +357,11 @@ const App: React.FC = () => {
                     {activeView === 'reports' && <ReportsPage />}
                     {activeView === 'commission' && <CommissionPage />}
                     {activeView === 'corrective-actions' && <CorrectiveActionsPage />}
-                    {activeView === 'meetings' && <MeetingMinutesPage />}
-                    {activeView === 'leave' && <LeaveRequestsPage />}
-                    {activeView === 'feedback' && <AnonymousFeedbackPage />}
+                    {activeView === 'meeting-minutes' && <MeetingMinutesPage />}
+                    {activeView === 'leave-requests' && <LeaveRequestsPage />}
+                    {activeView === 'anonymous-feedback' && <AnonymousFeedbackPage />}
+                    {activeView === 'zero-car-delivery' && <ZeroCarDeliveryPage />}
+                    {activeView === 'my-profile' && <MyProfilePage />}
                 </main>
             </div>
 
@@ -358,38 +376,8 @@ const App: React.FC = () => {
                 .animate-slide-up {
                     animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 }
-                
-                @keyframes fade-in {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .animate-fade-in {
-                    animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                }
-
                 .h-safe-bottom {
                     height: env(safe-area-inset-bottom);
-                }
-
-                .custom-scrollbar::-webkit-scrollbar {
-                    height: 6px;
-                    width: 6px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background-color: #cbd5e1;
-                    border-radius: 9999px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background-color: #94a3b8;
-                }
-                .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background-color: #475569;
-                }
-                .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background-color: #64748b;
                 }
             `}</style>
         </div>
