@@ -4,7 +4,7 @@ import { login, createUserAccount } from '../services/api';
 import PwaInstallModal from '../components/PwaInstallModal';
 
 interface LoginPageProps {
-    onLoginSuccess: (token: string, remember: boolean) => void;
+    onLoginSuccess: (token: string, id: number, remember: boolean) => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
@@ -51,10 +51,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         try {
             const hashedPassword = await hashPassword(password);
             const response = await login(username, hashedPassword);
-            if (response.token) {
-                onLoginSuccess(response.token, rememberMe);
+            if (response.token && response.id) {
+                onLoginSuccess(response.token, response.id, rememberMe);
             } else {
-                setError('خطا در ورود: توکن دریافت نشد.');
+                setError('خطا در ورود: توکن یا شناسه کاربر دریافت نشد.');
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'یک خطای ناشناخته رخ داد.');

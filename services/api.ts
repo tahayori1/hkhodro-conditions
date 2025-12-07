@@ -21,7 +21,8 @@ import type {
     CorrectiveAction,
     LeaveRequest,
     AnonymousFeedback,
-    MeetingMinute
+    MeetingMinute,
+    MyProfile
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -78,7 +79,7 @@ export const hashPassword = async (password: string): Promise<string> => {
     return hashHex;
 };
 
-export const login = async (username: string, password: string): Promise<{ token: string }> => {
+export const login = async (username: string, password: string): Promise<{ token: string; id: number }> => {
     ensureOnline();
     const response = await fetch(`${API_BASE_URL}/auth`, {
         method: 'POST',
@@ -93,7 +94,7 @@ export const login = async (username: string, password: string): Promise<{ token
         if (Array.isArray(data) && data.length > 0) {
             return data[0];
         }
-        if (data && typeof data === 'object' && !Array.isArray(data) && data.token) {
+        if (data && typeof data === 'object' && !Array.isArray(data) && data.token && data.id) {
             return data;
         }
         throw new Error('فرمت پاسخ ورود نامعتبر است.');
@@ -725,27 +726,48 @@ export const permissionsService = createCrudService<any>(PERMISSIONS_URL);
 export const meetingMinutesService = createCrudService<MeetingMinute>(MEETING_MINUTES_URL);
 
 // My Profile Service
-export const getMyProfile = async (): Promise<any> => {
-    const response = await fetch(MY_PROFILE_URL, { headers: getAuthHeaders() });
-    const data = await handleResponse(response);
-    
-    // If no content (204) or empty response, return empty object to prevent crashes
-    if (!data) return {};
-    
-    // If array, take first item or return empty object if array is empty
-    if (Array.isArray(data)) {
-        return data.length > 0 ? data[0] : {};
+export const getMyProfile = async (): Promise<MyProfile | {}> => {
+    const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+    if (!userId) {
+        console.warn("User ID not found, cannot fetch profile.");
+        return {};
     }
-    
-    return data;
+
+    try {
+        const response = await fetch(MY_PROFILE_URL, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ id: Number(userId) })
+        });
+        
+        const data = await handleResponse(response);
+        
+        if (!data) return {};
+        
+        if (Array.isArray(data)) {
+            return data.length > 0 ? data[0] : {};
+        }
+        
+        return data;
+    } catch (error) {
+        console.warn("Could not fetch user profile, proceeding without it:", error);
+        return {};
+    }
 };
 
-export const updateMyProfile = async (profile: any): Promise<any> => {
+export const updateMyProfile = async (profile: Partial<MyProfile>): Promise<MyProfile> => {
     ensureOnline();
+    const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+    if (!userId) {
+        throw new Error("User ID not found");
+    }
+    
+    const payload = { ...profile, id: Number(userId) };
+    
     const response = await fetch(MY_PROFILE_URL, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify(profile),
+        body: JSON.stringify(payload),
     });
     return handleResponse(response);
 };

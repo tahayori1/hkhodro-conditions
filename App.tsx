@@ -40,7 +40,7 @@ import { UserMinusIcon } from './components/icons/UserMinusIcon';
 import { SpeakerphoneIcon } from './components/icons/SpeakerphoneIcon';
 import { TruckIcon } from './components/icons/TruckIcon';
 import { UserIcon } from './components/icons/UserIcon';
-import { getMyProfile } from './services/api';
+import { getMyProfile, updateMyProfile } from './services/api';
 
 export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile';
 
@@ -55,7 +55,8 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        if (token) {
+        const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+        if (token && userId) {
             setIsAuthenticated(true);
         }
         setIsLoading(false);
@@ -80,18 +81,42 @@ const App: React.FC = () => {
         }
     }, [isAuthenticated]);
     
-    const handleLoginSuccess = (token: string, remember: boolean) => {
+    const handleLoginSuccess = async (token: string, id: number, remember: boolean) => {
         if (remember) {
             localStorage.setItem('authToken', token);
+            localStorage.setItem('userId', String(id));
         } else {
             sessionStorage.setItem('authToken', token);
+            sessionStorage.setItem('userId', String(id));
         }
+        
+        try {
+            // The API expects 'YYYY-MM-DD HH:MM:SS' format.
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const formattedNow = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+            // Manually update last_login time. We do this before setting isAuthenticated
+            // to avoid race conditions with the profile fetch.
+            await updateMyProfile({ last_login: formattedNow });
+        } catch (error) {
+            // Log the error but don't block the user from logging in
+            console.error("Failed to update last login time:", error);
+        }
+
         setIsAuthenticated(true);
     };
 
     const handleLogout = () => {
         sessionStorage.removeItem('authToken');
         localStorage.removeItem('authToken');
+        sessionStorage.removeItem('userId');
+        localStorage.removeItem('userId');
         setIsAuthenticated(false);
         setActiveView('home');
         setCurrentUser(null);

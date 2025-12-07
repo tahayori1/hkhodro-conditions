@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import type { AnonymousFeedback } from '../types';
+import type { AnonymousFeedback, MyProfile } from '../types';
 import { anonymousSuggestionsService, getMyProfile } from '../services/api';
 import { SpeakerphoneIcon } from '../components/icons/SpeakerphoneIcon';
 import { TrashIcon } from '../components/icons/TrashIcon';
@@ -27,7 +27,10 @@ const AnonymousFeedbackPage: React.FC = () => {
         const checkAdmin = async () => {
             try {
                 const profile = await getMyProfile();
-                if (profile && (profile.isAdmin === 1 || profile.isAdmin === true)) {
+                // FIX: Check if 'isAdmin' property exists on the profile object before accessing it.
+                // The getMyProfile function can return an empty object if the profile is not found.
+                // FIX: The comparison `profile.isAdmin === true` is invalid because `isAdmin` is of type `0 | 1`.
+                if (profile && 'isAdmin' in profile && profile.isAdmin === 1) {
                     setIsAdmin(true);
                 }
             } catch (e) {

@@ -212,13 +212,30 @@ export interface ApiSystemUser {
     last_update: string;
     mobile: string | null;
     email: string | null;
-    password?: string; // Optional field for request payloads
+    password?: string; // Optional for request payloads
     // Expanded Profile Fields
     personality_type?: string;
     birth_date?: string;
     org_phone?: string;
     org_email?: string;
     didar_username?: string;
+}
+
+export interface MyProfile {
+    id: number;
+    username: string;
+    full_name: string | null;
+    whatsapp_apikey: string | null;
+    permission_level: number;
+    isAdmin: 0 | 1;
+    register_time: string;
+    last_update: string;
+    mobile: string | null;
+    email: string | null;
+    mbti: string | null;
+    description: string | null;
+    last_login: string | null;
+    birth_date: string | null;
 }
 
 export interface StaffUser {
