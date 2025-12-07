@@ -41,6 +41,7 @@ import { SpeakerphoneIcon } from './components/icons/SpeakerphoneIcon';
 import { TruckIcon } from './components/icons/TruckIcon';
 import { UserIcon } from './components/icons/UserIcon';
 import { getMyProfile, updateMyProfile } from './services/api';
+import type { MyProfile } from './types';
 
 export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile';
 
@@ -51,7 +52,7 @@ const App: React.FC = () => {
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [currentUser, setCurrentUser] = useState<MyProfile | null>(null);
 
     useEffect(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -74,7 +75,9 @@ const App: React.FC = () => {
     useEffect(() => {
         if (isAuthenticated) {
             getMyProfile()
-                .then(data => setCurrentUser(data))
+                .then(data => {
+                    if(data && 'id' in data) setCurrentUser(data as MyProfile);
+                })
                 .catch(err => console.error("Failed to load profile", err));
         } else {
             setCurrentUser(null);
@@ -236,7 +239,7 @@ const App: React.FC = () => {
                 <NavItem id="cars" icon={<CarIcon />} label="خودروها" />
                 <NavItem id="conditions" icon={<ConditionsIcon />} label="شرایط فروش" />
                 <NavItem id="car-prices" icon={<PriceIcon />} label="قیمت روز بازار" />
-                <NavItem id="access-control" icon={<SecurityIcon />} label="کاربران و دسترسی" />
+                {currentUser?.isAdmin === 1 && <NavItem id="access-control" icon={<SecurityIcon />} label="کاربران و دسترسی" />}
                 <NavItem id="poll" icon={<PollIcon />} label="نظرسنجی" />
 
                 <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">اداری و منابع انسانی</p>
@@ -295,7 +298,7 @@ const App: React.FC = () => {
                         <DrawerItem id="reports" icon={<ChartBarIcon className="w-6 h-6 text-white" />} label="گزارشات" color="bg-indigo-500" />
                         <DrawerItem id="commission" icon={<CalculatorIcon className="w-6 h-6 text-white" />} label="پورسانت" color="bg-teal-600" />
                         <DrawerItem id="car-prices" icon={<PriceIcon className="w-6 h-6 text-white" />} label="قیمت‌ها" color="bg-purple-500" />
-                        <DrawerItem id="access-control" icon={<SecurityIcon className="w-6 h-6 text-white" />} label="دسترسی" color="bg-rose-500" />
+                        {currentUser?.isAdmin === 1 && <DrawerItem id="access-control" icon={<SecurityIcon className="w-6 h-6 text-white" />} label="دسترسی" color="bg-rose-500" />}
                         <DrawerItem id="poll" icon={<PollIcon className="w-6 h-6 text-white" />} label="نظرسنجی" color="bg-amber-500" />
                         
                         <DrawerItem id="corrective-actions" icon={<ClipboardCheckIcon className="w-6 h-6 text-white" />} label="اصلاحی" color="bg-cyan-600" />
@@ -372,7 +375,7 @@ const App: React.FC = () => {
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden w-full max-w-[1600px] mx-auto">
                     {activeView === 'home' && <HomePage onNavigate={setActiveView} />}
                     {activeView === 'conditions' && <ConditionsPage />}
-                    {activeView === 'users' && <UsersPage initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} />}
+                    {activeView === 'users' && <UsersPage initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} loggedInUser={currentUser} />}
                     {activeView === 'cars' && <CarsPage onNavigateToLeads={handleNavigateToUsersWithFilter} />}
                     {activeView === 'car-prices' && <CarPricesPage />}
                     {activeView === 'vehicle-exit' && <VehicleExitPage />}

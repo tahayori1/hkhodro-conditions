@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { User } from '../types';
 import { EditIcon } from './icons/EditIcon';
@@ -6,6 +7,8 @@ import { SortIcon } from './icons/SortIcon';
 import { ChatIcon } from './icons/ChatIcon';
 import { PhoneIcon } from './icons/PhoneIcon';
 import { UsersIcon } from './icons/UsersIcon';
+import { SendToCrmIcon } from './icons/SendToCrmIcon';
+import { CheckCircleIcon } from './icons/CheckCircleIcon';
 
 interface UserTableProps {
     users: User[];
@@ -17,9 +20,10 @@ interface UserTableProps {
     selectedUserIds: Set<number>;
     onSelectionChange: (userId: number) => void;
     onSelectAllChange: (selectAll: boolean) => void;
+    onSendToCrm: (user: User) => void;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails, onSort, sortConfig, selectedUserIds, onSelectionChange, onSelectAllChange }) => {
+const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails, onSort, sortConfig, selectedUserIds, onSelectionChange, onSelectAllChange, onSendToCrm }) => {
     if (users.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-600 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 border-dashed mx-4">
@@ -41,6 +45,15 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
         }
     };
     
+    const formatDateForTooltip = (dateString?: string) => {
+        if (!dateString) return '';
+        try {
+            return new Date(dateString.replace(' ', 'T')).toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' });
+        } catch {
+            return dateString;
+        }
+    };
+
     const SortableHeader: React.FC<{ title: string; sortKey: keyof User; }> = ({ title, sortKey }) => {
         const isSorted = sortConfig?.key === sortKey;
         const direction = isSorted ? sortConfig.direction : 'none';
@@ -84,6 +97,7 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                             <SortableHeader title="کاربر" sortKey="FullName" />
                             <SortableHeader title="تماس" sortKey="Number" />
                             <SortableHeader title="خودرو" sortKey="CarModel" />
+                            <SortableHeader title="وضعیت CRM" sortKey="crmIsSend" />
                             <SortableHeader title="موقعیت" sortKey="Province" />
                             <SortableHeader title="آخرین بروزرسانی" sortKey="updatedAt" />
                             <th scope="col" className="px-6 py-3"></th>
@@ -117,11 +131,26 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                                 <td className="px-6 py-4">
                                     <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600">{user.CarModel || '-'}</span>
                                 </td>
+                                <td className="px-6 py-4">
+                                    {user.crmIsSend ? (
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <CheckCircleIcon className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                                            <div>
+                                                <span className="font-semibold text-slate-700 dark:text-slate-300 block">{user.crmPerson}</span>
+                                                <span className="text-slate-500 dark:text-slate-400 font-mono">{formatDateForTooltip(user.crmDate)}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => onSendToCrm(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-colors" title="ارسال به CRM">
+                                            <SendToCrmIcon />
+                                        </button>
+                                    )}
+                                </td>
                                 <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{user.City || user.Province || '-'}</td>
                                 <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500">{formatDate(user.updatedAt)}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-1">
-                                         <button onClick={() => onViewDetails(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-colors" title="گفتگو">
+                                        <button onClick={() => onViewDetails(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-colors" title="گفتگو">
                                             <ChatIcon />
                                         </button>
                                         <button onClick={() => onEdit(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-colors" title="ویرایش">
@@ -148,11 +177,11 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                         ${selectedUserIds.has(user.id) ? 'border-sky-500 ring-1 ring-sky-500 bg-sky-50 dark:bg-sky-900/20' : 'border-slate-100 dark:border-slate-700'}
                         `}
                     >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-start gap-3">
                             {/* Selection Circle */}
                             <div 
                                 onClick={(e) => { e.stopPropagation(); onSelectionChange(user.id); }}
-                                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedUserIds.has(user.id) ? 'bg-sky-500 border-sky-500' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'}`}
+                                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors mt-1 ${selectedUserIds.has(user.id) ? 'bg-sky-500 border-sky-500' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'}`}
                             >
                                 {selectedUserIds.has(user.id) && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
                             </div>
@@ -173,6 +202,15 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                                         {user.Number}
                                     </div>
                                 </div>
+                                {user.crmIsSend ? (
+                                    <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                                        <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
+                                        <div>
+                                            <span className="font-semibold">ارسال به CRM توسط {user.crmPerson}</span>
+                                            <span className="block font-mono text-[10px] opacity-80">{formatDateForTooltip(user.crmDate)}</span>
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
                     </div>

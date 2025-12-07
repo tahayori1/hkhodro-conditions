@@ -52,6 +52,9 @@ export interface User {
     LastAction: string;
     createdAt: string;
     updatedAt: string;
+    crmIsSend?: 0 | 1;
+    crmPerson?: string;
+    crmDate?: string;
 }
 
 export interface LeadMessage {

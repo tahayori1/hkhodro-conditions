@@ -1,9 +1,12 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import type { User, LeadMessage, Car, CarSaleCondition } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
 import Spinner from './Spinner';
 import { SendIcon } from './icons/SendIcon';
 import ConditionSelectionModal from './ConditionSelectionModal';
+import { SendToCrmIcon } from './icons/SendToCrmIcon';
+import { CheckCircleIcon } from './icons/CheckCircleIcon';
 
 interface LeadDetailHistoryModalProps {
     isOpen: boolean;
@@ -14,6 +17,7 @@ interface LeadDetailHistoryModalProps {
     isLoading: boolean;
     error: string | null;
     onSendMessage: (message: string) => Promise<void>;
+    onSendToCrm: (user: User) => Promise<void>;
     cars: Car[];
     conditions: CarSaleCondition[];
 }
@@ -25,11 +29,12 @@ const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ labe
     </div>
 );
 
-const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, onSendMessage, cars, conditions }) => {
+const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, onSendMessage, onSendToCrm, cars, conditions }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [isCrmSending, setIsCrmSending] = useState(false);
     const [quickSendCarModel, setQuickSendCarModel] = useState('');
     const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
 
@@ -77,6 +82,17 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
         }
     };
     
+    const handleSendToCrm = async () => {
+        if (fullUserDetails && !isCrmSending) {
+            setIsCrmSending(true);
+            try {
+                await onSendToCrm(fullUserDetails);
+            } finally {
+                setIsCrmSending(false);
+            }
+        }
+    };
+
     const handleQuickSend = (text: string) => {
         setNewMessage(prev => prev ? `${prev}\n\n${text}`.trim() : text);
         setTimeout(() => textareaRef.current?.focus(), 0);
@@ -153,9 +169,20 @@ ${descriptionsText}`;
                                 {leadNumber} {leadName && `(${leadName})`}
                             </p>
                         </div>
-                        <button onClick={onClose} className="text-slate-500 hover:text-slate-800">
-                            <CloseIcon />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {fullUserDetails && !fullUserDetails.crmIsSend ? (
+                                <button onClick={handleSendToCrm} disabled={isCrmSending} className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 disabled:opacity-50 disabled:cursor-wait" title="ارسال به CRM">
+                                    {isCrmSending ? <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div> : <SendToCrmIcon />}
+                                </button>
+                            ) : fullUserDetails && fullUserDetails.crmIsSend ? (
+                                <div className="p-2 text-emerald-500" title={`ارسال شده توسط ${fullUserDetails.crmPerson}`}>
+                                    <CheckCircleIcon />
+                                </div>
+                            ) : null}
+                            <button onClick={onClose} className="text-slate-500 hover:text-slate-800">
+                                <CloseIcon />
+                            </button>
+                        </div>
                     </header>
 
                     <main className="flex-grow overflow-y-auto">

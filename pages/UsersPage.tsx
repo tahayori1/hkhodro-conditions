@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getUsers, createUser, updateUser, deleteUser, getLeadHistory, sendMessage, getUserByNumber, getCars, getConditions, getReferences } from '../services/api';
 import type { Reference } from '../services/api';
-import type { User, LeadMessage, Car, CarSaleCondition } from '../types';
+import type { User, LeadMessage, Car, CarSaleCondition, MyProfile } from '../types';
 import UserTable from '../components/UserTable';
 import UserModal from '../components/UserModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -24,9 +25,10 @@ type UserFilters = { query: string; carModel: string; reference: string; };
 interface UsersPageProps {
     initialFilters: { carModel?: string };
     onFiltersCleared: () => void;
+    loggedInUser: MyProfile | null;
 }
 
-const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared }) => {
+const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared, loggedInUser }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [cars, setCars] = useState<Car[]>([]);
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
@@ -114,7 +116,15 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
         let usersCopy = [...filteredUsers];
 
         if (sortConfig !== null) {
-            return usersCopy.sort((a, b) => {
+            usersCopy.sort((a, b) => {
+                if (sortConfig.key === 'crmIsSend') {
+                    const valA = a.crmIsSend ?? 0;
+                    const valB = b.crmIsSend ?? 0;
+                    if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
+                    if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return 0;
+                }
+
                 const aValue = a[sortConfig.key];
                 const bValue = b[sortConfig.key];
                 
@@ -254,6 +264,46 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
             throw err;
         }
     };
+    
+    const handleSendToCrm = async (user: User) => {
+        if (!loggedInUser) {
+            showToast('اطلاعات کاربری برای ثبت ارسال کننده یافت نشد.', 'error');
+            return;
+        }
+
+        try {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const crmDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+            const updatedUserForApi: User = {
+                ...user,
+                crmIsSend: 1,
+                crmPerson: loggedInUser.full_name || loggedInUser.username || 'ناشناس',
+                crmDate: crmDate
+            };
+            
+            await updateUser(user.id, updatedUserForApi);
+
+            showToast('کاربر با موفقیت به CRM ارسال شد', 'success');
+            
+            // Refetch data for both the main list and the modal if it's open
+            fetchAllData();
+            if (isDetailModalOpen && selectedLead) {
+                const updatedDetails = await getUserByNumber(selectedLead.Number);
+                setModalFullUser(updatedDetails);
+            }
+
+        } catch (err) {
+            showToast('خطا در ارسال به CRM', 'error');
+            throw err;
+        }
+    };
 
     const handleSelectionChange = (userId: number) => {
         setSelectedUserIds(prev => {
@@ -347,6 +397,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
                             selectedUserIds={selectedUserIds}
                             onSelectionChange={handleSelectionChange}
                             onSelectAllChange={handleSelectAllChange}
+                            onSendToCrm={handleSendToCrm}
                         />
                         {totalPages > 1 && (
                             <Pagination
@@ -380,6 +431,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared 
                     isLoading={modalLoading}
                     error={modalError}
                     onSendMessage={handleSendMessage}
+                    onSendToCrm={handleSendToCrm}
                     cars={cars}
                     conditions={conditions}
                 />

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { getStaffUsers, saveStaffUser, deleteStaffUser, hashPassword } from '../services/api';
-import type { StaffUser, Permission } from '../types';
+import { getStaffUsers, saveStaffUser, deleteStaffUser, hashPassword, getUserProfileById, updateUserProfileAsAdmin } from '../services/api';
+import type { StaffUser, Permission, MyProfile } from '../types';
 import Spinner from '../components/Spinner';
 import Toast from '../components/Toast';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -12,6 +12,9 @@ import { EditIcon } from '../components/icons/EditIcon';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 
+// FIX: Redefined ModalUser to correctly handle both numeric IDs for existing users and string IDs for new users.
+type ModalUser = Omit<Partial<StaffUser & MyProfile>, 'id'> & { id?: number | string };
+
 const AccessControlPage: React.FC = () => {
     const [users, setUsers] = useState<StaffUser[]>([]);
     const [loading, setLoading] = useState(true);
@@ -20,8 +23,14 @@ const AccessControlPage: React.FC = () => {
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentUser, setCurrentUser] = useState<Partial<StaffUser>>({});
+    const [currentUser, setCurrentUser] = useState<ModalUser>({});
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [modalLoading, setModalLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [modalTab, setModalTab] = useState<'profile' | 'access' | 'security'>('profile');
+    
+    // Delete Modal State
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<{id: number, username: string} | null>(null);
 
@@ -48,18 +57,41 @@ const AccessControlPage: React.FC = () => {
 
     const handleAddUser = () => {
         setCurrentUser({ 
-            id: `new-${Date.now()}`, // Temporary ID for new user
+            id: `new-${Date.now()}`,
             role: 'STAFF', 
             permissions: [],
             isActive: true 
         });
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setModalTab('profile');
         setIsModalOpen(true);
     };
 
-    const handleEditUser = (user: StaffUser) => {
-        const clonedPermissions = user.permissions ? JSON.parse(JSON.stringify(user.permissions)) : [];
-        setCurrentUser({ ...user, permissions: clonedPermissions, password: '' });
+    const handleEditUser = async (user: StaffUser) => {
+        // FIX: Added a type guard to ensure that editing is only attempted on users with a valid numeric ID, preventing runtime errors.
+        if (typeof user.id !== 'number') {
+            showToast('شناسه کاربر برای ویرایش نامعتبر است.', 'error');
+            return;
+        }
         setIsModalOpen(true);
+        setModalLoading(true);
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setModalTab('profile');
+        try {
+            const fullProfile = await getUserProfileById(user.id);
+            setCurrentUser({
+                ...user,
+                ...(fullProfile || {}),
+                password: '' 
+            });
+        } catch (e) {
+            showToast('خطا در دریافت اطلاعات کامل کاربر', 'error');
+            setIsModalOpen(false);
+        } finally {
+            setModalLoading(false);
+        }
     };
 
     const handleDeleteClick = (user: StaffUser) => {
@@ -73,10 +105,10 @@ const AccessControlPage: React.FC = () => {
         if (userToDelete) {
             try {
                 await deleteStaffUser(userToDelete.id, userToDelete.username);
-                showToast('دسترسی‌های کاربر با موفقیت حذف شد', 'success');
+                showToast('کاربر با موفقیت حذف شد', 'success');
                 fetchUsers();
             } catch (err) {
-                showToast('خطا در حذف دسترسی‌ها', 'error');
+                showToast('خطا در حذف کاربر', 'error');
             } finally {
                 setIsDeleteModalOpen(false);
                 setUserToDelete(null);
@@ -85,32 +117,37 @@ const AccessControlPage: React.FC = () => {
     };
 
     const handleSaveUser = async () => {
-        if (!currentUser.username?.trim() || !currentUser.fullName?.trim()) {
+        if (!currentUser.username?.trim() || !(currentUser.fullName || currentUser.full_name)?.trim()) {
             showToast('نام کاربری و نام کامل الزامی است', 'error');
             return;
         }
 
         const isNewUser = typeof currentUser.id === 'string' && currentUser.id.startsWith('new-');
         
-        if (isNewUser && !currentUser.password) {
+        if (isNewUser && !newPassword) {
             showToast('رمز عبور برای کاربر جدید الزامی است', 'error');
+            return;
+        }
+        if (newPassword && newPassword !== confirmNewPassword) {
+            showToast('رمزهای عبور جدید مطابقت ندارند.', 'error');
             return;
         }
         
         setIsSaving(true);
         try {
-            // Clone user to avoid mutating state directly
-            const userToSave = { ...currentUser };
+            // Build a single payload with all user data
+            const userToSave: ModalUser = {
+                ...currentUser,
+                fullName: currentUser.fullName || currentUser.full_name,
+            };
 
-            // If password is provided, hash it before sending
-            if (userToSave.password) {
-                userToSave.password = await hashPassword(userToSave.password);
-            } else if (!isNewUser) {
-                // If editing and no new password, remove field so we don't send empty string
-                delete userToSave.password;
+            if (newPassword) {
+                userToSave.password = await hashPassword(newPassword);
             }
-
-            await saveStaffUser(userToSave as StaffUser);
+            
+            // A single call to save everything
+            await saveStaffUser(userToSave);
+            
             showToast('اطلاعات کاربر ذخیره شد', 'success');
             setIsModalOpen(false);
             fetchUsers();
@@ -211,104 +248,81 @@ const AccessControlPage: React.FC = () => {
                 </div>
             )}
 
-            {/* User Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={() => setIsModalOpen(false)}>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <header className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                             <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-                                {typeof currentUser.id === 'number' ? 'ویرایش کاربر' : 'افزودن کاربر جدید'}
+                                {typeof currentUser.id === 'number' ? `ویرایش کاربر: ${currentUser.fullName || currentUser.full_name}` : 'افزودن کاربر جدید'}
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                                 <CloseIcon />
                             </button>
                         </header>
                         
+                        {modalLoading ? <div className="flex justify-center items-center flex-1 p-8"><Spinner/></div> : (
+                        <>
+                        <div className="flex border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                            <button onClick={() => setModalTab('profile')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${modalTab === 'profile' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>اطلاعات فردی</button>
+                            <button onClick={() => setModalTab('access')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${modalTab === 'access' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>دسترسی‌ها</button>
+                            <button onClick={() => setModalTab('security')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${modalTab === 'security' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>امنیت</button>
+                        </div>
                         <div className="p-6 overflow-y-auto flex-1 space-y-6">
-                            {/* Credentials */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">نام کامل</label>
-                                    <input 
-                                        type="text" 
-                                        value={currentUser.fullName || ''} 
-                                        onChange={e => setCurrentUser({...currentUser, fullName: e.target.value})}
-                                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
-                                    />
+                            {modalTab === 'profile' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
+                                    <ProfileField label="نام کامل" value={currentUser.full_name || ''} onChange={v => setCurrentUser(p => ({...p, fullName: v, full_name: v}))} />
+                                    <ProfileField label="موبایل" value={currentUser.mobile || ''} onChange={v => setCurrentUser(p => ({...p, mobile: v}))} dir="ltr" />
+                                    <ProfileField label="ایمیل" value={currentUser.email || ''} onChange={v => setCurrentUser(p => ({...p, email: v}))} type="email" dir="ltr" />
+                                    <ProfileField label="تاریخ تولد" value={currentUser.birth_date || ''} onChange={v => setCurrentUser(p => ({...p, birth_date: v}))} placeholder="1370/01/01" dir="ltr" />
+                                    <ProfileField label="تیپ MBTI" value={currentUser.mbti || ''} onChange={v => setCurrentUser(p => ({...p, mbti: v}))} placeholder="ISTJ" />
+                                    <div className="md:col-span-2">
+                                        <ProfileField label="API Key واتساپ" value={currentUser.whatsapp_apikey || ''} onChange={v => setCurrentUser(p => ({...p, whatsapp_apikey: v}))} dir="ltr" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">توضیحات</label>
+                                        <textarea value={currentUser.description || ''} onChange={e => setCurrentUser(p => ({...p, description: e.target.value}))} rows={3} className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"/>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">نام کاربری</label>
-                                    <input 
-                                        type="text" 
-                                        value={currentUser.username || ''} 
-                                        onChange={e => setCurrentUser({...currentUser, username: e.target.value})}
-                                        disabled={typeof currentUser.id === 'number'}
-                                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-60"
-                                        dir="ltr"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        {typeof currentUser.id === 'number' ? 'رمز عبور جدید (اختیاری)' : 'رمز عبور'}
-                                    </label>
-                                    <input 
-                                        type="password" 
-                                        value={currentUser.password || ''} 
-                                        onChange={e => setCurrentUser({...currentUser, password: e.target.value})}
-                                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        dir="ltr"
-                                        placeholder={typeof currentUser.id === 'number' ? 'تغییر نمی‌کند...' : ''}
-                                    />
-                                </div>
-                                <div className="flex items-end">
-                                    <label className="flex items-center gap-3 cursor-pointer p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg w-full hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                            )}
+                            {modalTab === 'access' && (
+                                <div className="space-y-6">
+                                    <label className="flex items-center gap-3 cursor-pointer p-3 border border-slate-300 dark:border-slate-600 rounded-lg w-full max-w-xs hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                        <input type="checkbox" className="hidden" checked={currentUser.role === 'ADMIN'} onChange={e => setCurrentUser({...currentUser, role: e.target.checked ? 'ADMIN' : 'STAFF'})} />
                                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${currentUser.role === 'ADMIN' ? 'border-rose-500 bg-rose-500' : 'border-slate-400'}`}>
                                             {currentUser.role === 'ADMIN' && <div className="w-2 h-2 bg-white rounded-full" />}
                                         </div>
-                                        <input 
-                                            type="checkbox" 
-                                            className="hidden" 
-                                            checked={currentUser.role === 'ADMIN'}
-                                            onChange={e => setCurrentUser({...currentUser, role: e.target.checked ? 'ADMIN' : 'STAFF'})}
-                                        />
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-slate-800 dark:text-white">مدیر کل (Admin)</span>
-                                            <span className="text-[10px] text-slate-500 dark:text-slate-400">دسترسی کامل به تمام بخش‌ها</span>
-                                        </div>
+                                        <span className="text-sm font-bold text-slate-800 dark:text-white">مدیر کل (دسترسی کامل)</span>
                                     </label>
+                                    {currentUser.role !== 'ADMIN' && (
+                                        <PermissionMatrix permissions={currentUser.permissions || []} onChange={(updated) => setCurrentUser({...currentUser, permissions: updated})} />
+                                    )}
                                 </div>
-                            </div>
-
-                            {/* Permissions */}
-                            {currentUser.role !== 'ADMIN' && (
-                                <div className="animate-fade-in">
-                                    <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                                        <SecurityIcon className="w-5 h-5 text-emerald-600" />
-                                        جدول دسترسی‌ها
-                                    </h4>
-                                    <PermissionMatrix 
-                                        permissions={currentUser.permissions || []} 
-                                        onChange={(updated) => setCurrentUser({...currentUser, permissions: updated})}
-                                    />
+                            )}
+                            {modalTab === 'security' && (
+                                <div className="space-y-4 max-w-md">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">نام کاربری</label>
+                                        <input type="text" value={currentUser.username || ''} onChange={e => setCurrentUser({...currentUser, username: e.target.value})} disabled={typeof currentUser.id === 'number'} className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white disabled:opacity-60" dir="ltr" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{typeof currentUser.id === 'number' ? 'رمز عبور جدید (اختیاری)' : 'رمز عبور'}</label>
+                                        <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" dir="ltr" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">تکرار رمز عبور جدید</label>
+                                        <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" dir="ltr" />
+                                    </div>
                                 </div>
                             )}
                         </div>
-
                         <footer className="p-6 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 bg-slate-50 dark:bg-slate-900/50 rounded-b-2xl">
-                            <button 
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-6 py-2.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                            >
-                                انصراف
-                            </button>
-                            <button 
-                                onClick={handleSaveUser}
-                                disabled={isSaving}
-                                className="px-8 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 dark:shadow-none transition-all active:scale-95 w-36 flex justify-center items-center"
-                            >
+                            <button onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">انصراف</button>
+                            <button onClick={handleSaveUser} disabled={isSaving} className="px-8 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 dark:shadow-none transition-all active:scale-95 w-36 flex justify-center items-center">
                                 {isSaving ? <Spinner /> : 'ذخیره'}
                             </button>
                         </footer>
+                        </>
+                        )}
                     </div>
                 </div>
             )}
@@ -317,7 +331,7 @@ const AccessControlPage: React.FC = () => {
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleConfirmDelete}
-                title="حذف دسترسی‌های کاربر"
+                title="حذف کاربر"
                 message={`آیا از حذف کاربر "${userToDelete?.username}" اطمینان دارید؟ این عملیات قابل بازگشت نیست.`}
             />
 
@@ -325,5 +339,21 @@ const AccessControlPage: React.FC = () => {
         </div>
     );
 };
+
+const ProfileField: React.FC<{ label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; dir?: 'rtl' | 'ltr'; }> = 
+({ label, value, onChange, type = 'text', placeholder, dir = 'rtl' }) => (
+    <div>
+        <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">{label}</label>
+        <input
+            type={type}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+            dir={dir}
+        />
+    </div>
+);
+
 
 export default AccessControlPage;

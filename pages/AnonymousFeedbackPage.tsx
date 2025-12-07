@@ -27,10 +27,10 @@ const AnonymousFeedbackPage: React.FC = () => {
         const checkAdmin = async () => {
             try {
                 const profile = await getMyProfile();
-                // FIX: Check if 'isAdmin' property exists on the profile object before accessing it.
-                // The getMyProfile function can return an empty object if the profile is not found.
-                // FIX: The comparison `profile.isAdmin === true` is invalid because `isAdmin` is of type `0 | 1`.
-                if (profile && 'isAdmin' in profile && profile.isAdmin === 1) {
+                // FIX: Check for a non-optional property like 'id' to safely narrow the type from `MyProfile | {}` to `MyProfile`.
+                // This resolves issues with using the 'in' operator on a union type including `{}`.
+                // The comparison `profile.isAdmin === 1` is correct as `isAdmin` is `0 | 1`.
+                if (profile && 'id' in profile && profile.isAdmin === 1) {
                     setIsAdmin(true);
                 }
             } catch (e) {

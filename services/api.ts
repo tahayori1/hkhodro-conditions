@@ -177,13 +177,16 @@ export const getStaffUsers = async (): Promise<StaffUser[]> => {
     });
 };
 
-const addApiUser = async (payload: any) => {
+const addApiUser = async (payload: any): Promise<ApiSystemUser> => {
     const response = await fetch(USER_MGMT_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(payload)
     });
-    return handleResponse(response);
+    const data = await handleResponse(response);
+    if (Array.isArray(data) && data.length > 0) return data[0];
+    if (data && typeof data === 'object' && 'id' in data) return data;
+    throw new Error('Could not retrieve created user from API response.');
 };
 
 const updateApiUser = async (payload: any) => {
@@ -204,46 +207,63 @@ const deleteApiUser = async (id: number) => {
     return handleResponse(response);
 };
 
-export const saveStaffUser = async (user: Partial<StaffUser>): Promise<void> => {
+export const saveStaffUser = async (user: Omit<Partial<StaffUser & MyProfile>, 'id'> & { id?: number | string }): Promise<ApiSystemUser | void> => {
     ensureOnline();
     
-    // Prepare payload for API
+    // Prepare a comprehensive payload for the API
     const apiPayload: any = {
+        // Core fields
         username: user.username,
-        full_name: user.fullName,
+        full_name: user.fullName || user.full_name,
         isAdmin: user.role === 'ADMIN' ? 1 : 0,
         permission_level: 1, // Default permission level
+        
+        // Profile fields
+        mobile: user.mobile ?? null,
+        email: user.email ?? null,
+        birth_date: user.birth_date ?? null,
+        mbti: user.mbti ?? null,
+        description: user.description ?? null,
+        whatsapp_apikey: user.whatsapp_apikey ?? null,
     };
 
     if (user.password) {
         apiPayload.password = user.password;
     }
 
-    // Save User Data
+    let createdUser: ApiSystemUser | undefined;
     if (typeof user.id === 'number') {
+        // This is an update. Add the id to the payload.
         apiPayload.id = user.id;
         await updateApiUser(apiPayload);
     } else {
-        await addApiUser(apiPayload);
+        // This is a create. The temporary string id should not be sent.
+        createdUser = await addApiUser(apiPayload);
     }
     
-    // Save Permissions via API (for non-admin users)
-    if (user.username && user.role === 'STAFF' && user.permissions) {
+    // The permissions logic is separate and seems to work correctly.
+    // It uses a different endpoint (/Permissions) so it should remain separate.
+    const usernameForPerms = createdUser ? createdUser.username : user.username;
+    if (usernameForPerms && user.role === 'STAFF' && user.permissions) {
         const allPermissions = await permissionsService.getAll();
-        const existingRecord = allPermissions.find((p: any) => p.username === user.username);
+        const existingRecord = allPermissions.find((p: any) => p.username === usernameForPerms);
 
         if (existingRecord) {
             await permissionsService.update({
                 id: existingRecord.id,
-                username: user.username,
+                username: usernameForPerms,
                 permissions: user.permissions
             });
         } else {
             await permissionsService.create({
-                username: user.username,
+                username: usernameForPerms,
                 permissions: user.permissions
             });
         }
+    }
+    
+    if (createdUser) {
+        return createdUser;
     }
 };
 
@@ -764,6 +784,34 @@ export const updateMyProfile = async (profile: Partial<MyProfile>): Promise<MyPr
     
     const payload = { ...profile, id: Number(userId) };
     
+    const response = await fetch(MY_PROFILE_URL, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+};
+
+export const getUserProfileById = async (userId: number): Promise<MyProfile | null> => {
+    try {
+        const response = await fetch(MY_PROFILE_URL, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ id: userId })
+        });
+        const data = await handleResponse(response);
+        if (Array.isArray(data) && data.length > 0) return data[0];
+        if (data && typeof data === 'object') return data as MyProfile;
+        return null;
+    } catch (error) {
+        console.error(`Failed to fetch profile for user ${userId}:`, error);
+        return null;
+    }
+};
+
+export const updateUserProfileAsAdmin = async (userId: number, profile: Partial<MyProfile>): Promise<MyProfile> => {
+    ensureOnline();
+    const payload = { ...profile, id: userId };
     const response = await fetch(MY_PROFILE_URL, {
         method: 'PUT',
         headers: getAuthHeaders(),
