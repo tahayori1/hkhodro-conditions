@@ -6,6 +6,7 @@ import Spinner from '../components/Spinner';
 import Toast from '../components/Toast';
 import { SortIcon } from '../components/icons/SortIcon';
 import { CopyIcon } from '../components/icons/CopyIcon';
+import { EyeIcon } from '../components/icons/EyeIcon';
 
 const timeAgo = (dateString: string): string => {
     try {
@@ -46,7 +47,9 @@ type TableRow = {
     [source: string]: number | string; 
 };
 
-const CarPricesPage: React.FC = () => {
+interface CarPricesPageProps {}
+
+const CarPricesPage: React.FC<CarPricesPageProps> = () => {
     const [prices, setPrices] = useState<ScrapedCarPrice[]>([]);
     const [sources, setSources] = useState<string[]>([]);
     const [priceStats, setPriceStats] = useState<CarPriceStats[]>([]);
@@ -83,7 +86,7 @@ const CarPricesPage: React.FC = () => {
             const uniquePrices = Array.from(latestPrices.values());
             setPrices(uniquePrices);
             setSources(sourcesData.map((s: CarPriceSource) => s.source_name).sort());
-            setPriceStats(statsData.sort((a, b) => a.model_name.localeCompare(b.model_name, 'fa-IR')));
+            setPriceStats(statsData.sort((a, b) => b.maximum - a.maximum));
 
             if (uniquePrices.length > 0) {
                  const mostRecentDateString = uniquePrices.reduce((latest, current) => {
@@ -205,19 +208,25 @@ const CarPricesPage: React.FC = () => {
 
     const renderPriceStats = () => (
         <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-700">آمار خلاصه قیمت‌ها</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                 <div>
+                    <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200">آمار خلاصه قیمت‌ها</h2>
+                    {lastUpdated && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">آخرین بروزرسانی: {timeAgo(lastUpdated)}</p>}
+                 </div>
                  <button 
                     onClick={handleCopyStats}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-300 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 mt-2 sm:mt-0"
                     disabled={loading || !!error || priceStats.length === 0}
                 >
                     <CopyIcon />
-                    کپی
+                    کپی آمار
                 </button>
             </div>
+             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                * بالاترین حد برابر با بیشترین قیمت + ۷٪ است.
+            </p>
             {loading ? (
-                <div className="flex justify-center items-center h-40 bg-white p-6 rounded-lg shadow-md">
+                <div className="flex justify-center items-center h-40 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
                     <Spinner />
                 </div>
             ) : error ? (
@@ -225,23 +234,30 @@ const CarPricesPage: React.FC = () => {
                     <p>{error}</p>
                 </div>
             ) : (
-                <div className="flex gap-4 overflow-x-auto pb-4 -m-2 p-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    <style>{`.flex.gap-4.overflow-x-auto::-webkit-scrollbar { display: none; }`}</style>
-                    {priceStats.map(stat => (
-                        <div key={stat.id} className="flex-shrink-0 w-60 bg-white rounded-lg shadow-md p-4 border border-slate-200">
-                            <h3 className="font-bold text-slate-800 text-md mb-3 truncate">{stat.model_name}</h3>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between items-center bg-red-50 p-2 rounded-md">
-                                    <span className="text-slate-600">کمترین:</span>
-                                    <span className="font-mono font-semibold text-red-700">{stat.minimum.toLocaleString('fa-IR')}</span>
-                                </div>
-                                <div className="flex justify-between items-center bg-green-50 p-2 rounded-md">
-                                    <span className="text-slate-600">بیشترین:</span>
-                                    <span className="font-mono font-semibold text-green-700">{stat.maximum.toLocaleString('fa-IR')}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {priceStats.map(stat => {
+                        const highestLimit = stat.maximum * 1.07;
+                        return (
+                        <div key={stat.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 border border-slate-100 dark:border-slate-700 flex flex-col justify-between">
+                            <div>
+                                <h3 className="font-black text-slate-800 dark:text-white text-lg mb-4 truncate">{stat.model_name}</h3>
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-green-600 dark:text-green-400 font-bold">کمترین قیمت:</span>
+                                        <span className="font-mono font-semibold text-green-700 dark:text-green-300">{stat.minimum.toLocaleString('fa-IR')}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-red-600 dark:text-red-400 font-bold">بیشترین قیمت:</span>
+                                        <span className="font-mono font-semibold text-red-700 dark:text-red-300">{stat.maximum.toLocaleString('fa-IR')}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-3">
+                                        <span className="text-slate-500 dark:text-slate-400 font-bold">بالاترین حد:</span>
+                                        <span className="font-mono font-semibold text-slate-600 dark:text-slate-300">{Math.round(highestLimit).toLocaleString('fa-IR')}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             )}
         </div>
@@ -253,39 +269,39 @@ const CarPricesPage: React.FC = () => {
         if (sortedTableData.length === 0) return <p className="text-center text-slate-500 py-10">هیچ قیمتی یافت نشد.</p>;
 
         return (
-            <div className="overflow-x-auto rounded-lg shadow-md border border-slate-200" style={{maxHeight: '70vh'}}>
-                <table className="w-full text-sm text-right text-slate-600 border-collapse">
-                    <thead className="text-xs text-slate-700 bg-slate-100">
+            <div className="overflow-x-auto rounded-lg shadow-md border border-slate-200 dark:border-slate-700" style={{maxHeight: '70vh'}}>
+                <table className="w-full text-sm text-right text-slate-600 dark:text-slate-300 border-collapse">
+                    <thead className="text-xs text-slate-700 bg-slate-100 dark:bg-slate-800">
                         <tr>
-                            <SortableHeader title="مدل خودرو" sortKey="model_name" className="sticky left-0 bg-slate-200 z-20" />
+                            <SortableHeader title="مدل خودرو" sortKey="model_name" className="sticky left-0 bg-slate-200 dark:bg-slate-900 z-20" />
                             {sources.map(source => (
                                 <SortableHeader key={source} title={source} sortKey={source} />
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="bg-white">
+                    <tbody className="bg-white dark:bg-slate-800">
                         {sortedTableData.map((row, index) => {
-                            const rowBg = index % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                            const rowBg = index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-800/50';
                             return (
                                 <tr key={row.model_name} className={`${rowBg}`}>
-                                    <td className={`px-4 py-3 font-bold text-slate-900 whitespace-nowrap sticky left-0 z-10 border-b border-slate-200 ${rowBg}`}>
+                                    <td className={`px-4 py-3 font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap sticky left-0 z-10 border-b border-slate-200 dark:border-slate-700 ${rowBg}`}>
                                         {row.model_name}
                                     </td>
                                     {sources.map(source => {
                                         const price = row[source] as number;
-                                        let cellClasses = 'px-4 py-3 text-center border-b border-slate-200 transition-colors duration-200 font-mono';
+                                        let cellClasses = 'px-4 py-3 text-center border-b border-slate-200 dark:border-slate-700 transition-colors duration-200 font-mono';
                                         
                                         if (price > 0 && row.minPrice !== row.maxPrice) {
                                             if (price === row.minPrice) {
-                                                cellClasses += ' bg-green-100 text-green-800 font-bold';
+                                                cellClasses += ' bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 font-bold';
                                             } else if (price === row.maxPrice) {
-                                                cellClasses += ' bg-red-100 text-red-800 font-bold';
+                                                cellClasses += ' bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 font-bold';
                                             }
                                         }
 
                                         return (
                                             <td key={source} className={cellClasses}>
-                                                {price > 0 ? price.toLocaleString('fa-IR') : <span className="text-slate-400">-</span>}
+                                                {price > 0 ? price.toLocaleString('fa-IR') : <span className="text-slate-400 dark:text-slate-600">-</span>}
                                             </td>
                                         );
                                     })}
@@ -302,16 +318,6 @@ const CarPricesPage: React.FC = () => {
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {renderPriceStats()}
-
-                <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                        <h2 className="text-xl font-bold text-slate-700 mb-2 sm:mb-0">مقایسه قیمت روز خودروها</h2>
-                        {lastUpdated && <p className="text-xs text-slate-500">آخرین بروزرسانی: {timeAgo(lastUpdated)}</p>}
-                    </div>
-                    <p className="text-sm text-slate-500 mt-2">
-                        قیمت‌ها از منابع آنلاین جمع‌آوری شده‌اند (به تومان). خانه‌های <span className="text-green-600 font-semibold">سبز</span> کمترین و خانه‌های <span className="text-red-600 font-semibold">قرمز</span> بیشترین قیمت در هر ردیف هستند.
-                    </p>
-                </div>
                 {renderComparisonTable()}
             </main>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

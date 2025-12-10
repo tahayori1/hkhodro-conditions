@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getCars, createCar, updateCar, deleteCar, getConditionsByCarModel } from '../services/api';
 import type { Car, CarSaleCondition } from '../types';
 import CarTable from '../components/CarTable';
@@ -9,15 +9,19 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import { PlusIcon } from '../components/icons/PlusIcon';
+import { CloseIcon } from '../components/icons/CloseIcon';
 
 interface CarsPageProps {
     onNavigateToLeads: (carModel: string) => void;
+    initialFilters: { carModel?: string };
+    onFiltersCleared: () => void;
 }
 
-const CarsPage: React.FC<CarsPageProps> = ({ onNavigateToLeads }) => {
+const CarsPage: React.FC<CarsPageProps> = ({ onNavigateToLeads, initialFilters, onFiltersCleared }) => {
     const [cars, setCars] = useState<Car[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [filterQuery, setFilterQuery] = useState('');
     
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [currentCar, setCurrentCar] = useState<Car | null>(null);
@@ -32,6 +36,12 @@ const CarsPage: React.FC<CarsPageProps> = ({ onNavigateToLeads }) => {
     const [carToDelete, setCarToDelete] = useState<number | null>(null);
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    
+    useEffect(() => {
+        if (initialFilters.carModel) {
+            setFilterQuery(initialFilters.carModel);
+        }
+    }, [initialFilters]);
 
     const fetchAllCars = useCallback(async () => {
         setLoading(true);
@@ -51,6 +61,20 @@ const CarsPage: React.FC<CarsPageProps> = ({ onNavigateToLeads }) => {
     useEffect(() => {
         fetchAllCars();
     }, [fetchAllCars]);
+    
+    const filteredCars = useMemo(() => {
+        if (!filterQuery) return cars;
+        const lowercasedQuery = filterQuery.toLowerCase();
+        return cars.filter(car => 
+            car.name.toLowerCase().includes(lowercasedQuery) ||
+            car.brand.toLowerCase().includes(lowercasedQuery)
+        );
+    }, [cars, filterQuery]);
+    
+    const clearFilter = () => {
+        setFilterQuery('');
+        onFiltersCleared();
+    };
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
@@ -123,15 +147,31 @@ const CarsPage: React.FC<CarsPageProps> = ({ onNavigateToLeads }) => {
     return (
         <>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                 <div className="bg-white p-6 rounded-lg shadow-md mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h2 className="text-xl font-bold text-slate-700">مدیریت خودروها</h2>
-                    <button
-                        onClick={handleAddNew}
-                        className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
-                    >
-                        <PlusIcon />
-                        افزودن خودرو جدید
-                    </button>
+                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-xl font-bold text-slate-700 dark:text-white">مدیریت خودروها</h2>
+                        <button
+                            onClick={handleAddNew}
+                            className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
+                        >
+                            <PlusIcon />
+                            افزودن خودرو جدید
+                        </button>
+                    </div>
+                    <div className="mt-4 relative">
+                        <input
+                            type="text"
+                            placeholder="جستجوی خودرو بر اساس نام یا برند..."
+                            value={filterQuery}
+                            onChange={(e) => setFilterQuery(e.target.value)}
+                            className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none transition bg-white dark:bg-slate-700"
+                        />
+                        {filterQuery && (
+                            <button onClick={clearFilter} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <CloseIcon className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {loading ? (
@@ -142,7 +182,7 @@ const CarsPage: React.FC<CarsPageProps> = ({ onNavigateToLeads }) => {
                     <p className="text-center text-red-500">{error}</p>
                 ) : (
                     <CarTable 
-                        cars={cars} 
+                        cars={filteredCars} 
                         onEdit={handleEdit} 
                         onDelete={handleDelete}
                         onView={handleView}

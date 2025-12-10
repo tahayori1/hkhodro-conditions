@@ -50,6 +50,7 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [activeView, setActiveView] = useState<ActiveView>('home');
     const [userPageInitialFilters, setUserPageInitialFilters] = useState<{ carModel?: string }>({});
+    const [carPageInitialFilters, setCarPageInitialFilters] = useState<{ carModel?: string }>({});
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
     const [currentUser, setCurrentUser] = useState<MyProfile | null>(null);
@@ -142,6 +143,11 @@ const App: React.FC = () => {
     const handleNavigateToUsersWithFilter = (carModel: string) => {
         setUserPageInitialFilters({ carModel });
         setActiveView('users');
+    };
+
+    const handleNavigateToCarsWithFilter = (carModel: string) => {
+        setCarPageInitialFilters({ carModel });
+        setActiveView('cars');
     };
 
     if (isLoading) {
@@ -376,7 +382,7 @@ const App: React.FC = () => {
                     {activeView === 'home' && <HomePage onNavigate={setActiveView} />}
                     {activeView === 'conditions' && <ConditionsPage />}
                     {activeView === 'users' && <UsersPage initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} loggedInUser={currentUser} />}
-                    {activeView === 'cars' && <CarsPage onNavigateToLeads={handleNavigateToUsersWithFilter} />}
+                    {activeView === 'cars' && <CarsPage onNavigateToLeads={handleNavigateToUsersWithFilter} initialFilters={carPageInitialFilters} onFiltersCleared={() => setCarPageInitialFilters({})} />}
                     {activeView === 'car-prices' && <CarPricesPage />}
                     {activeView === 'vehicle-exit' && <VehicleExitPage />}
                     {activeView === 'settings' && <SettingsPage />}
