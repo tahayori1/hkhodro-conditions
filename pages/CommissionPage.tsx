@@ -38,6 +38,9 @@ const CommissionPage: React.FC = () => {
     const [usedTarget, setUsedTarget] = useState<number | ''>(3);
     const [usedActual, setUsedActual] = useState<number | ''>('');
 
+    const [havalehTarget, setHavalehTarget] = useState<number | ''>(5);
+    const [havalehActual, setHavalehActual] = useState<number | ''>('');
+
     // 3. Quality KPIs
     const [kpis, setKpis] = useState<KPI[]>([
         { id: 'acquisition', label: 'جذب مشتری جدید', weight: 30, score: 90 },
@@ -93,10 +96,11 @@ const CommissionPage: React.FC = () => {
         totalAchievement += calculateAchievement(leasingActual, leasingTarget);
         totalAchievement += calculateAchievement(factoryActual, factoryTarget);
         totalAchievement += calculateAchievement(usedActual, usedTarget);
+        totalAchievement += calculateAchievement(havalehActual, havalehTarget);
 
         if (activeTargets === 0) return 1; // If no targets set, don't penalize
         return totalAchievement / activeTargets;
-    }, [leasingActual, leasingTarget, factoryActual, factoryTarget, usedActual, usedTarget]);
+    }, [leasingActual, leasingTarget, factoryActual, factoryTarget, usedActual, usedTarget, havalehActual, havalehTarget]);
 
     const qualityScore = useMemo(() => {
         // Sum(Score * Weight) / 100
@@ -244,7 +248,7 @@ const CommissionPage: React.FC = () => {
                             <span className="w-6 h-6 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center text-xs">۲</span>
                             ضریب عملکرد فروش (تارگت‌ها)
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                             <SalesTargetRow 
                                 label="فروش لیزینگی" 
                                 actual={leasingActual} 
@@ -265,6 +269,13 @@ const CommissionPage: React.FC = () => {
                                 setActual={setUsedActual} 
                                 target={usedTarget} 
                                 setTarget={setUsedTarget} 
+                            />
+                            <SalesTargetRow 
+                                label="فروش حواله" 
+                                actual={havalehActual} 
+                                setActual={setHavalehActual} 
+                                target={havalehTarget} 
+                                setTarget={setHavalehTarget} 
                             />
                         </div>
                         <div className="mt-4 p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg flex justify-between items-center">
