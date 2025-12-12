@@ -24,6 +24,16 @@ export enum DocumentStatus {
     PLEDGED = 'در رهن',
 }
 
+// --- Customer Club Types ---
+export enum CustomerSegment {
+    REGULAR = 'عادی',
+    INVESTOR = 'سرمایه‌گذار',
+    POLITICAL = 'نفوذ سیاسی/حاکمیتی',
+    FRIEND = 'سابقه دوستی',
+    VIP = 'سفارشی',
+    OCCUPATIONAL = 'تخفیف مشاغل',
+}
+
 export interface CarSaleCondition {
     id: number;
     status: ConditionStatus;
@@ -55,6 +65,10 @@ export interface User {
     crmIsSend?: 0 | 1;
     crmPerson?: string;
     crmDate?: string;
+    // Club Fields
+    segment?: CustomerSegment;
+    behaviorScore?: number; // 1 to 5
+    tags?: string[]; // e.g., ["خوش‌حساب", "عجول"]
 }
 
 export interface LeadMessage {

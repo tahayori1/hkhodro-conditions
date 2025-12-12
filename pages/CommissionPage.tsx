@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { CalculatorIcon } from '../components/icons/CalculatorIcon';
+import { ChartBarIcon } from '../components/icons/ChartBarIcon';
 
 // --- Types ---
 interface KPI {
@@ -27,7 +28,17 @@ const CommissionPage: React.FC = () => {
     const [commissionRate, setCommissionRate] = useState<number | ''>(2);
     const [fixedCommission, setFixedCommission] = useState<number | ''>('');
 
-    // 2. Quality KPIs
+    // 2. Sales Volume Targets (New Section)
+    const [leasingTarget, setLeasingTarget] = useState<number | ''>(5);
+    const [leasingActual, setLeasingActual] = useState<number | ''>('');
+    
+    const [factoryTarget, setFactoryTarget] = useState<number | ''>(10);
+    const [factoryActual, setFactoryActual] = useState<number | ''>('');
+
+    const [usedTarget, setUsedTarget] = useState<number | ''>(3);
+    const [usedActual, setUsedActual] = useState<number | ''>('');
+
+    // 3. Quality KPIs
     const [kpis, setKpis] = useState<KPI[]>([
         { id: 'acquisition', label: 'جذب مشتری جدید', weight: 30, score: 90 },
         { id: 'reporting', label: 'گزارش‌دهی و پیگیری', weight: 20, score: 100 },
@@ -35,7 +46,7 @@ const CommissionPage: React.FC = () => {
         { id: 'csat', label: 'رضایت مشتری (CSAT)', weight: 20, score: 95 },
     ]);
 
-    // 3. Attendance
+    // 4. Attendance
     const [delayMinutes, setDelayMinutes] = useState<number | ''>(0);
 
     // --- Logic ---
@@ -63,6 +74,30 @@ const CommissionPage: React.FC = () => {
         return sales * (rate / 100);
     }, [salesAmount, commissionRate, inputMode, fixedCommission]);
 
+    const salesPerformanceFactor = useMemo(() => {
+        let totalAchievement = 0;
+        let activeTargets = 0;
+
+        const calculateAchievement = (actual: number | '', target: number | '') => {
+            const t = Number(target);
+            const a = Number(actual);
+            if (t > 0) {
+                activeTargets++;
+                // Cap achievement at 120% to reward over-performance slightly but not infinitely, 
+                // or keep it at 1.0 max. Let's cap at 1.0 for standard commission logic.
+                return Math.min(1, a / t); 
+            }
+            return 0;
+        };
+
+        totalAchievement += calculateAchievement(leasingActual, leasingTarget);
+        totalAchievement += calculateAchievement(factoryActual, factoryTarget);
+        totalAchievement += calculateAchievement(usedActual, usedTarget);
+
+        if (activeTargets === 0) return 1; // If no targets set, don't penalize
+        return totalAchievement / activeTargets;
+    }, [leasingActual, leasingTarget, factoryActual, factoryTarget, usedActual, usedTarget]);
+
     const qualityScore = useMemo(() => {
         // Sum(Score * Weight) / 100
         const totalWeightedScore = kpis.reduce((acc, kpi) => acc + (kpi.score * kpi.weight), 0);
@@ -71,11 +106,49 @@ const CommissionPage: React.FC = () => {
 
     const qualityFactor = qualityScore / 100; // Returns factor 0.0 - 1.0
 
-    const finalCommission = rawCommission * qualityFactor * currentZone.factor;
+    const finalCommission = rawCommission * salesPerformanceFactor * qualityFactor * currentZone.factor;
 
     // Handlers
     const handleKpiChange = (id: string, val: number) => {
         setKpis(prev => prev.map(k => k.id === id ? { ...k, score: Math.min(100, Math.max(0, val)) } : k));
+    };
+
+    const SalesTargetRow = ({ label, actual, setActual, target, setTarget }: { label: string, actual: number | '', setActual: (v: number | '') => void, target: number | '', setTarget: (v: number | '') => void }) => {
+        const percent = target && Number(target) > 0 ? Math.min(100, Math.round((Number(actual) / Number(target)) * 100)) : 0;
+        return (
+            <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-600">
+                <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{label}</span>
+                    <span className={`text-xs font-mono font-bold ${percent >= 100 ? 'text-emerald-600' : 'text-amber-600'}`}>{percent}%</span>
+                </div>
+                <div className="flex gap-2 items-center">
+                    <div className="flex-1 relative">
+                        <label className="absolute -top-3 right-2 text-[9px] text-slate-400 bg-slate-50 dark:bg-slate-700 px-1">تارگت</label>
+                        <input 
+                            type="number" 
+                            value={target} 
+                            onChange={e => setTarget(e.target.value === '' ? '' : Number(e.target.value))}
+                            className="w-full px-2 py-1.5 text-center text-sm border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-800 outline-none focus:border-sky-500"
+                            placeholder="0"
+                        />
+                    </div>
+                    <span className="text-slate-400">/</span>
+                    <div className="flex-1 relative">
+                        <label className="absolute -top-3 right-2 text-[9px] text-slate-400 bg-slate-50 dark:bg-slate-700 px-1">فروش</label>
+                        <input 
+                            type="number" 
+                            value={actual} 
+                            onChange={e => setActual(e.target.value === '' ? '' : Number(e.target.value))}
+                            className="w-full px-2 py-1.5 text-center text-sm border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-800 outline-none focus:border-sky-500 font-bold text-slate-800 dark:text-white"
+                            placeholder="0"
+                        />
+                    </div>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-600 h-1.5 rounded-full mt-3 overflow-hidden">
+                    <div className={`h-full ${percent >= 100 ? 'bg-emerald-500' : 'bg-amber-500'} transition-all duration-500`} style={{ width: `${percent}%` }}></div>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -87,7 +160,7 @@ const CommissionPage: React.FC = () => {
                 </div>
                 <div>
                     <h2 className="text-2xl font-black text-slate-800 dark:text-white">محاسبه پورسانت</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">مدل سه ضریبی (عملکرد، کیفیت، انضباط)</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">مدل جامع (عملکرد، کیفیت، انضباط)</p>
                 </div>
             </div>
 
@@ -165,10 +238,47 @@ const CommissionPage: React.FC = () => {
                         </div>
                     </section>
 
-                    {/* Step 2: Quality KPIs */}
+                    {/* Step 2: Sales Volume Targets */}
                     <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs">۲</span>
+                            <span className="w-6 h-6 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center text-xs">۲</span>
+                            ضریب عملکرد فروش (تارگت‌ها)
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <SalesTargetRow 
+                                label="فروش لیزینگی" 
+                                actual={leasingActual} 
+                                setActual={setLeasingActual} 
+                                target={leasingTarget} 
+                                setTarget={setLeasingTarget} 
+                            />
+                            <SalesTargetRow 
+                                label="ثبت نام کارخانه" 
+                                actual={factoryActual} 
+                                setActual={setFactoryActual} 
+                                target={factoryTarget} 
+                                setTarget={setFactoryTarget} 
+                            />
+                            <SalesTargetRow 
+                                label="فروش دست دوم" 
+                                actual={usedActual} 
+                                setActual={setUsedActual} 
+                                target={usedTarget} 
+                                setTarget={setUsedTarget} 
+                            />
+                        </div>
+                        <div className="mt-4 p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg flex justify-between items-center">
+                            <span className="text-sm font-medium text-cyan-800 dark:text-cyan-300">ضریب عملکرد (میانگین):</span>
+                            <span className="font-mono font-bold text-cyan-900 dark:text-cyan-200 text-lg">
+                                {salesPerformanceFactor.toFixed(2)}
+                            </span>
+                        </div>
+                    </section>
+
+                    {/* Step 3: Quality KPIs */}
+                    <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs">۳</span>
                             ضریب کیفیت (شاخص‌های کیفی)
                         </h3>
                         <div className="space-y-4">
@@ -192,22 +302,17 @@ const CommissionPage: React.FC = () => {
                             ))}
                         </div>
                         <div className="mt-6 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex justify-between items-center">
-                            <span className="text-sm font-medium text-purple-800 dark:text-purple-300">امتیاز کیفیت نهایی:</span>
-                            <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold text-purple-900 dark:text-purple-200 text-lg">
-                                    {qualityScore.toFixed(1)}
-                                </span>
-                                <span className="text-xs bg-white dark:bg-slate-800 px-2 py-1 rounded border border-purple-200 dark:border-purple-800 font-mono">
-                                    ضریب: {qualityFactor.toFixed(2)}
-                                </span>
-                            </div>
+                            <span className="text-sm font-medium text-purple-800 dark:text-purple-300">ضریب کیفیت:</span>
+                            <span className="font-mono font-bold text-purple-900 dark:text-purple-200 text-lg">
+                                {qualityFactor.toFixed(2)}
+                            </span>
                         </div>
                     </section>
 
-                    {/* Step 3: Attendance */}
+                    {/* Step 4: Attendance */}
                     <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-xs">۳</span>
+                            <span className="w-6 h-6 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-xs">۴</span>
                             ضریب انضباط (مدل ناحیه‌ای)
                         </h3>
                         
@@ -264,6 +369,10 @@ const CommissionPage: React.FC = () => {
                                     <span className="font-mono">{rawCommission.toLocaleString('fa-IR')}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
+                                    <span className="text-slate-400">× ضریب عملکرد فروش:</span>
+                                    <span className="font-mono text-cyan-300">{salesPerformanceFactor.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
                                     <span className="text-slate-400">× ضریب کیفیت:</span>
                                     <span className="font-mono text-purple-300">{qualityFactor.toFixed(2)}</span>
                                 </div>
@@ -282,7 +391,7 @@ const CommissionPage: React.FC = () => {
                             </div>
 
                             <div className="mt-6 text-[10px] text-center text-slate-500">
-                                * این محاسبه بر اساس مدل سه ضریبی انجام شده است.
+                                * محاسبه بر اساس مدل ۴ ضریبی (حجم، کیفیت، انضباط).
                             </div>
                         </div>
                     </div>

@@ -18,6 +18,8 @@ import LeaveRequestsPage from './pages/LeaveRequestsPage';
 import AnonymousFeedbackPage from './pages/AnonymousFeedbackPage';
 import ZeroCarDeliveryPage from './pages/ZeroCarDeliveryPage';
 import MyProfilePage from './pages/MyProfilePage';
+import TransferPaksPage from './pages/TransferPaksPage';
+import CustomerClubPage from './pages/CustomerClubPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -40,10 +42,12 @@ import { UserMinusIcon } from './components/icons/UserMinusIcon';
 import { SpeakerphoneIcon } from './components/icons/SpeakerphoneIcon';
 import { TruckIcon } from './components/icons/TruckIcon';
 import { UserIcon } from './components/icons/UserIcon';
+import { ShieldCheckIcon } from './components/icons/ShieldCheckIcon';
+import { BadgeIcon } from './components/icons/BadgeIcon';
 import { getMyProfile, updateMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile';
+export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'transfer-paks' | 'customer-club';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -88,332 +92,240 @@ const App: React.FC = () => {
     const handleLoginSuccess = async (token: string, id: number, remember: boolean) => {
         if (remember) {
             localStorage.setItem('authToken', token);
-            localStorage.setItem('userId', String(id));
+            localStorage.setItem('userId', id.toString());
         } else {
             sessionStorage.setItem('authToken', token);
-            sessionStorage.setItem('userId', String(id));
+            sessionStorage.setItem('userId', id.toString());
         }
-        
-        try {
-            // The API expects 'YYYY-MM-DD HH:MM:SS' format.
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const formattedNow = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-
-            // Manually update last_login time. We do this before setting isAuthenticated
-            // to avoid race conditions with the profile fetch.
-            await updateMyProfile({ last_login: formattedNow });
-        } catch (error) {
-            // Log the error but don't block the user from logging in
-            console.error("Failed to update last login time:", error);
-        }
-
         setIsAuthenticated(true);
     };
 
     const handleLogout = () => {
-        sessionStorage.removeItem('authToken');
         localStorage.removeItem('authToken');
-        sessionStorage.removeItem('userId');
         localStorage.removeItem('userId');
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('userId');
         setIsAuthenticated(false);
-        setActiveView('home');
         setCurrentUser(null);
-    };
-    
-    const toggleTheme = () => {
-        if (isDarkMode) {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-            setIsDarkMode(false);
-            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#F2F4F7');
-        } else {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-            setIsDarkMode(true);
-            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0f172a');
-        }
+        setActiveView('home');
     };
 
-    const handleNavigateToUsersWithFilter = (carModel: string) => {
+    const handleNavigate = (view: ActiveView) => {
+        setActiveView(view);
+        setIsMoreMenuOpen(false);
+    };
+
+    const handleNavigateToLeads = (carModel: string) => {
         setUserPageInitialFilters({ carModel });
         setActiveView('users');
     };
 
-    const handleNavigateToCarsWithFilter = (carModel: string) => {
-        setCarPageInitialFilters({ carModel });
-        setActiveView('cars');
+    const toggleTheme = () => {
+        if (isDarkMode) {
+            document.documentElement.classList.remove('dark');
+            localStorage.theme = 'light';
+            setIsDarkMode(false);
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.theme = 'dark';
+            setIsDarkMode(true);
+        }
     };
 
     if (isLoading) {
         return (
-            <div className="bg-[#F2F4F7] dark:bg-slate-900 min-h-screen flex justify-center items-center transition-colors duration-300">
+            <div className="flex h-screen justify-center items-center bg-slate-100 dark:bg-slate-900">
                 <Spinner />
             </div>
         );
     }
-    
+
     if (!isAuthenticated) {
         return <LoginPage onLoginSuccess={handleLoginSuccess} />;
     }
 
-    // --- Components ---
-
-    const NavItem: React.FC<{ id: ActiveView | 'more', icon: React.ReactNode, label: string, isMobile?: boolean }> = ({ id, icon, label, isMobile }) => {
-        const isActive = activeView === id;
-        const handleClick = () => {
-            if (id === 'more') {
-                setIsMoreMenuOpen(true);
-            } else {
-                setActiveView(id as ActiveView);
-                setIsMoreMenuOpen(false);
-                window.scrollTo(0,0);
-            }
-        };
-
-        if (isMobile) {
-            return (
-                <button 
-                    onClick={handleClick}
-                    className={`flex flex-col items-center justify-center w-full h-full relative group`}
-                >
-                    <div className={`relative p-1.5 rounded-2xl transition-all duration-300 ${isActive ? 'bg-sky-100 text-sky-600 dark:bg-sky-900 dark:text-sky-300 -translate-y-2 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}>
-                        {icon}
-                    </div>
-                    <span className={`text-[10px] mt-1 transition-colors ${isActive ? 'font-bold text-sky-700 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500'}`}>{label}</span>
-                </button>
-            );
-        }
-
-        return (
-            <button
-                onClick={handleClick}
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 w-full group ${
-                    isActive 
-                    ? 'bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-md shadow-sky-200 dark:shadow-none' 
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-            >
-                <div className="relative">
-                     {React.cloneElement(icon as React.ReactElement<any>, { className: `w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}` })}
-                </div>
-                <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>{label}</span>
-            </button>
-        );
-    };
-
-    const MobileBottomNav = () => (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/60 pb-[env(safe-area-inset-bottom)] z-40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-            <div className="grid grid-cols-4 h-16 items-end pb-2">
-                <NavItem id="home" icon={<HomeIcon className="w-6 h-6" />} label="خانه" isMobile />
-                <NavItem id="users" icon={<UsersIcon className="w-6 h-6" />} label="مشتریان" isMobile />
-                <NavItem id="vehicle-exit" icon={<ExitFormIcon className="w-6 h-6" />} label="خروج" isMobile />
-                <NavItem id="more" icon={<MoreIcon className="w-6 h-6" />} label="منو" isMobile />
-            </div>
-        </div>
-    );
-
-    const DesktopSidebar = () => (
-        <aside className="hidden md:flex flex-col w-72 bg-[#F2F4F7] dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-screen fixed right-0 top-0 z-40 transition-colors duration-300">
-            <div className="p-6 flex items-center gap-3 mb-4">
-                 <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-200 dark:shadow-none text-white font-bold text-lg">
-                    {currentUser?.full_name ? currentUser.full_name.charAt(0) : (currentUser?.username?.charAt(0).toUpperCase() || <CarIcon className="text-white w-6 h-6"/>)}
-                 </div>
-                 <div>
-                     <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight leading-tight">AutoLead</h1>
-                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold truncate max-w-[150px]">
-                        {currentUser?.full_name || currentUser?.username || "پنل مدیریت فروش"}
-                     </p>
-                 </div>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto px-4 space-y-1 no-scrollbar pb-20">
-                <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-2">اصلی</p>
-                <NavItem id="home" icon={<HomeIcon />} label="داشبورد" />
-                <NavItem id="users" icon={<UsersIcon />} label="مشتریان" />
-                <NavItem id="reports" icon={<ChartBarIcon />} label="گزارشات" />
-                <NavItem id="commission" icon={<CalculatorIcon />} label="محاسبه پورسانت" />
-                <NavItem id="vehicle-exit" icon={<ExitFormIcon />} label="فرم خروج خودرو" />
-                
-                <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">مدیریت</p>
-                <NavItem id="zero-car-delivery" icon={<TruckIcon />} label="تحویل خودرو صفر" />
-                <NavItem id="cars" icon={<CarIcon />} label="خودروها" />
-                <NavItem id="conditions" icon={<ConditionsIcon />} label="شرایط فروش" />
-                <NavItem id="car-prices" icon={<PriceIcon />} label="قیمت روز بازار" />
-                {currentUser?.isAdmin === 1 && <NavItem id="access-control" icon={<SecurityIcon />} label="کاربران و دسترسی" />}
-                <NavItem id="poll" icon={<PollIcon />} label="نظرسنجی" />
-
-                <p className="px-4 text-[11px] font-bold text-slate-400 dark:text-slate-600 mb-2 mt-6">اداری و منابع انسانی</p>
-                <NavItem id="corrective-actions" icon={<ClipboardCheckIcon />} label="اقدامات اصلاحی" />
-                <NavItem id="meeting-minutes" icon={<CalendarIcon />} label="صورت‌جلسات" />
-                <NavItem id="leave-requests" icon={<UserMinusIcon />} label="درخواست مرخصی" />
-                <NavItem id="anonymous-feedback" icon={<SpeakerphoneIcon />} label="صدای کارمندان" />
-            </div>
-
-            <div className="p-4 m-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 sticky bottom-4">
-                <button 
-                    onClick={toggleTheme}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium text-sm mb-2"
-                >
-                    {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-                    <span>{isDarkMode ? 'حالت روز' : 'حالت شب'}</span>
-                </button>
-                <NavItem id="my-profile" icon={<UserIcon />} label="پروفایل من" />
-                <NavItem id="settings" icon={<SettingsIcon />} label="تنظیمات سیستم" />
-                <button 
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl transition-all duration-200 w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium text-sm"
-                >
-                    <LogoutIcon className="w-5 h-5" />
-                    <span>خروج</span>
-                </button>
-            </div>
-        </aside>
-    );
-
-    const MoreMenuDrawer = () => {
-        if (!isMoreMenuOpen) return null;
-        return (
-            <div className="fixed inset-0 z-50 md:hidden flex flex-col justify-end">
-                <div className="absolute inset-0 bg-slate-900/20 dark:bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setIsMoreMenuOpen(false)}></div>
-                <div className="relative bg-[#F2F4F7] dark:bg-slate-900 rounded-t-[32px] p-6 animate-slide-up shadow-2xl border-t border-white/50 dark:border-slate-700 max-h-[85vh] overflow-y-auto">
-                    <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mb-6 sticky top-0"></div>
-
-                    {/* Mobile User Info */}
-                    <div className="flex items-center gap-4 mb-6 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm">
-                        <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                            {currentUser?.full_name ? currentUser.full_name.charAt(0) : (currentUser?.username?.charAt(0).toUpperCase() || <UserIcon className="w-6 h-6"/>)}
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-slate-800 dark:text-white text-lg">{currentUser?.full_name || currentUser?.username || 'کاربر'}</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                                {currentUser?.isAdmin ? 'مدیر سیستم' : 'کارمند'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-4 mb-6">
-                        <DrawerItem id="zero-car-delivery" icon={<TruckIcon className="w-6 h-6 text-white" />} label="تحویل‌صفر" color="bg-cyan-500" />
-                        <DrawerItem id="cars" icon={<CarIcon className="w-6 h-6 text-white" />} label="خودروها" color="bg-blue-500" />
-                        <DrawerItem id="conditions" icon={<ConditionsIcon className="w-6 h-6 text-white" />} label="شرایط" color="bg-green-500" />
-                        <DrawerItem id="reports" icon={<ChartBarIcon className="w-6 h-6 text-white" />} label="گزارشات" color="bg-indigo-500" />
-                        <DrawerItem id="commission" icon={<CalculatorIcon className="w-6 h-6 text-white" />} label="پورسانت" color="bg-teal-600" />
-                        <DrawerItem id="car-prices" icon={<PriceIcon className="w-6 h-6 text-white" />} label="قیمت‌ها" color="bg-purple-500" />
-                        {currentUser?.isAdmin === 1 && <DrawerItem id="access-control" icon={<SecurityIcon className="w-6 h-6 text-white" />} label="دسترسی" color="bg-rose-500" />}
-                        <DrawerItem id="poll" icon={<PollIcon className="w-6 h-6 text-white" />} label="نظرسنجی" color="bg-amber-500" />
-                        
-                        <DrawerItem id="corrective-actions" icon={<ClipboardCheckIcon className="w-6 h-6 text-white" />} label="اصلاحی" color="bg-cyan-600" />
-                        <DrawerItem id="meeting-minutes" icon={<CalendarIcon className="w-6 h-6 text-white" />} label="جلسات" color="bg-emerald-600" />
-                        <DrawerItem id="leave-requests" icon={<UserMinusIcon className="w-6 h-6 text-white" />} label="مرخصی" color="bg-orange-500" />
-                        <DrawerItem id="anonymous-feedback" icon={<SpeakerphoneIcon className="w-6 h-6 text-white" />} label="صدای‌کارمند" color="bg-violet-600" />
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 flex flex-col gap-2">
-                         <button 
-                            onClick={toggleTheme}
-                            className="flex items-center justify-center gap-2 w-full py-3 text-slate-600 dark:text-slate-300 font-bold text-sm active:scale-95 transition-transform rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700"
-                        >
-                            {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-                            {isDarkMode ? 'تغییر به حالت روز' : 'تغییر به حالت شب'}
-                        </button>
-                        <button 
-                            onClick={() => { setActiveView('my-profile'); setIsMoreMenuOpen(false); }}
-                            className="flex items-center justify-center gap-2 w-full py-3 text-slate-600 dark:text-slate-300 font-bold text-sm active:scale-95 transition-transform rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700"
-                        >
-                            <UserIcon className="w-5 h-5" />
-                            پروفایل من
-                        </button>
-                        <button 
-                            onClick={() => { setActiveView('settings'); setIsMoreMenuOpen(false); }}
-                            className="flex items-center justify-center gap-2 w-full py-3 text-slate-600 dark:text-slate-300 font-bold text-sm active:scale-95 transition-transform rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700"
-                        >
-                            <SettingsIcon className="w-5 h-5" />
-                            تنظیمات سیستم
-                        </button>
-                        <div className="h-px bg-slate-100 dark:bg-slate-700 w-full"></div>
-                        <button 
-                            onClick={handleLogout}
-                            className="flex items-center justify-center gap-2 w-full py-3 text-red-500 font-bold text-sm active:scale-95 transition-transform"
-                        >
-                            <LogoutIcon className="w-5 h-5" />
-                            خروج از حساب کاربری
-                        </button>
-                    </div>
-                     <div className="h-safe-bottom mt-4"></div>
-                </div>
-            </div>
-        );
-    };
-
-    const DrawerItem: React.FC<{ id: ActiveView, icon: React.ReactNode, label: string, color: string }> = ({ id, icon, label, color }) => (
-        <button 
-            onClick={() => { setActiveView(id); setIsMoreMenuOpen(false); }}
-            className="flex flex-col items-center gap-2 active:scale-95 transition-transform"
+    const MenuItem = ({ view, label, icon }: { view: ActiveView, label: string, icon: React.ReactNode }) => (
+        <button
+            onClick={() => handleNavigate(view)}
+            className={`w-full flex items-center space-x-3 space-x-reverse px-4 py-3 rounded-xl transition-all duration-200 ${
+                activeView === view 
+                ? 'bg-sky-600 text-white shadow-md shadow-sky-200 dark:shadow-none font-bold' 
+                : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm'
+            }`}
         >
-            <div className={`w-14 h-14 rounded-2xl ${color} shadow-lg shadow-slate-200 dark:shadow-none flex items-center justify-center`}>
-                {icon}
-            </div>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">{label}</span>
+            {icon}
+            <span>{label}</span>
         </button>
     );
 
-    return (
-        <div className="min-h-screen bg-[#F2F4F7] dark:bg-slate-900 text-slate-800 dark:text-slate-100 selection:bg-sky-100 dark:selection:bg-sky-900 selection:text-sky-700 dark:selection:text-sky-300 font-vazir transition-colors duration-300">
-            <DesktopSidebar />
-            
-            <div className="md:mr-72 min-h-screen flex flex-col">
-                {/* Mobile Header */}
-                <header className="md:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 px-4 h-14 flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-2">
-                         <div className="w-8 h-8 bg-gradient-to-br from-sky-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md text-white font-bold text-sm">
-                            {currentUser?.full_name ? currentUser.full_name.charAt(0) : (currentUser?.username?.charAt(0).toUpperCase() || <CarIcon className="w-4 h-4"/>)}
-                         </div>
-                        <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">AutoLead</h1>
-                    </div>
-                </header>
+    const menuItems = [
+        { view: 'home' as ActiveView, label: 'داشبورد', icon: <HomeIcon className="w-5 h-5" /> },
+        { view: 'users' as ActiveView, label: 'مشتریان', icon: <UsersIcon className="w-5 h-5" /> },
+        { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
+        { view: 'conditions' as ActiveView, label: 'شرایط فروش', icon: <ConditionsIcon className="w-5 h-5" /> },
+        { view: 'cars' as ActiveView, label: 'خودروها', icon: <CarIcon className="w-5 h-5" /> },
+        { view: 'car-prices' as ActiveView, label: 'قیمت روز', icon: <PriceIcon className="w-5 h-5" /> },
+        { view: 'vehicle-exit' as ActiveView, label: 'خروج خودرو', icon: <ExitFormIcon className="w-5 h-5" /> },
+        { view: 'zero-car-delivery' as ActiveView, label: 'تحویل صفر', icon: <TruckIcon className="w-5 h-5" /> },
+        { view: 'poll' as ActiveView, label: 'نظرسنجی', icon: <PollIcon className="w-5 h-5" /> },
+        { view: 'reports' as ActiveView, label: 'گزارشات', icon: <ChartBarIcon className="w-5 h-5" /> },
+        { view: 'commission' as ActiveView, label: 'پورسانت', icon: <CalculatorIcon className="w-5 h-5" /> },
+        { view: 'transfer-paks' as ActiveView, label: 'معامله پاک', icon: <ShieldCheckIcon className="w-5 h-5" /> },
+    ];
 
-                {/* Main Content */}
-                <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden w-full max-w-[1600px] mx-auto">
-                    {activeView === 'home' && <HomePage onNavigate={setActiveView} />}
-                    {activeView === 'conditions' && <ConditionsPage />}
-                    {activeView === 'users' && <UsersPage initialFilters={userPageInitialFilters} onFiltersCleared={() => setUserPageInitialFilters({})} loggedInUser={currentUser} />}
-                    {activeView === 'cars' && <CarsPage onNavigateToLeads={handleNavigateToUsersWithFilter} initialFilters={carPageInitialFilters} onFiltersCleared={() => setCarPageInitialFilters({})} />}
-                    {activeView === 'car-prices' && <CarPricesPage />}
-                    {activeView === 'vehicle-exit' && <VehicleExitPage />}
-                    {activeView === 'settings' && <SettingsPage />}
-                    {activeView === 'access-control' && <AccessControlPage />}
-                    {activeView === 'poll' && <PollPage />}
-                    {activeView === 'reports' && <ReportsPage />}
-                    {activeView === 'commission' && <CommissionPage />}
-                    {activeView === 'corrective-actions' && <CorrectiveActionsPage />}
-                    {activeView === 'meeting-minutes' && <MeetingMinutesPage />}
-                    {activeView === 'leave-requests' && <LeaveRequestsPage />}
-                    {activeView === 'anonymous-feedback' && <AnonymousFeedbackPage />}
-                    {activeView === 'zero-car-delivery' && <ZeroCarDeliveryPage />}
-                    {activeView === 'my-profile' && <MyProfilePage />}
-                </main>
+    const adminItems = [
+        { view: 'access-control' as ActiveView, label: 'مدیریت کاربران', icon: <SecurityIcon className="w-5 h-5" /> },
+        { view: 'corrective-actions' as ActiveView, label: 'اقدامات اصلاحی', icon: <ClipboardCheckIcon className="w-5 h-5" /> },
+        { view: 'meeting-minutes' as ActiveView, label: 'صورت‌جلسات', icon: <CalendarIcon className="w-5 h-5" /> },
+        { view: 'leave-requests' as ActiveView, label: 'مرخصی‌ها', icon: <UserMinusIcon className="w-5 h-5" /> },
+        { view: 'anonymous-feedback' as ActiveView, label: 'صندوق انتقادات', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
+        { view: 'settings' as ActiveView, label: 'تنظیمات', icon: <SettingsIcon className="w-5 h-5" /> },
+    ];
+
+    return (
+        <div className="flex h-screen bg-[#F2F4F7] dark:bg-[#0f172a] font-vazir text-right overflow-hidden">
+            {/* Sidebar */}
+            <aside className="hidden lg:flex flex-col w-72 bg-[#F2F4F7] dark:bg-[#0f172a] border-l border-slate-200 dark:border-slate-800 p-4 overflow-y-auto">
+                <div className="flex items-center gap-3 px-2 mb-8 mt-2">
+                    <img src="/vite.svg" alt="Logo" className="w-8 h-8" />
+                    <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">AutoLead</h1>
+                </div>
+
+                <nav className="flex-1 space-y-1">
+                    {menuItems.map(item => (
+                        <MenuItem key={item.view} {...item} />
+                    ))}
+                    
+                    {currentUser?.isAdmin === 1 && (
+                        <>
+                            <div className="pt-4 pb-2">
+                                <span className="text-xs font-bold text-slate-400 px-4">مدیریت</span>
+                            </div>
+                            {adminItems.map(item => (
+                                <MenuItem key={item.view} {...item} />
+                            ))}
+                        </>
+                    )}
+                </nav>
+
+                <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+                    <button 
+                        onClick={toggleTheme}
+                        className="w-full flex items-center space-x-3 space-x-reverse px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all mb-2"
+                    >
+                        {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+                        <span>{isDarkMode ? 'حالت روز' : 'حالت شب'}</span>
+                    </button>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center space-x-3 space-x-reverse px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all"
+                    >
+                        <LogoutIcon className="w-5 h-5" />
+                        <span>خروج</span>
+                    </button>
+                </div>
+            </aside>
+
+            {/* Mobile Header & Bottom Nav */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-50 px-6 py-2 flex justify-between items-center shadow-2xl pb-safe">
+                <button onClick={() => setActiveView('home')} className={`flex flex-col items-center p-2 ${activeView === 'home' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
+                    <HomeIcon className="w-6 h-6" />
+                    <span className="text-[10px] mt-1 font-bold">خانه</span>
+                </button>
+                <button onClick={() => setActiveView('users')} className={`flex flex-col items-center p-2 ${activeView === 'users' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
+                    <UsersIcon className="w-6 h-6" />
+                    <span className="text-[10px] mt-1 font-bold">مشتریان</span>
+                </button>
+                <button onClick={() => setActiveView('cars')} className={`flex flex-col items-center p-2 ${activeView === 'cars' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
+                    <CarIcon className="w-6 h-6" />
+                    <span className="text-[10px] mt-1 font-bold">خودروها</span>
+                </button>
+                <button onClick={() => setIsMoreMenuOpen(true)} className={`flex flex-col items-center p-2 ${isMoreMenuOpen ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
+                    <MoreIcon className="w-6 h-6" />
+                    <span className="text-[10px] mt-1 font-bold">بیشتر</span>
+                </button>
             </div>
 
-            <MobileBottomNav />
-            <MoreMenuDrawer />
-            
-            <style>{`
-                @keyframes slide-up {
-                    from { transform: translateY(100%); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-                .animate-slide-up {
-                    animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                }
-                .h-safe-bottom {
-                    height: env(safe-area-inset-bottom);
-                }
-            `}</style>
+            {/* Mobile More Menu */}
+            {isMoreMenuOpen && (
+                <div className="lg:hidden fixed inset-0 bg-slate-900/90 z-50 backdrop-blur-sm animate-fade-in" onClick={() => setIsMoreMenuOpen(false)}>
+                    <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 rounded-t-3xl p-6 pb-24 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-center mb-6">
+                            <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            {[...menuItems, ...(currentUser?.isAdmin === 1 ? adminItems : [])].filter(i => !['home','users','cars'].includes(i.view)).map(item => (
+                                <button key={item.view} onClick={() => handleNavigate(item.view)} className="flex flex-col items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                    <div className={`p-3 rounded-2xl mb-2 ${activeView === item.view ? 'bg-sky-100 text-sky-600 dark:bg-sky-900 dark:text-sky-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                        {item.icon}
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center">{item.label}</span>
+                                </button>
+                            ))}
+                            <button onClick={toggleTheme} className="flex flex-col items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                <div className="p-3 rounded-2xl mb-2 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                    {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+                                </div>
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center">تم</span>
+                            </button>
+                            <button onClick={handleLogout} className="flex flex-col items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                <div className="p-3 rounded-2xl mb-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                                    <LogoutIcon className="w-5 h-5" />
+                                </div>
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center">خروج</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Mobile Header (Top Bar) */}
+            <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 z-40 backdrop-blur-md pt-safe">
+                <div className="flex items-center gap-2">
+                    <img src="/vite.svg" alt="Logo" className="w-7 h-7" />
+                    <span className="font-black text-lg text-slate-800 dark:text-white">AutoLead</span>
+                </div>
+                <button onClick={() => setActiveView('my-profile')} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs">
+                        {currentUser?.username?.substring(0, 2).toUpperCase() || <UserIcon className="w-4 h-4"/>}
+                    </div>
+                </button>
+            </div>
+
+            {/* Main Content Area */}
+            <main className="flex-1 overflow-y-auto overflow-x-hidden pt-16 lg:pt-0 pb-20 lg:pb-0">
+                {activeView === 'home' && <HomePage onNavigate={handleNavigate} />}
+                {activeView === 'conditions' && <ConditionsPage />}
+                {activeView === 'users' && (
+                    <UsersPage 
+                        initialFilters={userPageInitialFilters} 
+                        onFiltersCleared={() => setUserPageInitialFilters({})} 
+                        loggedInUser={currentUser}
+                    />
+                )}
+                {activeView === 'cars' && (
+                    <CarsPage 
+                        onNavigateToLeads={handleNavigateToLeads} 
+                        initialFilters={carPageInitialFilters}
+                        onFiltersCleared={() => setCarPageInitialFilters({})}
+                    />
+                )}
+                {activeView === 'car-prices' && <CarPricesPage />}
+                {activeView === 'vehicle-exit' && <VehicleExitPage />}
+                {activeView === 'access-control' && <AccessControlPage />}
+                {activeView === 'poll' && <PollPage />}
+                {activeView === 'reports' && <ReportsPage />}
+                {activeView === 'settings' && <SettingsPage />}
+                {activeView === 'commission' && <CommissionPage />}
+                {activeView === 'corrective-actions' && <CorrectiveActionsPage />}
+                {activeView === 'meeting-minutes' && <MeetingMinutesPage />}
+                {activeView === 'leave-requests' && <LeaveRequestsPage />}
+                {activeView === 'anonymous-feedback' && <AnonymousFeedbackPage />}
+                {activeView === 'zero-car-delivery' && <ZeroCarDeliveryPage />}
+                {activeView === 'my-profile' && <MyProfilePage />}
+                {activeView === 'transfer-paks' && <TransferPaksPage />}
+                {activeView === 'customer-club' && <CustomerClubPage />}
+            </main>
         </div>
     );
 };
