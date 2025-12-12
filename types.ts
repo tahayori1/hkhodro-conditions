@@ -375,3 +375,27 @@ export interface SecureTransaction {
     createdAt: string;
     steps: TransactionStep[];
 }
+
+// --- Notification Center Types ---
+
+export type NotificationType = 'WHATSAPP' | 'SMS';
+export type NotificationStatus = 'SENT' | 'FAILED' | 'PENDING';
+
+export interface NotificationLog {
+    id: string;
+    type: NotificationType;
+    recipientName: string;
+    recipientNumber: string;
+    message: string;
+    status: NotificationStatus;
+    sentAt: string;
+    sender: string;
+}
+
+export interface MessageTemplate {
+    id: string;
+    title: string;
+    content: string;
+    category: string; // e.g., 'Conditions', 'FollowUp', 'Greeting'
+    createdAt: string;
+}

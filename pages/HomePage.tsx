@@ -14,6 +14,7 @@ import { ChartBarIcon } from '../components/icons/ChartBarIcon';
 import { CalculatorIcon } from '../components/icons/CalculatorIcon';
 import { TruckIcon } from '../components/icons/TruckIcon';
 import { BadgeIcon } from '../components/icons/BadgeIcon';
+import { ChatAltIcon } from '../components/icons/ChatAltIcon';
 
 interface HomePageProps {
     onNavigate: (view: ActiveView) => void;
@@ -103,6 +104,14 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         onClick={() => onNavigate('customer-club')}
                         bgClass="bg-amber-500"
                         textClass="text-amber-600 dark:text-amber-400"
+                    />
+                    <ActionCard 
+                        icon={<ChatAltIcon className="w-6 h-6" />}
+                        title="مرکز اطلاع‌رسانی"
+                        description="ارسال پیامک و واتساپ"
+                        onClick={() => onNavigate('notification-center')}
+                        bgClass="bg-indigo-500"
+                        textClass="text-indigo-600 dark:text-indigo-400"
                     />
                 </div>
 

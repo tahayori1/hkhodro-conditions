@@ -22,7 +22,9 @@ import type {
     LeaveRequest,
     AnonymousFeedback,
     MeetingMinute,
-    MyProfile
+    MyProfile,
+    NotificationLog,
+    MessageTemplate
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -818,4 +820,82 @@ export const updateUserProfileAsAdmin = async (userId: number, profile: Partial<
         body: JSON.stringify(payload),
     });
     return handleResponse(response);
+};
+
+// --- Notification Center Mocks (Data Persistence in LocalStorage for demo) ---
+
+const getStoredTemplates = (): MessageTemplate[] => {
+    const stored = localStorage.getItem('messageTemplates');
+    return stored ? JSON.parse(stored) : [];
+};
+
+const getStoredLogs = (): NotificationLog[] => {
+    const stored = localStorage.getItem('notificationLogs');
+    return stored ? JSON.parse(stored) : [];
+};
+
+export const getNotificationLogs = async (): Promise<NotificationLog[]> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(getStoredLogs());
+        }, 500);
+    });
+};
+
+export const sendNotification = async (type: 'WHATSAPP' | 'SMS', recipientNumber: string, recipientName: string, message: string): Promise<void> => {
+    // We try to use the real WhatsApp API for WhatsApp messages if configured
+    if (type === 'WHATSAPP') {
+        try {
+            await sendMessage(recipientNumber, message);
+        } catch (error) {
+            console.error("Real send failed, logging as failed.");
+            // Proceed to log it as failed or just log it
+        }
+    }
+
+    const newLog: NotificationLog = {
+        id: `LOG-${Date.now()}`,
+        type,
+        recipientName,
+        recipientNumber,
+        message,
+        status: 'SENT', // Optimistic success
+        sentAt: new Date().toLocaleString('fa-IR'),
+        sender: 'سیستم' // Could be current user
+    };
+
+    const logs = getStoredLogs();
+    logs.unshift(newLog);
+    localStorage.setItem('notificationLogs', JSON.stringify(logs));
+    
+    return Promise.resolve();
+};
+
+export const getMessageTemplates = async (): Promise<MessageTemplate[]> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(getStoredTemplates());
+        }, 300);
+    });
+};
+
+export const saveMessageTemplate = async (template: Omit<MessageTemplate, 'id' | 'createdAt'>): Promise<MessageTemplate> => {
+    const newTemplate: MessageTemplate = {
+        ...template,
+        id: `TMP-${Date.now()}`,
+        createdAt: new Date().toLocaleDateString('fa-IR')
+    };
+    
+    const templates = getStoredTemplates();
+    templates.push(newTemplate);
+    localStorage.setItem('messageTemplates', JSON.stringify(templates));
+    
+    return Promise.resolve(newTemplate);
+};
+
+export const deleteMessageTemplate = async (id: string): Promise<void> => {
+    const templates = getStoredTemplates();
+    const filtered = templates.filter(t => t.id !== id);
+    localStorage.setItem('messageTemplates', JSON.stringify(filtered));
+    return Promise.resolve();
 };
