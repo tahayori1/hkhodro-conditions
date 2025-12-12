@@ -15,6 +15,7 @@ import { CalculatorIcon } from '../components/icons/CalculatorIcon';
 import { TruckIcon } from '../components/icons/TruckIcon';
 import { BadgeIcon } from '../components/icons/BadgeIcon';
 import { ChatAltIcon } from '../components/icons/ChatAltIcon';
+import { RocketIcon } from '../components/icons/RocketIcon';
 
 interface HomePageProps {
     onNavigate: (view: ActiveView) => void;
@@ -112,6 +113,14 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         onClick={() => onNavigate('notification-center')}
                         bgClass="bg-indigo-500"
                         textClass="text-indigo-600 dark:text-indigo-400"
+                    />
+                    <ActionCard 
+                        icon={<RocketIcon className="w-6 h-6" />}
+                        title="امور تبلیغات"
+                        description="کمپین‌ها و بودجه‌بندی"
+                        onClick={() => onNavigate('advertising')}
+                        bgClass="bg-pink-500"
+                        textClass="text-pink-600 dark:text-pink-400"
                     />
                 </div>
 

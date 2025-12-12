@@ -399,3 +399,22 @@ export interface MessageTemplate {
     category: string; // e.g., 'Conditions', 'FollowUp', 'Greeting'
     createdAt: string;
 }
+
+// --- Advertising Types ---
+
+export type AdPlatform = 'INSTAGRAM' | 'GOOGLE' | 'SMS' | 'WEBSITE' | 'BILLBOARD' | 'OTHER';
+export type AdStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'DRAFT';
+
+export interface AdCampaign {
+    id: number;
+    title: string;
+    platform: AdPlatform;
+    status: AdStatus;
+    budget: number; // In Tomans
+    spent: number; // In Tomans
+    startDate: string;
+    endDate?: string;
+    impressions?: number;
+    leads?: number; // Number of leads generated
+    notes?: string;
+}

@@ -24,7 +24,8 @@ import type {
     MeetingMinute,
     MyProfile,
     NotificationLog,
-    MessageTemplate
+    MessageTemplate,
+    AdCampaign
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -701,6 +702,7 @@ const ANONYMOUS_SUGGESTIONS_URL = `${API_BASE_URL}/AnonymousSuggestions`;
 const MY_PROFILE_URL = `${API_BASE_URL}/MyProfile`;
 const PERMISSIONS_URL = `${API_BASE_URL}/Permissions`;
 const MEETING_MINUTES_URL = `${API_BASE_URL}/MeetingMinutes`;
+const AD_CAMPAIGNS_URL = `${API_BASE_URL}/AdCampaigns`;
 
 // Generic CRUD helper
 const createCrudService = <T>(url: string) => ({
@@ -746,6 +748,7 @@ export const leaveRequestsService = createCrudService<LeaveRequest>(LEAVE_REQUES
 export const anonymousSuggestionsService = createCrudService<AnonymousFeedback>(ANONYMOUS_SUGGESTIONS_URL);
 export const permissionsService = createCrudService<any>(PERMISSIONS_URL);
 export const meetingMinutesService = createCrudService<MeetingMinute>(MEETING_MINUTES_URL);
+export const adCampaignsService = createCrudService<AdCampaign>(AD_CAMPAIGNS_URL);
 
 // My Profile Service
 export const getMyProfile = async (): Promise<MyProfile | {}> => {

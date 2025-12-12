@@ -20,6 +20,7 @@ import ZeroCarDeliveryPage from './pages/ZeroCarDeliveryPage';
 import MyProfilePage from './pages/MyProfilePage';
 import CustomerClubPage from './pages/CustomerClubPage';
 import NotificationCenterPage from './pages/NotificationCenterPage';
+import AdvertisingPage from './pages/AdvertisingPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -44,10 +45,11 @@ import { TruckIcon } from './components/icons/TruckIcon';
 import { UserIcon } from './components/icons/UserIcon';
 import { BadgeIcon } from './components/icons/BadgeIcon';
 import { ChatAltIcon } from './components/icons/ChatAltIcon';
+import { RocketIcon } from './components/icons/RocketIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center';
+export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising';
 
 interface MenuItemProps {
     label: string;
@@ -178,6 +180,7 @@ const App: React.FC = () => {
         { view: 'users' as ActiveView, label: 'مشتریان', icon: <UsersIcon className="w-5 h-5" /> },
         { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
         { view: 'notification-center' as ActiveView, label: 'مرکز اطلاع‌رسانی', icon: <ChatAltIcon className="w-5 h-5" /> },
+        { view: 'advertising' as ActiveView, label: 'امور تبلیغات', icon: <RocketIcon className="w-5 h-5" /> },
         
         // Operations
         { view: 'zero-car-delivery' as ActiveView, label: 'تحویل صفر', icon: <TruckIcon className="w-5 h-5" /> },
@@ -213,8 +216,8 @@ const App: React.FC = () => {
                             {/* Separators for logical grouping */}
                             {index === 1 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">اطلاعات پایه</div>}
                             {index === 4 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مدیریت مشتریان</div>}
-                            {index === 7 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">عملیات</div>}
-                            {index === 9 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مالی و آمار</div>}
+                            {index === 8 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">عملیات</div>}
+                            {index === 10 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مالی و آمار</div>}
                             
                             <MenuItem 
                                 label={item.label} 
@@ -358,6 +361,7 @@ const App: React.FC = () => {
                 {activeView === 'my-profile' && <MyProfilePage />}
                 {activeView === 'customer-club' && <CustomerClubPage />}
                 {activeView === 'notification-center' && <NotificationCenterPage />}
+                {activeView === 'advertising' && <AdvertisingPage />}
             </main>
         </div>
     );
