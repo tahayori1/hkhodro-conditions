@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import type { ActiveView } from '../App';
 import { UsersIcon } from '../components/icons/UsersIcon';
 import { ConditionsIcon } from '../components/icons/ConditionsIcon';
@@ -12,6 +12,8 @@ import { SecurityIcon } from '../components/icons/SecurityIcon';
 import { PollIcon } from '../components/icons/PollIcon';
 import { ChartBarIcon } from '../components/icons/ChartBarIcon';
 import { CalculatorIcon } from '../components/icons/CalculatorIcon';
+import { TruckIcon } from '../components/icons/TruckIcon';
+import { BadgeIcon } from '../components/icons/BadgeIcon';
 
 interface HomePageProps {
     onNavigate: (view: ActiveView) => void;
@@ -56,16 +58,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             
             {/* Quick Actions */}
             <div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 px-1">دسترسی سریع</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <ActionCard 
-                        icon={<UsersIcon className="w-6 h-6" />}
-                        title="مشتریان"
-                        description="مدیریت لیست مشتریان"
-                        onClick={() => onNavigate('users')}
-                        bgClass="bg-sky-500"
-                        textClass="text-sky-600 dark:text-sky-400"
-                    />
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 px-1">اطلاعات پایه و فروش</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                     <ActionCard 
                         icon={<ConditionsIcon className="w-6 h-6" />}
                         title="شرایط فروش"
@@ -90,42 +84,66 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         bgClass="bg-purple-500"
                         textClass="text-purple-600 dark:text-purple-400"
                     />
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 px-1">مدیریت مشتریان</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                     <ActionCard 
-                        icon={<CalculatorIcon className="w-6 h-6" />}
-                        title="محاسبه پورسانت"
-                        description="مدل سه ضریبی حقوق و دستمزد"
-                        onClick={() => onNavigate('commission')}
-                        bgClass="bg-teal-600"
-                        textClass="text-teal-700 dark:text-teal-400"
+                        icon={<UsersIcon className="w-6 h-6" />}
+                        title="مشتریان"
+                        description="لیست سرنخ‌ها و پیگیری‌ها"
+                        onClick={() => onNavigate('users')}
+                        bgClass="bg-sky-500"
+                        textClass="text-sky-600 dark:text-sky-400"
+                    />
+                    <ActionCard 
+                        icon={<BadgeIcon className="w-6 h-6" />}
+                        title="باشگاه مشتریان"
+                        description="دسته‌بندی و وفاداری مشتریان"
+                        onClick={() => onNavigate('customer-club')}
+                        bgClass="bg-amber-500"
+                        textClass="text-amber-600 dark:text-amber-400"
+                    />
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 px-1">عملیات و مالی</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <ActionCard 
+                        icon={<TruckIcon className="w-6 h-6" />}
+                        title="تحویل صفر"
+                        description="مدیریت فرایند تحویل خودرو"
+                        onClick={() => onNavigate('zero-car-delivery')}
+                        bgClass="bg-cyan-500"
+                        textClass="text-cyan-600 dark:text-cyan-400"
                     />
                     <ActionCard 
                         icon={<ExitFormIcon className="w-6 h-6" />}
                         title="خروج خودرو"
-                        description="ثبت فرم تحویل نهایی"
+                        description="صدور برگه خروج نهایی"
                         onClick={() => onNavigate('vehicle-exit')}
                         bgClass="bg-orange-500"
                         textClass="text-orange-600 dark:text-orange-400"
                     />
                     <ActionCard 
-                        icon={<SecurityIcon className="w-6 h-6" />}
-                        title="مدیریت کاربران"
-                        description="دسترسی و سطوح کاربری"
-                        onClick={() => onNavigate('access-control')}
-                        bgClass="bg-rose-500"
-                        textClass="text-rose-600 dark:text-rose-400"
+                        icon={<CalculatorIcon className="w-6 h-6" />}
+                        title="پورسانت"
+                        description="محاسبه حقوق و دستمزد"
+                        onClick={() => onNavigate('commission')}
+                        bgClass="bg-teal-600"
+                        textClass="text-teal-700 dark:text-teal-400"
                     />
                      <ActionCard 
                         icon={<PollIcon className="w-6 h-6" />}
-                        title="نتایج نظرسنجی"
-                        description="مشاهده نتایج رضایت مشتریان"
+                        title="نظرسنجی"
+                        description="نتایج رضایت‌مندی"
                         onClick={() => onNavigate('poll')}
-                        bgClass="bg-amber-500"
-                        textClass="text-amber-600 dark:text-amber-400"
+                        bgClass="bg-rose-500"
+                        textClass="text-rose-600 dark:text-rose-400"
                     />
                     <ActionCard 
                         icon={<ChartBarIcon className="w-6 h-6" />}
                         title="گزارشات"
-                        description="آمار ثبت نام و تقاضای خودرو"
+                        description="آمار تحلیلی سامانه"
                         onClick={() => onNavigate('reports')}
                         bgClass="bg-indigo-500"
                         textClass="text-indigo-600 dark:text-indigo-400"

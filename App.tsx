@@ -18,7 +18,6 @@ import LeaveRequestsPage from './pages/LeaveRequestsPage';
 import AnonymousFeedbackPage from './pages/AnonymousFeedbackPage';
 import ZeroCarDeliveryPage from './pages/ZeroCarDeliveryPage';
 import MyProfilePage from './pages/MyProfilePage';
-import TransferPaksPage from './pages/TransferPaksPage';
 import CustomerClubPage from './pages/CustomerClubPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
@@ -42,12 +41,32 @@ import { UserMinusIcon } from './components/icons/UserMinusIcon';
 import { SpeakerphoneIcon } from './components/icons/SpeakerphoneIcon';
 import { TruckIcon } from './components/icons/TruckIcon';
 import { UserIcon } from './components/icons/UserIcon';
-import { ShieldCheckIcon } from './components/icons/ShieldCheckIcon';
 import { BadgeIcon } from './components/icons/BadgeIcon';
-import { getMyProfile, updateMyProfile } from './services/api';
+import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'transfer-paks' | 'customer-club';
+export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club';
+
+interface MenuItemProps {
+    label: string;
+    icon: React.ReactNode;
+    isActive: boolean;
+    onClick: () => void;
+}
+
+const MenuItem: React.FC<MenuItemProps> = ({ label, icon, isActive, onClick }) => (
+    <button
+        onClick={onClick}
+        className={`w-full flex items-center space-x-3 space-x-reverse px-4 py-3 rounded-xl transition-all duration-200 ${
+            isActive 
+            ? 'bg-sky-600 text-white shadow-md shadow-sky-200 dark:shadow-none font-bold' 
+            : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm'
+        }`}
+    >
+        {icon}
+        <span>{label}</span>
+    </button>
+);
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -144,33 +163,27 @@ const App: React.FC = () => {
         return <LoginPage onLoginSuccess={handleLoginSuccess} />;
     }
 
-    const MenuItem = ({ view, label, icon }: { view: ActiveView, label: string, icon: React.ReactNode }) => (
-        <button
-            onClick={() => handleNavigate(view)}
-            className={`w-full flex items-center space-x-3 space-x-reverse px-4 py-3 rounded-xl transition-all duration-200 ${
-                activeView === view 
-                ? 'bg-sky-600 text-white shadow-md shadow-sky-200 dark:shadow-none font-bold' 
-                : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm'
-            }`}
-        >
-            {icon}
-            <span>{label}</span>
-        </button>
-    );
-
+    // Organized Menu Items
     const menuItems = [
         { view: 'home' as ActiveView, label: 'داشبورد', icon: <HomeIcon className="w-5 h-5" /> },
-        { view: 'users' as ActiveView, label: 'مشتریان', icon: <UsersIcon className="w-5 h-5" /> },
-        { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
+        
+        // Sales Information
         { view: 'conditions' as ActiveView, label: 'شرایط فروش', icon: <ConditionsIcon className="w-5 h-5" /> },
         { view: 'cars' as ActiveView, label: 'خودروها', icon: <CarIcon className="w-5 h-5" /> },
         { view: 'car-prices' as ActiveView, label: 'قیمت روز', icon: <PriceIcon className="w-5 h-5" /> },
-        { view: 'vehicle-exit' as ActiveView, label: 'خروج خودرو', icon: <ExitFormIcon className="w-5 h-5" /> },
+        
+        // CRM
+        { view: 'users' as ActiveView, label: 'مشتریان', icon: <UsersIcon className="w-5 h-5" /> },
+        { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
+        
+        // Operations
         { view: 'zero-car-delivery' as ActiveView, label: 'تحویل صفر', icon: <TruckIcon className="w-5 h-5" /> },
+        { view: 'vehicle-exit' as ActiveView, label: 'خروج خودرو', icon: <ExitFormIcon className="w-5 h-5" /> },
+        
+        // Finance & Reports
+        { view: 'commission' as ActiveView, label: 'پورسانت', icon: <CalculatorIcon className="w-5 h-5" /> },
         { view: 'poll' as ActiveView, label: 'نظرسنجی', icon: <PollIcon className="w-5 h-5" /> },
         { view: 'reports' as ActiveView, label: 'گزارشات', icon: <ChartBarIcon className="w-5 h-5" /> },
-        { view: 'commission' as ActiveView, label: 'پورسانت', icon: <CalculatorIcon className="w-5 h-5" /> },
-        { view: 'transfer-paks' as ActiveView, label: 'معامله پاک', icon: <ShieldCheckIcon className="w-5 h-5" /> },
     ];
 
     const adminItems = [
@@ -192,17 +205,34 @@ const App: React.FC = () => {
                 </div>
 
                 <nav className="flex-1 space-y-1">
-                    {menuItems.map(item => (
-                        <MenuItem key={item.view} {...item} />
+                    {menuItems.map((item, index) => (
+                        <React.Fragment key={item.view}>
+                            {/* Separators for logical grouping */}
+                            {index === 1 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">اطلاعات پایه</div>}
+                            {index === 4 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مدیریت مشتریان</div>}
+                            {index === 6 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">عملیات</div>}
+                            {index === 8 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مالی و آمار</div>}
+                            
+                            <MenuItem 
+                                label={item.label} 
+                                icon={item.icon} 
+                                isActive={activeView === item.view} 
+                                onClick={() => handleNavigate(item.view)}
+                            />
+                        </React.Fragment>
                     ))}
                     
                     {currentUser?.isAdmin === 1 && (
                         <>
-                            <div className="pt-4 pb-2">
-                                <span className="text-xs font-bold text-slate-400 px-4">مدیریت</span>
-                            </div>
+                            <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">پنل مدیریت</div>
                             {adminItems.map(item => (
-                                <MenuItem key={item.view} {...item} />
+                                <MenuItem 
+                                    key={item.view} 
+                                    label={item.label} 
+                                    icon={item.icon} 
+                                    isActive={activeView === item.view} 
+                                    onClick={() => handleNavigate(item.view)}
+                                />
                             ))}
                         </>
                     )}
@@ -323,7 +353,6 @@ const App: React.FC = () => {
                 {activeView === 'anonymous-feedback' && <AnonymousFeedbackPage />}
                 {activeView === 'zero-car-delivery' && <ZeroCarDeliveryPage />}
                 {activeView === 'my-profile' && <MyProfilePage />}
-                {activeView === 'transfer-paks' && <TransferPaksPage />}
                 {activeView === 'customer-club' && <CustomerClubPage />}
             </main>
         </div>

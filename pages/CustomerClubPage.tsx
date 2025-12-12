@@ -4,11 +4,14 @@ import { getUsers, updateUser } from '../services/api';
 import { User, CustomerSegment } from '../types';
 import Spinner from '../components/Spinner';
 import Toast from '../components/Toast';
+import Pagination from '../components/Pagination';
 import { BadgeIcon } from '../components/icons/BadgeIcon';
 import { StarIcon } from '../components/icons/StarIcon';
 import { TagIcon } from '../components/icons/TagIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 import { UsersIcon } from '../components/icons/UsersIcon';
+
+const ITEMS_PER_PAGE = 36;
 
 // --- Mappings ---
 const SEGMENT_STYLES: Record<CustomerSegment, { bg: string, text: string, border: string, icon: string }> = {
@@ -28,6 +31,9 @@ const CustomerClubPage: React.FC = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Edit Modal State
     const [editSegment, setEditSegment] = useState<CustomerSegment>(CustomerSegment.REGULAR);
@@ -50,6 +56,11 @@ const CustomerClubPage: React.FC = () => {
             setLoading(false);
         }
     };
+
+    // Reset pagination when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedSegment, searchQuery]);
 
     const handleEditClick = (user: User) => {
         setEditingUser(user);
@@ -100,6 +111,13 @@ const CustomerClubPage: React.FC = () => {
             return matchesSegment && matchesSearch;
         });
     }, [users, selectedSegment, searchQuery]);
+
+    const paginatedUsers = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredUsers, currentPage]);
+
+    const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
 
     const stats = useMemo(() => {
         const counts: Record<string, number> = {};
@@ -162,73 +180,87 @@ const CustomerClubPage: React.FC = () => {
             {loading ? (
                 <div className="flex justify-center p-12"><Spinner /></div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredUsers.map(user => {
-                        const segment = user.segment || CustomerSegment.REGULAR;
-                        const style = SEGMENT_STYLES[segment];
-                        
-                        return (
-                            <div key={user.id} className={`bg-white dark:bg-slate-800 rounded-2xl p-5 border shadow-sm hover:shadow-md transition-all relative group overflow-hidden ${selectedSegment === segment ? 'ring-2 ring-offset-2 ring-orange-400 dark:ring-offset-slate-900' : 'border-slate-200 dark:border-slate-700'}`}>
-                                {/* Segment Banner */}
-                                <div className={`absolute top-0 right-0 left-0 h-1.5 ${style.bg.replace('100', '500')}`}></div>
-                                
-                                <div className="flex justify-between items-start mt-2 mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner ${style.bg}`}>
-                                            {style.icon}
+                <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {paginatedUsers.map(user => {
+                            const segment = user.segment || CustomerSegment.REGULAR;
+                            const style = SEGMENT_STYLES[segment];
+                            
+                            return (
+                                <div key={user.id} className={`bg-white dark:bg-slate-800 rounded-2xl p-5 border shadow-sm hover:shadow-md transition-all relative group overflow-hidden ${selectedSegment === segment ? 'ring-2 ring-offset-2 ring-orange-400 dark:ring-offset-slate-900' : 'border-slate-200 dark:border-slate-700'}`}>
+                                    {/* Segment Banner */}
+                                    <div className={`absolute top-0 right-0 left-0 h-1.5 ${style.bg.replace('100', '500')}`}></div>
+                                    
+                                    <div className="flex justify-between items-start mt-2 mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner ${style.bg}`}>
+                                                {style.icon}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-800 dark:text-white text-lg">{user.FullName}</h3>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{user.Number}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-slate-800 dark:text-white text-lg">{user.FullName}</h3>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{user.Number}</p>
-                                        </div>
-                                    </div>
-                                    <span className={`px-2 py-1 rounded-lg text-xs font-bold border ${style.bg} ${style.text} ${style.border}`}>
-                                        {segment}
-                                    </span>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {/* Score */}
-                                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 p-2 rounded-lg">
-                                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">امتیاز رفتار:</span>
-                                        <div className="flex">
-                                            {[1, 2, 3, 4, 5].map(star => (
-                                                <StarIcon key={star} className={`w-4 h-4 ${star <= (user.behaviorScore || 0) ? 'text-amber-400 fill-current' : 'text-slate-300 dark:text-slate-600'}`} filled={star <= (user.behaviorScore || 0)} />
-                                            ))}
-                                        </div>
-                                        {user.behaviorScore ? <span className="text-xs font-bold text-amber-500">({user.behaviorScore}/5)</span> : <span className="text-xs text-slate-400">(ثبت نشده)</span>}
+                                        <span className={`px-2 py-1 rounded-lg text-xs font-bold border ${style.bg} ${style.text} ${style.border}`}>
+                                            {segment}
+                                        </span>
                                     </div>
 
-                                    {/* Tags */}
-                                    <div className="flex flex-wrap gap-1 min-h-[28px]">
-                                        {user.tags && user.tags.length > 0 ? (
-                                            user.tags.map((tag, i) => (
-                                                <span key={i} className="text-[10px] px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-600 flex items-center gap-1">
-                                                    <TagIcon className="w-3 h-3 opacity-50" />
-                                                    {tag}
-                                                </span>
-                                            ))
-                                        ) : (
-                                            <span className="text-xs text-slate-400 italic">بدون برچسب</span>
-                                        )}
+                                    <div className="space-y-3">
+                                        {/* Score */}
+                                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 p-2 rounded-lg">
+                                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">امتیاز رفتار:</span>
+                                            <div className="flex">
+                                                {[1, 2, 3, 4, 5].map(star => (
+                                                    <StarIcon key={star} className={`w-4 h-4 ${star <= (user.behaviorScore || 0) ? 'text-amber-400 fill-current' : 'text-slate-300 dark:text-slate-600'}`} filled={star <= (user.behaviorScore || 0)} />
+                                                ))}
+                                            </div>
+                                            {user.behaviorScore ? <span className="text-xs font-bold text-amber-500">({user.behaviorScore}/5)</span> : <span className="text-xs text-slate-400">(ثبت نشده)</span>}
+                                        </div>
+
+                                        {/* Tags */}
+                                        <div className="flex flex-wrap gap-1 min-h-[28px]">
+                                            {user.tags && user.tags.length > 0 ? (
+                                                user.tags.map((tag, i) => (
+                                                    <span key={i} className="text-[10px] px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-600 flex items-center gap-1">
+                                                        <TagIcon className="w-3 h-3 opacity-50" />
+                                                        {tag}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-xs text-slate-400 italic">بدون برچسب</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end">
+                                        <button 
+                                            onClick={() => handleEditClick(user)}
+                                            className="text-sm font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 flex items-center gap-1 hover:bg-sky-50 dark:hover:bg-sky-900/30 px-3 py-1.5 rounded-lg transition-colors"
+                                        >
+                                            مدیریت پروفایل باشگاه
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end">
-                                    <button 
-                                        onClick={() => handleEditClick(user)}
-                                        className="text-sm font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 flex items-center gap-1 hover:bg-sky-50 dark:hover:bg-sky-900/30 px-3 py-1.5 rounded-lg transition-colors"
-                                    >
-                                        مدیریت پروفایل باشگاه
-                                    </button>
-                                </div>
+                            );
+                        })}
+                        {paginatedUsers.length === 0 && (
+                            <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
+                                <UsersIcon className="w-16 h-16 opacity-20 mb-4" />
+                                <p>مشتری با این مشخصات یافت نشد.</p>
                             </div>
-                        );
-                    })}
-                    {filteredUsers.length === 0 && (
-                        <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
-                            <UsersIcon className="w-16 h-16 opacity-20 mb-4" />
-                            <p>مشتری با این مشخصات یافت نشد.</p>
+                        )}
+                    </div>
+
+                    {totalPages > 1 && (
+                        <div className="flex justify-center mt-8">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={setCurrentPage}
+                                totalItems={filteredUsers.length}
+                                itemsPerPage={ITEMS_PER_PAGE}
+                            />
                         </div>
                     )}
                 </div>

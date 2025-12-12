@@ -173,41 +173,6 @@ export interface DeliveryProcess {
     notes?: string;
 }
 
-
-export enum TransactionStatus {
-    DRAFT = 'پیش‌نویس',
-    TECH_CHECK = 'در انتظار کارشناسی',
-    LEGAL_CHECK = 'در انتظار حقوقی',
-    FINANCE_CHECK = 'در انتظار مالی',
-    CONTRACT_SIGN = 'آماده امضا',
-    COMPLETED = 'تکمیل شده',
-    CANCELLED = 'لغو شده',
-}
-
-export type TransactionType = 'ZERO' | 'USED' | 'HAVALEH';
-export type TransactionRole = 'ADMIN' | 'TECH_EXPERT' | 'LEGAL_EXPERT' | 'FINANCE_EXPERT' | 'CUSTOMER';
-
-export interface TransactionStep {
-    id: number;
-    title: string;
-    roleRequired: TransactionRole[];
-    isCompleted: boolean;
-}
-
-export interface SecureTransaction {
-    id: string;
-    type: TransactionType;
-    status: TransactionStatus;
-    carModel: string;
-    sellerName: string;
-    buyerName: string;
-    price: number;
-    currentStep: number;
-    createdAt: string;
-    steps: TransactionStep[];
-}
-
-
 // --- Access Control Types ---
 
 export type AppModule = 'users' | 'conditions' | 'cars' | 'prices' | 'vehicle-exit' | 'settings';
@@ -374,4 +339,39 @@ export interface ZeroCarDelivery {
     deliveryDateTime?: string;
     installedOptions?: string;
     deliveryNotes?: string;
+}
+
+// --- Secure Transaction (Transfer Paks) Types ---
+
+export enum TransactionStatus {
+    DRAFT = 'پیش‌نویس',
+    TECH_CHECK = 'کارشناسی فنی',
+    LEGAL_CHECK = 'استعلام حقوقی',
+    FINANCE_CHECK = 'تایید مالی',
+    CONTRACT_SIGN = 'امضای قرارداد',
+    COMPLETED = 'تکمیل شده',
+}
+
+export type TransactionRole = 'ADMIN' | 'TECH_EXPERT' | 'LEGAL_EXPERT' | 'FINANCE_EXPERT' | 'CUSTOMER';
+
+export type TransactionType = 'ZERO' | 'USED' | 'HAVALEH';
+
+export interface TransactionStep {
+    id: number;
+    title: string;
+    roleRequired: TransactionRole[];
+    isCompleted: boolean;
+}
+
+export interface SecureTransaction {
+    id: string;
+    type: TransactionType;
+    status: TransactionStatus;
+    carModel: string;
+    sellerName: string;
+    buyerName: string;
+    price: number;
+    currentStep: number;
+    createdAt: string;
+    steps: TransactionStep[];
 }
