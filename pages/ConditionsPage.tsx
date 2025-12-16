@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getConditions, createCondition, updateCondition, deleteCondition } from '../services/api';
-import type { CarSaleCondition, ConditionStatus, SaleType } from '../types';
+import { getConditions, createCondition, updateCondition, deleteCondition, getCars } from '../services/api';
+import type { CarSaleCondition, ConditionStatus, SaleType, Car } from '../types';
 import ConditionTable from '../components/ConditionTable';
 import FilterPanel from '../components/FilterPanel';
 import ConditionModal from '../components/ConditionModal';
@@ -20,6 +20,7 @@ interface ConditionsPageProps {
 
 const ConditionsPage: React.FC<ConditionsPageProps> = () => {
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
+    const [cars, setCars] = useState<Car[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -42,8 +43,12 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await getConditions();
-            setConditions(data);
+            const [conditionsData, carsData] = await Promise.all([
+                getConditions(),
+                getCars()
+            ]);
+            setConditions(conditionsData);
+            setCars(carsData);
         } catch (err) {
             setError('خطا در دریافت اطلاعات');
             showToast('خطا در دریافت اطلاعات', 'error');
@@ -71,6 +76,13 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
         setIsModalOpen(true);
     };
 
+    const handleDuplicate = (condition: CarSaleCondition) => {
+        // Clone the condition and set ID to 0 to treat it as a new entry in the modal
+        const duplicatedCondition = { ...condition, id: 0, colors: [...condition.colors] };
+        setCurrentCondition(duplicatedCondition);
+        setIsModalOpen(true);
+    };
+
     const handleDelete = (condition: CarSaleCondition) => {
         setConditionToDelete(condition);
         setIsDeleteModalOpen(true);
@@ -83,7 +95,8 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
     
     const handleSave = async (conditionData: Omit<CarSaleCondition, 'id'>) => {
         try {
-            if (currentCondition) {
+            // Check if it's an update (ID exists and is not 0) or create (null or ID is 0)
+            if (currentCondition && currentCondition.id !== 0) {
                 await updateCondition(currentCondition.id, { ...conditionData, id: currentCondition.id });
                 showToast('شرط با موفقیت ویرایش شد', 'success');
             } else {
@@ -246,6 +259,7 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
                         onEdit={handleEdit} 
                         onDelete={handleDelete} 
                         onView={handleView}
+                        onDuplicate={handleDuplicate}
                         onSort={handleSort}
                         sortConfig={sortConfig}
                     />
@@ -258,6 +272,7 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
                     onClose={() => setIsModalOpen(false)}
                     onSave={handleSave}
                     condition={currentCondition}
+                    cars={cars}
                 />
             )}
 

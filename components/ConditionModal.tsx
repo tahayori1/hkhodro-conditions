@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import type { CarSaleCondition } from '../types';
+import type { CarSaleCondition, Car } from '../types';
 import { ConditionStatus, SaleType, PayType, DocumentStatus } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
 
@@ -8,29 +9,29 @@ interface ConditionModalProps {
     onClose: () => void;
     onSave: (condition: Omit<CarSaleCondition, 'id'>) => void;
     condition: CarSaleCondition | null;
+    cars: Car[];
 }
-
-const CAR_MODELS = [
-    'JAC J4', 'JAC S3', 'JAC S5', 'BAC X3PRO', 'KMC T8', 'KMC T9', 'KMC A5',
-    'KMC J7', 'KMC X5', 'KMC SR3', 'KMC EAGLE', 'KMC SHADOW', 'KMC SR6'
-];
 
 const MODEL_YEARS = Array.from({ length: 1407 - 1396 + 1 }, (_, i) => 1407 - i);
 
-const initialFormState: Omit<CarSaleCondition, 'id'> = {
-    car_model: CAR_MODELS[0],
-    model: MODEL_YEARS[0],
-    status: ConditionStatus.AVAILABLE,
-    sale_type: SaleType.FACTORY_REGISTRATION,
-    pay_type: PayType.CASH,
-    document_status: DocumentStatus.FREE,
-    colors: [],
-    delivery_time: '',
-    initial_deposit: 0,
-    descriptions: '',
-};
+const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave, condition, cars }) => {
+    
+    // Fallback to first car if available, or empty string
+    const defaultCarModel = cars.length > 0 ? cars[0].name : '';
 
-const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave, condition }) => {
+    const initialFormState: Omit<CarSaleCondition, 'id'> = {
+        car_model: defaultCarModel,
+        model: MODEL_YEARS[0],
+        status: ConditionStatus.AVAILABLE,
+        sale_type: SaleType.FACTORY_REGISTRATION,
+        pay_type: PayType.CASH,
+        document_status: DocumentStatus.FREE,
+        colors: [],
+        delivery_time: '',
+        initial_deposit: 0,
+        descriptions: '',
+    };
+
     const [formState, setFormState] = useState(initialFormState);
     const [colorsInput, setColorsInput] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -40,11 +41,15 @@ const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave
             setFormState(condition);
             setColorsInput(condition.colors.join(', '));
         } else {
-            setFormState(initialFormState);
+            // Reset to initial state when opening for "New", ensuring default car model is set from props
+            setFormState({
+                ...initialFormState,
+                car_model: cars.length > 0 ? cars[0].name : ''
+            });
             setColorsInput('');
         }
         setErrors({});
-    }, [condition, isOpen]);
+    }, [condition, isOpen, cars]);
 
     const handleChange = <T extends keyof typeof initialFormState,>(field: T, value: (typeof initialFormState)[T]) => {
         setFormState(prevState => ({ ...prevState, [field]: value }));
@@ -80,7 +85,9 @@ const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
-                    <h2 className="text-xl font-bold text-slate-800">{condition ? 'ویرایش شرط فروش' : 'افزودن شرط فروش جدید'}</h2>
+                    <h2 className="text-xl font-bold text-slate-800">
+                        {condition && condition.id !== 0 ? 'ویرایش شرط فروش' : 'افزودن شرط فروش جدید'}
+                    </h2>
                     <button onClick={onClose} className="text-slate-500 hover:text-slate-800">
                         <CloseIcon />
                     </button>
@@ -91,7 +98,8 @@ const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave
                             <label htmlFor="car_model" className="block text-sm font-medium text-slate-700 mb-1">مدل خودرو</label>
                             <select id="car_model" value={formState.car_model} onChange={(e) => handleChange('car_model', e.target.value)}
                                 className={`w-full px-3 py-2 border rounded-md bg-white ${errors.car_model ? 'border-red-500' : 'border-slate-300'}`}>
-                                {CAR_MODELS.map(model => <option key={model} value={model}>{model}</option>)}
+                                <option value="">انتخاب کنید...</option>
+                                {cars.map(car => <option key={car.id} value={car.name}>{car.name}</option>)}
                             </select>
                             {errors.car_model && <p className="text-red-500 text-xs mt-1">{errors.car_model}</p>}
                         </div>

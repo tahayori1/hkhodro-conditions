@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { CarSaleCondition } from '../types';
 import { ConditionStatus } from '../types';
@@ -5,12 +6,14 @@ import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { EyeIcon } from './icons/EyeIcon';
 import { SortIcon } from './icons/SortIcon';
+import { CopyIcon } from './icons/CopyIcon';
 
 interface ConditionTableProps {
     conditions: CarSaleCondition[];
     onEdit: (condition: CarSaleCondition) => void;
     onDelete: (condition: CarSaleCondition) => void;
     onView: (condition: CarSaleCondition) => void;
+    onDuplicate: (condition: CarSaleCondition) => void;
     onSort: (key: keyof CarSaleCondition) => void;
     sortConfig: { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
 }
@@ -21,7 +24,7 @@ const statusColorMap: Record<ConditionStatus, string> = {
     [ConditionStatus.CAPACITY_FULL]: 'bg-yellow-100 text-yellow-800',
 };
 
-const ConditionTable: React.FC<ConditionTableProps> = ({ conditions, onEdit, onDelete, onView, onSort, sortConfig }) => {
+const ConditionTable: React.FC<ConditionTableProps> = ({ conditions, onEdit, onDelete, onView, onDuplicate, onSort, sortConfig }) => {
     if (conditions.length === 0) {
         return <p className="text-center text-slate-500 py-10">هیچ شرایط فروشی یافت نشد.</p>;
     }
@@ -75,9 +78,12 @@ const ConditionTable: React.FC<ConditionTableProps> = ({ conditions, onEdit, onD
                                 <td className="px-6 py-4">{condition.delivery_time}</td>
                                 <td className="px-6 py-4 font-mono">{condition.initial_deposit.toLocaleString('fa-IR')}</td>
                                 <td className="px-6 py-4">
-                                    <div className="flex items-center justify-end gap-4">
+                                    <div className="flex items-center justify-end gap-3">
                                          <button onClick={() => onView(condition)} className="text-slate-500 hover:text-slate-800" title="نمایش">
                                             <EyeIcon />
+                                        </button>
+                                        <button onClick={() => onDuplicate(condition)} className="text-teal-600 hover:text-teal-800" title="کپی کردن">
+                                            <CopyIcon />
                                         </button>
                                         <button onClick={() => onEdit(condition)} className="text-sky-600 hover:text-sky-800" title="ویرایش">
                                             <EditIcon />
@@ -126,14 +132,17 @@ const ConditionTable: React.FC<ConditionTableProps> = ({ conditions, onEdit, onD
                             </div>
                         </div>
                         <div className="flex items-center justify-end gap-2 p-3 bg-slate-50 border-t border-slate-200 rounded-b-lg">
-                            <button onClick={() => onView(condition)} className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-slate-200 transition-colors">
-                                <EyeIcon /> نمایش
+                            <button onClick={() => onView(condition)} className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 text-sm font-semibold px-2 py-1.5 rounded-md hover:bg-slate-200 transition-colors" title="نمایش">
+                                <EyeIcon />
                             </button>
-                            <button onClick={() => onEdit(condition)} className="flex items-center gap-1.5 text-sky-600 hover:text-sky-800 text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-sky-100 transition-colors">
-                                <EditIcon /> ویرایش
+                            <button onClick={() => onDuplicate(condition)} className="flex items-center gap-1.5 text-teal-600 hover:text-teal-800 text-sm font-semibold px-2 py-1.5 rounded-md hover:bg-teal-100 transition-colors" title="کپی">
+                                <CopyIcon />
                             </button>
-                            <button onClick={() => onDelete(condition)} className="flex items-center gap-1.5 text-red-600 hover:text-red-800 text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-red-100 transition-colors">
-                                <TrashIcon /> حذف
+                            <button onClick={() => onEdit(condition)} className="flex items-center gap-1.5 text-sky-600 hover:text-sky-800 text-sm font-semibold px-2 py-1.5 rounded-md hover:bg-sky-100 transition-colors" title="ویرایش">
+                                <EditIcon />
+                            </button>
+                            <button onClick={() => onDelete(condition)} className="flex items-center gap-1.5 text-red-600 hover:text-red-800 text-sm font-semibold px-2 py-1.5 rounded-md hover:bg-red-100 transition-colors" title="حذف">
+                                <TrashIcon />
                             </button>
                         </div>
                     </div>
