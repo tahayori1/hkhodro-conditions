@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, getLeadHistory, sendMessage, getUserByNumber, getCars, getConditions, getReferences } from '../services/api';
+import { getUsers, createUser, updateUser, deleteUser, getLeadHistory, sendMessage, sendSMS, getUserByNumber, getCars, getConditions, getReferences } from '../services/api';
 import type { Reference } from '../services/api';
 import type { User, LeadMessage, Car, CarSaleCondition, MyProfile } from '../types';
 import UserTable from '../components/UserTable';
@@ -182,18 +182,37 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         setModalError(null);
         setModalMessages([]);
         setModalFullUser(null);
+        
         try {
-            const [historyData, userData] = await Promise.all([
-                getLeadHistory(lead.Number),
-                getUserByNumber(lead.Number)
-            ]);
+            // Load history - catch error so it doesn't block the modal content if it fails
+            const historyPromise = getLeadHistory(lead.Number).catch(e => {
+                console.error("Failed to load history", e);
+                return []; 
+            });
+
+            // Load details - catch error so we can still show basic lead info
+            const userPromise = getUserByNumber(lead.Number).catch(e => {
+                console.error("Failed to load user details", e);
+                return null;
+            });
             
-            const parseDate = (dateString: string) => new Date(dateString.replace(' ', 'T'));
-            setModalMessages(historyData.sort((a, b) => parseDate(a.createdAt).getTime() - parseDate(b.createdAt).getTime()));
-            setModalFullUser(userData);
+            const [historyData, userData] = await Promise.all([historyPromise, userPromise]);
+            
+            if (Array.isArray(historyData)) {
+                const parseDate = (dateString: string) => new Date(dateString.replace(' ', 'T'));
+                setModalMessages(historyData.sort((a, b) => parseDate(a.createdAt).getTime() - parseDate(b.createdAt).getTime()));
+            }
+            
+            if (userData) {
+                setModalFullUser(userData);
+            } else {
+                // If API fails or returns no user, fall back to the lead data from the list
+                setModalFullUser(lead);
+            }
 
         } catch (err) {
-            setModalError('خطا در دریافت اطلاعات کامل سرنخ');
+            console.error("Unexpected error in view details", err);
+            // We don't set modalError here to allow partial data to be shown
         } finally {
             setModalLoading(false);
         }
@@ -245,7 +264,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         setSortConfig({ key, direction });
     };
 
-    const handleSendMessage = async (message: string) => {
+    const handleSendMessage = async (message: string, type: 'SMS' | 'WHATSAPP') => {
         if (!selectedLead) {
             throw new Error("No active lead selected for sending message.");
         }
@@ -253,8 +272,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         const number = selectedLead.Number;
 
         try {
-            await sendMessage(number, message);
-            showToast('پیام با موفقیت ارسال شد', 'success');
+            if (type === 'SMS') {
+                await sendSMS(number, message);
+                showToast('پیامک با موفقیت ارسال شد', 'success');
+            } else {
+                await sendMessage(number, message);
+                showToast('پیام واتساپ با موفقیت ارسال شد', 'success');
+            }
             
             const data = await getLeadHistory(number);
             const parseDate = (dateString: string) => new Date(dateString.replace(' ', 'T'));
@@ -296,7 +320,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
             fetchAllData();
             if (isDetailModalOpen && selectedLead) {
                 const updatedDetails = await getUserByNumber(selectedLead.Number);
-                setModalFullUser(updatedDetails);
+                if (updatedDetails) {
+                    setModalFullUser(updatedDetails);
+                }
             }
 
         } catch (err) {
@@ -328,6 +354,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     
     const handleSendBroadcast = async (
         message: string,
+        type: 'SMS' | 'WHATSAPP',
         onProgress: (progress: { sent: number; errors: number }) => void
     ): Promise<{finalSuccess: number, finalErrors: number}> => {
         const selectedUsers = users.filter(u => selectedUserIds.has(u.id));
@@ -340,7 +367,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
 
         for (const user of selectedUsers) {
             try {
-                await sendMessage(user.Number, message);
+                if (type === 'SMS') {
+                    await sendSMS(user.Number, message);
+                } else {
+                    await sendMessage(user.Number, message);
+                }
                 successCount++;
             } catch (err) {
                 console.error(`Failed to send message to ${user.Number}:`, err);

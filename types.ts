@@ -53,18 +53,18 @@ export interface User {
     CarModel: string;
     FullName: string;
     Number: string;
-    Province: string;
+    Province: string | null;
     City: string;
     Decription: string;
     IP: string | null;
     RegisterTime: string;
     reference: string;
-    LastAction: string;
+    LastAction: string | null;
     createdAt: string;
     updatedAt: string;
     crmIsSend?: 0 | 1;
-    crmPerson?: string;
-    crmDate?: string;
+    crmPerson?: string | null;
+    crmDate?: string | null;
     // Club Fields
     segment?: CustomerSegment;
     behaviorScore?: number; // 1 to 5

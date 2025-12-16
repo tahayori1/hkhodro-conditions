@@ -7,6 +7,9 @@ import { SendIcon } from './icons/SendIcon';
 import ConditionSelectionModal from './ConditionSelectionModal';
 import { SendToCrmIcon } from './icons/SendToCrmIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { ChatIcon } from './icons/ChatIcon';
+import { ChatAltIcon } from './icons/ChatAltIcon';
+import Toast from './Toast';
 
 interface LeadDetailHistoryModalProps {
     isOpen: boolean;
@@ -16,7 +19,7 @@ interface LeadDetailHistoryModalProps {
     messages: LeadMessage[];
     isLoading: boolean;
     error: string | null;
-    onSendMessage: (message: string) => Promise<void>;
+    onSendMessage: (message: string, type: 'SMS' | 'WHATSAPP') => Promise<void>;
     onSendToCrm: (user: User) => Promise<void>;
     cars: Car[];
     conditions: CarSaleCondition[];
@@ -37,6 +40,7 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
     const [isCrmSending, setIsCrmSending] = useState(false);
     const [quickSendCarModel, setQuickSendCarModel] = useState('');
     const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,6 +60,7 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
             // Reset state on close
             setQuickSendCarModel('');
             setNewMessage('');
+            setValidationError(null);
         }
     }, [isOpen, lead, fullUserDetails]);
 
@@ -67,16 +72,41 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
         }
     }, [newMessage]);
     
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSendSMS = async () => {
+        if (!newMessage.trim() || isSending) return;
+
+        // SMS Validation
+        if (newMessage.length > 170) {
+            setValidationError('متن پیامک نمی‌تواند بیشتر از ۱۷۰ کاراکتر باشد.');
+            return;
+        }
+        
+        const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/i;
+        if (urlRegex.test(newMessage)) {
+            setValidationError('ارسال لینک در پیامک مجاز نیست.');
+            return;
+        }
+
+        setIsSending(true);
+        try {
+            await onSendMessage(newMessage, 'SMS');
+            setNewMessage('');
+        } catch (error) {
+            // Error is handled in parent
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const handleSendWhatsApp = async () => {
         if (!newMessage.trim() || isSending) return;
 
         setIsSending(true);
         try {
-            await onSendMessage(newMessage);
+            await onSendMessage(newMessage, 'WHATSAPP');
             setNewMessage('');
         } catch (error) {
-            // Error is handled in the parent component with a toast
+            // Error is handled in parent
         } finally {
             setIsSending(false);
         }
@@ -217,8 +247,9 @@ ${descriptionsText}`;
                                 {/* Messages Section */}
                                 <div className="p-4">
                                     {messages.length === 0 ? (
-                                        <div className="flex justify-center items-center py-10">
-                                            <p className="text-slate-500">تاریخچه پیامی برای این شماره یافت نشد.</p>
+                                        <div className="flex flex-col justify-center items-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200 mx-4 mt-4">
+                                            <ChatIcon className="w-12 h-12 text-slate-300 mb-2" />
+                                            <p className="text-slate-500 text-sm font-medium">هیچ پیام یا تاریخچه‌ای یافت نشد.</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
@@ -285,7 +316,7 @@ ${descriptionsText}`;
                                 </div>
                             </div>
                         )}
-                        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                        <div className="flex items-end gap-2">
                             <textarea
                                 ref={textareaRef}
                                 value={newMessage}
@@ -296,22 +327,46 @@ ${descriptionsText}`;
                                 autoComplete="off"
                                 rows={1}
                             />
-                            <button
-                                type="submit"
-                                disabled={isSending || isLoading || !newMessage.trim()}
-                                className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors flex items-center justify-center disabled:bg-sky-400 disabled:cursor-not-allowed w-28"
-                                aria-label="ارسال پیام"
-                            >
-                                {isSending ? (
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                    <>
-                                        <SendIcon className="ml-2"/>
-                                        ارسال
-                                    </>
-                                )}
-                            </button>
-                        </form>
+                            <div className="flex flex-col gap-1">
+                                <button
+                                    type="button"
+                                    onClick={handleSendWhatsApp}
+                                    disabled={isSending || isLoading || !newMessage.trim()}
+                                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center disabled:bg-slate-300 disabled:cursor-not-allowed text-xs font-bold w-24"
+                                    title="ارسال واتساپ"
+                                >
+                                    {isSending ? (
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                        <div className="flex items-center gap-1">
+                                            <ChatIcon className="w-4 h-4" />
+                                            <span>واتساپ</span>
+                                        </div>
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSendSMS}
+                                    disabled={isSending || isLoading || !newMessage.trim()}
+                                    className="px-3 py-1.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors flex items-center justify-center disabled:bg-slate-300 disabled:cursor-not-allowed text-xs font-bold w-24"
+                                    title="ارسال پیامک"
+                                >
+                                    {isSending ? (
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                        <div className="flex items-center gap-1">
+                                            <ChatAltIcon className="w-4 h-4" />
+                                            <span>پیامک</span>
+                                        </div>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                        {newMessage.length > 0 && (
+                            <div className="text-[10px] text-slate-400 mt-1 text-left">
+                                {newMessage.length} / 170 کاراکتر (برای پیامک)
+                            </div>
+                        )}
                     </footer>
                 </div>
             </div>
@@ -321,6 +376,13 @@ ${descriptionsText}`;
                     onClose={() => setIsConditionModalOpen(false)}
                     conditions={conditionsForSelectedCar}
                     onConfirm={handleConditionsSelected}
+                />
+            )}
+            {validationError && (
+                <Toast 
+                    message={validationError} 
+                    type="error" 
+                    onClose={() => setValidationError(null)} 
                 />
             )}
         </>

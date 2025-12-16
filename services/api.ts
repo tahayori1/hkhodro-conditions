@@ -368,6 +368,7 @@ export interface Reference {
 export const getUserByNumber = async (number: string): Promise<User | null> => {
     const response = await fetch(`${API_BASE_URL}/user?number=${number}`, { headers: getAuthHeaders() });
     const data = await handleResponse(response);
+    // API returns an array, we want the first item as per the provided response format
     return (Array.isArray(data) && data.length > 0) ? data[0] : null;
 };
 
@@ -588,6 +589,17 @@ export const updateDeliveryProcessStatus = async (id: number, status: DeliverySt
 export const sendMessage = async (number: string, message: string): Promise<{ Sent: string }> => {
     ensureOnline();
     const response = await fetch(`${API_BASE_URL}/whatsapp/send`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ number, message }),
+    });
+    return handleResponse(response);
+};
+
+// --- SMS ---
+export const sendSMS = async (number: string, message: string): Promise<{ Sent: string }> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/sms/send`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ number, message }),
