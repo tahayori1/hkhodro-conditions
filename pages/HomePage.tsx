@@ -16,6 +16,7 @@ import { TruckIcon } from '../components/icons/TruckIcon';
 import { BadgeIcon } from '../components/icons/BadgeIcon';
 import { ChatAltIcon } from '../components/icons/ChatAltIcon';
 import { RocketIcon } from '../components/icons/RocketIcon';
+import { ClipboardListIcon } from '../components/icons/ClipboardListIcon';
 
 interface HomePageProps {
     onNavigate: (view: ActiveView) => void;
@@ -133,6 +134,14 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         onClick={() => onNavigate('zero-car-delivery')}
                         bgClass="bg-cyan-500"
                         textClass="text-cyan-600 dark:text-cyan-400"
+                    />
+                    <ActionCard 
+                        icon={<ClipboardListIcon className="w-6 h-6" />}
+                        title="خودرو کارکرده"
+                        description="ثبت و فروش خودروهای امانی"
+                        onClick={() => onNavigate('used-cars')}
+                        bgClass="bg-indigo-500"
+                        textClass="text-indigo-600 dark:text-indigo-400"
                     />
                     <ActionCard 
                         icon={<ExitFormIcon className="w-6 h-6" />}

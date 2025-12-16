@@ -21,6 +21,7 @@ import MyProfilePage from './pages/MyProfilePage';
 import CustomerClubPage from './pages/CustomerClubPage';
 import NotificationCenterPage from './pages/NotificationCenterPage';
 import AdvertisingPage from './pages/AdvertisingPage';
+import UsedCarPage from './pages/UsedCarPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -46,10 +47,11 @@ import { UserIcon } from './components/icons/UserIcon';
 import { BadgeIcon } from './components/icons/BadgeIcon';
 import { ChatAltIcon } from './components/icons/ChatAltIcon';
 import { RocketIcon } from './components/icons/RocketIcon';
+import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising';
+export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars';
 
 interface MenuItemProps {
     label: string;
@@ -184,6 +186,7 @@ const App: React.FC = () => {
         
         // Operations
         { view: 'zero-car-delivery' as ActiveView, label: 'تحویل صفر', icon: <TruckIcon className="w-5 h-5" /> },
+        { view: 'used-cars' as ActiveView, label: 'خودرو کارکرده', icon: <ClipboardListIcon className="w-5 h-5" /> },
         { view: 'vehicle-exit' as ActiveView, label: 'خروج خودرو', icon: <ExitFormIcon className="w-5 h-5" /> },
         
         // Finance & Reports
@@ -217,7 +220,7 @@ const App: React.FC = () => {
                             {index === 1 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">اطلاعات پایه</div>}
                             {index === 4 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مدیریت مشتریان</div>}
                             {index === 8 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">عملیات</div>}
-                            {index === 10 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مالی و آمار</div>}
+                            {index === 11 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مالی و آمار</div>}
                             
                             <MenuItem 
                                 label={item.label} 
@@ -362,6 +365,7 @@ const App: React.FC = () => {
                 {activeView === 'customer-club' && <CustomerClubPage />}
                 {activeView === 'notification-center' && <NotificationCenterPage />}
                 {activeView === 'advertising' && <AdvertisingPage />}
+                {activeView === 'used-cars' && <UsedCarPage />}
             </main>
         </div>
     );

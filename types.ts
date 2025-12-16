@@ -418,3 +418,44 @@ export interface AdCampaign {
     leads?: number; // Number of leads generated
     notes?: string;
 }
+
+// --- Used Car Types ---
+
+export type UsedCarLocation = 'OWNER' | 'SHOWROOM' | 'WAREHOUSE' | 'OTHER';
+export type UsedCarStatus = 'EXPERT_REVIEW' | 'ADVERTISING' | 'SELLING';
+
+export interface UsedCar {
+    id: number;
+    // Seller
+    sellerName: string;
+    sellerPhone1: string;
+    sellerPhone2?: string;
+    // Car
+    carName: string;
+    modelYear: number;
+    mileage: number;
+    color: string;
+    // Technical
+    bodyStatus: string;
+    engineStatus: string;
+    expertReportImage?: string;
+    // Images
+    imageFront?: string;
+    imageBack?: string;
+    imageRight?: string;
+    imageLeft?: string;
+    imageInterior?: string;
+    imageDashboard?: string;
+    imageEngine?: string;
+    imageTrunk?: string;
+    // Status
+    insuranceThirdParty: string;
+    insuranceBody: string;
+    warrantyStatus: string;
+    location: UsedCarLocation;
+    // Sales
+    price: number;
+    salesRep: string;
+    status: UsedCarStatus;
+    createdAt: string;
+}
