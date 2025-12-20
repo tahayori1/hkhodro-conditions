@@ -22,6 +22,7 @@ import CustomerClubPage from './pages/CustomerClubPage';
 import NotificationCenterPage from './pages/NotificationCenterPage';
 import AdvertisingPage from './pages/AdvertisingPage';
 import UsedCarPage from './pages/UsedCarPage';
+import CarOrderPage from './pages/CarOrderPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -51,7 +52,7 @@ import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars';
+export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders';
 
 interface MenuItemProps {
     label: string;
@@ -173,23 +174,22 @@ const App: React.FC = () => {
     const menuItems = [
         { view: 'home' as ActiveView, label: 'داشبورد', icon: <HomeIcon className="w-5 h-5" /> },
         
-        // Sales Information
+        // Sales Lifecycle
+        { view: 'car-orders' as ActiveView, label: 'ثبت سفارش فروش', icon: <ClipboardListIcon className="w-5 h-5" /> },
         { view: 'conditions' as ActiveView, label: 'شرایط فروش', icon: <ConditionsIcon className="w-5 h-5" /> },
-        { view: 'cars' as ActiveView, label: 'خودروها', icon: <CarIcon className="w-5 h-5" /> },
         { view: 'car-prices' as ActiveView, label: 'قیمت روز', icon: <PriceIcon className="w-5 h-5" /> },
         
         // CRM
         { view: 'users' as ActiveView, label: 'مشتریان', icon: <UsersIcon className="w-5 h-5" /> },
         { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
-        { view: 'notification-center' as ActiveView, label: 'مرکز اطلاع‌رسانی', icon: <ChatAltIcon className="w-5 h-5" /> },
-        { view: 'advertising' as ActiveView, label: 'امور تبلیغات', icon: <RocketIcon className="w-5 h-5" /> },
         
         // Operations
+        { view: 'cars' as ActiveView, label: 'خودروها', icon: <CarIcon className="w-5 h-5" /> },
         { view: 'zero-car-delivery' as ActiveView, label: 'تحویل صفر', icon: <TruckIcon className="w-5 h-5" /> },
         { view: 'used-cars' as ActiveView, label: 'خودرو کارکرده', icon: <ClipboardListIcon className="w-5 h-5" /> },
-        { view: 'vehicle-exit' as ActiveView, label: 'خروج خودرو', icon: <ExitFormIcon className="w-5 h-5" /> },
+        { view: 'vehicle-exit' as ActiveView, label: 'خروج نهایی خودرو', icon: <ExitFormIcon className="w-5 h-5" /> },
         
-        // Finance & Reports
+        // Stats
         { view: 'commission' as ActiveView, label: 'پورسانت', icon: <CalculatorIcon className="w-5 h-5" /> },
         { view: 'poll' as ActiveView, label: 'نظرسنجی', icon: <PollIcon className="w-5 h-5" /> },
         { view: 'reports' as ActiveView, label: 'گزارشات', icon: <ChartBarIcon className="w-5 h-5" /> },
@@ -217,10 +217,10 @@ const App: React.FC = () => {
                     {menuItems.map((item, index) => (
                         <React.Fragment key={item.view}>
                             {/* Separators for logical grouping */}
-                            {index === 1 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">اطلاعات پایه</div>}
+                            {index === 1 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">فروش و چرخه تحویل</div>}
                             {index === 4 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مدیریت مشتریان</div>}
-                            {index === 8 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">عملیات</div>}
-                            {index === 11 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مالی و آمار</div>}
+                            {index === 6 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">عملیات</div>}
+                            {index === 10 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مالی و آمار</div>}
                             
                             <MenuItem 
                                 label={item.label} 
@@ -271,13 +271,13 @@ const App: React.FC = () => {
                     <HomeIcon className="w-6 h-6" />
                     <span className="text-[10px] mt-1 font-bold">خانه</span>
                 </button>
+                <button onClick={() => setActiveView('car-orders')} className={`flex flex-col items-center p-2 ${activeView === 'car-orders' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
+                    <ClipboardListIcon className="w-6 h-6" />
+                    <span className="text-[10px] mt-1 font-bold">سفارشات</span>
+                </button>
                 <button onClick={() => setActiveView('users')} className={`flex flex-col items-center p-2 ${activeView === 'users' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
                     <UsersIcon className="w-6 h-6" />
                     <span className="text-[10px] mt-1 font-bold">مشتریان</span>
-                </button>
-                <button onClick={() => setActiveView('cars')} className={`flex flex-col items-center p-2 ${activeView === 'cars' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
-                    <CarIcon className="w-6 h-6" />
-                    <span className="text-[10px] mt-1 font-bold">خودروها</span>
                 </button>
                 <button onClick={() => setIsMoreMenuOpen(true)} className={`flex flex-col items-center p-2 ${isMoreMenuOpen ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
                     <MoreIcon className="w-6 h-6" />
@@ -293,7 +293,7 @@ const App: React.FC = () => {
                             <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
-                            {[...menuItems, ...(currentUser?.isAdmin === 1 ? adminItems : [])].filter(i => !['home','users','cars'].includes(i.view)).map(item => (
+                            {[...menuItems, ...(currentUser?.isAdmin === 1 ? adminItems : [])].filter(i => !['home','car-orders','users'].includes(i.view)).map(item => (
                                 <button key={item.view} onClick={() => handleNavigate(item.view)} className="flex flex-col items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                     <div className={`p-3 rounded-2xl mb-2 ${activeView === item.view ? 'bg-sky-100 text-sky-600 dark:bg-sky-900 dark:text-sky-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
                                         {item.icon}
@@ -366,6 +366,7 @@ const App: React.FC = () => {
                 {activeView === 'notification-center' && <NotificationCenterPage />}
                 {activeView === 'advertising' && <AdvertisingPage />}
                 {activeView === 'used-cars' && <UsedCarPage />}
+                {activeView === 'car-orders' && <CarOrderPage isAdmin={currentUser?.isAdmin === 1} />}
             </main>
         </div>
     );

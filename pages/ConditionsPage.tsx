@@ -7,18 +7,17 @@ import FilterPanel from '../components/FilterPanel';
 import ConditionModal from '../components/ConditionModal';
 import ConditionViewModal from '../components/ConditionViewModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import BulkEditConditionsModal from '../components/BulkEditConditionsModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { ExportIcon } from '../components/icons/ExportIcon';
+import { CloseIcon } from '../components/icons/CloseIcon';
+import { EditIcon } from '../components/icons/EditIcon';
 
 type SortConfig = { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
 
-interface ConditionsPageProps {
-    // No props needed
-}
-
-const ConditionsPage: React.FC<ConditionsPageProps> = () => {
+const ConditionsPage: React.FC = () => {
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
     const [cars, setCars] = useState<Car[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -32,6 +31,9 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
     const [conditionToDelete, setConditionToDelete] = useState<CarSaleCondition | null>(null);
+
+    const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
@@ -77,7 +79,6 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
     };
 
     const handleDuplicate = (condition: CarSaleCondition) => {
-        // Clone the condition and set ID to 0 to treat it as a new entry in the modal
         const duplicatedCondition = { ...condition, id: 0, colors: [...condition.colors] };
         setCurrentCondition(duplicatedCondition);
         setIsModalOpen(true);
@@ -95,7 +96,6 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
     
     const handleSave = async (conditionData: Omit<CarSaleCondition, 'id'>) => {
         try {
-            // Check if it's an update (ID exists and is not 0) or create (null or ID is 0)
             if (currentCondition && currentCondition.id !== 0) {
                 await updateCondition(currentCondition.id, { ...conditionData, id: currentCondition.id });
                 showToast('شرط با موفقیت ویرایش شد', 'success');
@@ -162,6 +162,43 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
         return filtered;
     }, [conditions, filters, sortConfig]);
 
+    const handleSelectionChange = (id: number) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleSelectAll = (all: boolean) => {
+        if (all) {
+            setSelectedIds(new Set(sortedAndFilteredConditions.map(c => c.id)));
+        } else {
+            setSelectedIds(new Set());
+        }
+    };
+
+    const handleBulkSave = async (updates: Partial<CarSaleCondition>) => {
+        try {
+            setLoading(true);
+            const selectedConditions = conditions.filter(c => selectedIds.has(c.id));
+            
+            // Sequential updates to the API
+            for (const condition of selectedConditions) {
+                await updateCondition(condition.id, { ...condition, ...updates });
+            }
+
+            showToast('تغییرات گروهی با موفقیت اعمال شد', 'success');
+            setSelectedIds(new Set());
+            fetchAllConditions();
+        } catch (err) {
+            showToast('خطا در اعمال تغییرات گروهی', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleExportCSV = () => {
         if (sortedAndFilteredConditions.length === 0) {
             showToast('هیچ داده‌ای برای خروجی گرفتن وجود ندارد.', 'error');
@@ -197,8 +234,6 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
         ].map(escapeCSV).join(','));
 
         const csvContent = [headers.join(','), ...csvRows].join('\n');
-        
-        // Add BOM for Excel compatibility with Persian characters
         const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
         const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
         
@@ -218,10 +253,10 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
 
     return (
         <>
-            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-white p-6 rounded-lg shadow-md mb-8 space-y-4">
+            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-8 space-y-4">
                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h2 className="text-xl font-bold text-slate-700">شرایط فروش</h2>
+                        <h2 className="text-xl font-bold text-slate-700 dark:text-white">شرایط فروش</h2>
                         <div className="flex items-center gap-2 flex-wrap">
                             <button
                                 onClick={handleExportCSV}
@@ -262,7 +297,38 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
                         onDuplicate={handleDuplicate}
                         onSort={handleSort}
                         sortConfig={sortConfig}
+                        selectedIds={selectedIds}
+                        onSelectionChange={handleSelectionChange}
+                        onSelectAll={handleSelectAll}
                     />
+                )}
+
+                {/* Bulk Actions Floating Bar */}
+                {selectedIds.size > 0 && (
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-6 animate-slide-up border border-slate-700">
+                        <div className="flex items-center gap-3 border-l border-slate-700 pl-6">
+                            <span className="bg-sky-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                                {selectedIds.size.toLocaleString('fa-IR')}
+                            </span>
+                            <span className="text-sm font-bold">مورد انتخاب شد</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setIsBulkEditModalOpen(true)}
+                                className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
+                            >
+                                <EditIcon className="w-4 h-4" />
+                                ویرایش گروهی
+                            </button>
+                            <button 
+                                onClick={() => setSelectedIds(new Set())}
+                                className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors"
+                            >
+                                <CloseIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
                 )}
             </main>
 
@@ -293,8 +359,27 @@ const ConditionsPage: React.FC<ConditionsPageProps> = () => {
                     message={`آیا از حذف شرط فروش برای خودروی "${conditionToDelete?.car_model} مدل ${conditionToDelete?.model}" اطمینان دارید؟ این عملیات قابل بازگشت نیست.`}
                 />
             )}
+
+            {isBulkEditModalOpen && (
+                <BulkEditConditionsModal 
+                    isOpen={isBulkEditModalOpen}
+                    onClose={() => setIsBulkEditModalOpen(false)}
+                    onSave={handleBulkSave}
+                    count={selectedIds.size}
+                />
+            )}
             
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            
+            <style>{`
+                @keyframes slide-up {
+                    from { transform: translate(-50%, 100px); opacity: 0; }
+                    to { transform: translate(-50%, 0); opacity: 1; }
+                }
+                .animate-slide-up {
+                    animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                }
+            `}</style>
         </>
     );
 };

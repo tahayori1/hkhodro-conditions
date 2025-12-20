@@ -26,7 +26,8 @@ import type {
     NotificationLog,
     MessageTemplate,
     AdCampaign,
-    UsedCar
+    UsedCar,
+    CarOrder
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -291,7 +292,7 @@ export const deleteStaffUser = async (id: number, username: string): Promise<voi
 const normalizeCondition = (condition: any): CarSaleCondition => {
     if (!condition) return condition;
 
-    const { indeed_status, ...restOfApiData } = condition;
+    const { indeed_status, is_public, stock_quantity, ...restOfApiData } = condition;
     
     const colorsArray = typeof condition.colors === 'string'
         ? condition.colors.split(',').map((c: string) => c.trim()).filter(Boolean)
@@ -302,7 +303,9 @@ const normalizeCondition = (condition: any): CarSaleCondition => {
     return { 
         ...restOfApiData, 
         document_status: indeed_status,
-        colors: colorsArray 
+        colors: colorsArray,
+        is_public: !!is_public,
+        stock_quantity: parseInt(stock_quantity, 10) || 0
     } as CarSaleCondition;
 };
 
@@ -313,6 +316,8 @@ const denormalizeCondition = (condition: Omit<CarSaleCondition, 'id'> | CarSaleC
         ...restOfAppData,
         indeed_status: document_status,
         colors: Array.isArray(condition.colors) ? condition.colors.join(',') : '',
+        is_public: condition.is_public ? 1 : 0,
+        stock_quantity: condition.stock_quantity
     };
 };
 
@@ -706,7 +711,7 @@ export const updateUserCredentials = async (
     return handleResponse(response);
 };
 
-// --- New Service Endpoints ---
+// --- CRUD Services ---
 
 const ZERO_CAR_DELIVERY_URL = `${API_BASE_URL}/ZeroCarDelivery`;
 const CORRECTIVE_ACTIONS_URL = `${API_BASE_URL}/CorrectiveActions`;
@@ -717,6 +722,7 @@ const PERMISSIONS_URL = `${API_BASE_URL}/Permissions`;
 const MEETING_MINUTES_URL = `${API_BASE_URL}/MeetingMinutes`;
 const AD_CAMPAIGNS_URL = `${API_BASE_URL}/AdCampaigns`;
 const USED_CARS_URL = `${API_BASE_URL}/UsedCars`;
+const CAR_ORDERS_URL = `${API_BASE_URL}/CarOrders`;
 
 // Generic CRUD helper
 const createCrudService = <T>(url: string) => ({
@@ -764,6 +770,7 @@ export const permissionsService = createCrudService<any>(PERMISSIONS_URL);
 export const meetingMinutesService = createCrudService<MeetingMinute>(MEETING_MINUTES_URL);
 export const adCampaignsService = createCrudService<AdCampaign>(AD_CAMPAIGNS_URL);
 export const usedCarsService = createCrudService<UsedCar>(USED_CARS_URL);
+export const carOrdersService = createCrudService<CarOrder>(CAR_ORDERS_URL);
 
 // My Profile Service
 export const getMyProfile = async (): Promise<MyProfile | {}> => {
@@ -840,7 +847,7 @@ export const updateUserProfileAsAdmin = async (userId: number, profile: Partial<
     return handleResponse(response);
 };
 
-// --- Notification Center Mocks (Data Persistence in LocalStorage for demo) ---
+// --- Notification Center ---
 
 const getStoredTemplates = (): MessageTemplate[] => {
     const stored = localStorage.getItem('messageTemplates');

@@ -46,6 +46,8 @@ export interface CarSaleCondition {
     delivery_time: string; // e.g., '30 روز کاری'
     initial_deposit: number;
     descriptions?: string;
+    is_public: boolean;
+    stock_quantity: number;
 }
 
 export interface User {
@@ -173,9 +175,51 @@ export interface DeliveryProcess {
     notes?: string;
 }
 
+// --- Car Sale Orders ---
+
+export enum OrderStatus {
+    PENDING_ADMIN = 'در انتظار تایید مدیریت',
+    REJECTED = 'رد شده',
+    PENDING_PAYMENT = 'منتظر پرداخت کاربر',
+    PENDING_FINANCE = 'در انتظار تایید مالی',
+    READY_FOR_DELIVERY = 'آماده تحویل',
+    EXIT_PROCESS = 'در فرآیند خروج',
+    COMPLETED = 'تکمیل شده',
+}
+
+export interface CarOrder {
+    id: number;
+    trackingCode?: string;
+    // Step 1: Buyer
+    buyerName: string;
+    buyerNationalId: string;
+    buyerPhone: string;
+    buyerCity: string;
+    buyerAddress: string;
+    buyerAddressPostalCode?: string; // Potential legacy field
+    buyerPostalCode: string;
+    // Step 2: Car & Condition
+    carName: string;
+    conditionId: number;
+    conditionSummary: string; // Detailed snapshot
+    // Step 3: Proposal
+    selectedColor: string;
+    proposedPrice: number;
+    userNotes: string;
+    // Admin Review
+    adminNotes?: string;
+    finalPrice?: number;
+    deliveryDeadline?: string;
+    // System
+    status: OrderStatus;
+    createdBy: string; // username
+    createdAt: string;
+    updatedAt: string;
+}
+
 // --- Access Control Types ---
 
-export type AppModule = 'users' | 'conditions' | 'cars' | 'prices' | 'vehicle-exit' | 'settings';
+export type AppModule = 'users' | 'conditions' | 'cars' | 'prices' | 'vehicle-exit' | 'settings' | 'orders';
 export type ActionType = 'view' | 'add' | 'edit' | 'delete';
 
 export interface Permission {
@@ -376,7 +420,7 @@ export interface SecureTransaction {
     steps: TransactionStep[];
 }
 
-// --- Notification Center Types ---
+// --- Notification Center ---
 
 export type NotificationType = 'WHATSAPP' | 'SMS';
 export type NotificationStatus = 'SENT' | 'FAILED' | 'PENDING';

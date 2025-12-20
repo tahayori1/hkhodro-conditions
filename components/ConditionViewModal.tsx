@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { CarSaleCondition } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
@@ -34,18 +35,25 @@ const ConditionViewModal: React.FC<ConditionViewModalProps> = ({ isOpen, onClose
 
                 <main id="printable-area" className="p-6 overflow-y-auto">
                     <div className="space-y-4">
-                        <div className="p-4 border border-sky-200 bg-sky-50 rounded-lg text-center">
+                        <div className="p-4 border border-sky-200 bg-sky-50 rounded-lg text-center relative">
                             <h3 className="text-xl font-bold text-sky-800">{condition.car_model} - {condition.model}</h3>
+                            <div className="absolute top-2 left-2">
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${condition.is_public ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                                    {condition.is_public ? 'نمایش عمومی' : 'عدم نمایش'}
+                                </span>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             <DetailItem label="وضعیت" value={condition.status} />
+                            <DetailItem label="موجودی انبار" value={`${condition.stock_quantity.toLocaleString('fa-IR')} عدد`} />
                             <DetailItem label="نوع فروش" value={condition.sale_type} />
                             <DetailItem label="نحوه پرداخت" value={condition.pay_type} />
                             <DetailItem label="وضعیت سند" value={condition.document_status} />
                             <DetailItem label="زمان تحویل" value={condition.delivery_time} />
-                            <DetailItem label="رنگ‌ها" value={condition.colors.join('، ')} />
                         </div>
+                        
+                        <DetailItem label="رنگ‌های مجاز" value={condition.colors.join('، ')} className="bg-sky-50/50" />
 
                         <DetailItem 
                             label="مبلغ پیش‌پرداخت"
