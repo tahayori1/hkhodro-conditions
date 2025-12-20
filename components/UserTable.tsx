@@ -9,6 +9,7 @@ import { PhoneIcon } from './icons/PhoneIcon';
 import { UsersIcon } from './icons/UsersIcon';
 import { SendToCrmIcon } from './icons/SendToCrmIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { ClipboardListIcon } from './icons/ClipboardListIcon';
 
 interface UserTableProps {
     users: User[];
@@ -21,9 +22,14 @@ interface UserTableProps {
     onSelectionChange: (userId: number) => void;
     onSelectAllChange: (selectAll: boolean) => void;
     onSendToCrm: (user: User) => void;
+    onRegisterOrder: (user: User) => void;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails, onSort, sortConfig, selectedUserIds, onSelectionChange, onSelectAllChange, onSendToCrm }) => {
+const UserTable: React.FC<UserTableProps> = ({ 
+    users, onEdit, onDelete, onViewDetails, onSort, sortConfig, 
+    selectedUserIds, onSelectionChange, onSelectAllChange, onSendToCrm,
+    onRegisterOrder
+}) => {
     if (users.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-600 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 border-dashed mx-4">
@@ -71,7 +77,6 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
         );
     };
 
-    // Helper for avatar initials
     const getInitials = (name: string) => {
         return name ? name.split(' ').map(n => n[0]).join('').slice(0, 2) : '??';
     };
@@ -150,6 +155,9 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                                 <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500">{formatDate(user.updatedAt)}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-1">
+                                        <button onClick={() => onRegisterOrder(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-colors" title="ثبت سفارش فروش">
+                                            <ClipboardListIcon className="w-5 h-5" />
+                                        </button>
                                         <button onClick={() => onViewDetails(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-colors" title="گفتگو">
                                             <ChatIcon />
                                         </button>
@@ -167,18 +175,16 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                 </table>
             </div>
 
-            {/* Mobile List View (Native App Style) */}
+            {/* Mobile List View */}
             <div className="md:hidden flex flex-col gap-3 pb-20">
                 {users.map((user) => (
                     <div 
                         key={user.id} 
-                        onClick={() => onViewDetails(user)}
-                        className={`relative bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border transition-all active:scale-[0.98] 
+                        className={`relative bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border transition-all 
                         ${selectedUserIds.has(user.id) ? 'border-sky-500 ring-1 ring-sky-500 bg-sky-50 dark:bg-sky-900/20' : 'border-slate-100 dark:border-slate-700'}
                         `}
                     >
                         <div className="flex items-start gap-3">
-                            {/* Selection Circle */}
                             <div 
                                 onClick={(e) => { e.stopPropagation(); onSelectionChange(user.id); }}
                                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors mt-1 ${selectedUserIds.has(user.id) ? 'bg-sky-500 border-sky-500' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'}`}
@@ -186,8 +192,7 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                                 {selectedUserIds.has(user.id) && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
                             </div>
 
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0" onClick={() => onViewDetails(user)}>
                                 <div className="flex justify-between items-start">
                                     <h3 className="font-bold text-slate-900 dark:text-white text-base truncate">{user.FullName}</h3>
                                     <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded-full flex-shrink-0 font-mono">{formatDate(user.updatedAt)}</span>
@@ -206,11 +211,19 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                                     <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
                                         <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
                                         <div>
-                                            <span className="font-semibold">ارسال به CRM توسط {user.crmPerson}</span>
-                                            <span className="block font-mono text-[10px] opacity-80">{formatDateForTooltip(user.crmDate)}</span>
+                                            <span className="font-semibold text-[10px]">ارسال به CRM توسط {user.crmPerson}</span>
                                         </div>
                                     </div>
                                 ) : null}
+                            </div>
+                            
+                            <div className="flex flex-col gap-2">
+                                <button onClick={(e) => { e.stopPropagation(); onRegisterOrder(user); }} className="p-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl" title="ثبت سفارش">
+                                    <ClipboardListIcon className="w-5 h-5" />
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); onViewDetails(user); }} className="p-2 text-sky-600 bg-sky-50 dark:bg-sky-900/30 rounded-xl">
+                                    <ChatIcon className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
                     </div>

@@ -35,6 +35,10 @@ const ConditionTable: React.FC<ConditionTableProps> = ({
         return <p className="text-center text-slate-500 py-10">هیچ شرایط فروشی یافت نشد.</p>;
     }
 
+    const formatPrice = (num: number) => {
+        return num.toLocaleString('fa-IR');
+    };
+
     const SortableHeader: React.FC<{ title: string; sortKey: keyof CarSaleCondition; }> = ({ title, sortKey }) => {
         const isSorted = sortConfig?.key === sortKey;
         const direction = isSorted ? sortConfig.direction : 'none';
@@ -69,8 +73,7 @@ const ConditionTable: React.FC<ConditionTableProps> = ({
                             </th>
                             <SortableHeader title="وضعیت" sortKey="status" />
                             <SortableHeader title="مدل خودرو" sortKey="car_model" />
-                            <SortableHeader title="سال" sortKey="model" />
-                            <SortableHeader title="تعداد" sortKey="stock_quantity" />
+                            <SortableHeader title="قیمت (تومان)" sortKey="initial_deposit" />
                             <SortableHeader title="نوع فروش" sortKey="sale_type" />
                             <SortableHeader title="تحویل" sortKey="delivery_time" />
                             <SortableHeader title="عمومی" sortKey="is_public" />
@@ -94,8 +97,7 @@ const ConditionTable: React.FC<ConditionTableProps> = ({
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{condition.car_model}</td>
-                                <td className="px-6 py-4">{condition.model}</td>
-                                <td className="px-6 py-4 font-mono font-bold">{condition.stock_quantity.toLocaleString('fa-IR')}</td>
+                                <td className="px-6 py-4 font-mono font-bold text-slate-900 dark:text-white">{formatPrice(condition.initial_deposit)}</td>
                                 <td className="px-6 py-4">{condition.sale_type}</td>
                                 <td className="px-6 py-4">{condition.delivery_time}</td>
                                 <td className="px-6 py-4">
@@ -140,7 +142,7 @@ const ConditionTable: React.FC<ConditionTableProps> = ({
                                         checked={selectedIds.has(condition.id)}
                                         onChange={() => onSelectionChange(condition.id)}
                                     />
-                                    <h3 className="font-bold text-slate-800 dark:text-white text-md">{condition.car_model} - {condition.model}</h3>
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-md">{condition.car_model}</h3>
                                 </div>
                                 <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${statusColorMap[condition.status]}`}>
                                     {condition.status}
@@ -149,8 +151,8 @@ const ConditionTable: React.FC<ConditionTableProps> = ({
                         </div>
                         <div className="p-4 flex-grow">
                             <div className="text-center mb-4">
-                                <p className="text-xs text-slate-500 dark:text-slate-400">موجودی انبار</p>
-                                <p className="text-xl font-bold font-mono text-sky-700 dark:text-sky-400">{condition.stock_quantity.toLocaleString('fa-IR')} <span className="text-sm font-sans">عدد</span></p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">مبلغ پیش‌پرداخت</p>
+                                <p className="text-xl font-bold font-mono text-sky-700 dark:text-sky-400">{formatPrice(condition.initial_deposit)} <span className="text-sm font-sans">تومان</span></p>
                             </div>
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-600 dark:text-slate-300">
                                 <div className="flex flex-col">

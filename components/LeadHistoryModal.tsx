@@ -9,6 +9,7 @@ import { SendToCrmIcon } from './icons/SendToCrmIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { ChatIcon } from './icons/ChatIcon';
 import { ChatAltIcon } from './icons/ChatAltIcon';
+import { ClipboardListIcon } from './icons/ClipboardListIcon';
 import Toast from './Toast';
 
 interface LeadDetailHistoryModalProps {
@@ -21,6 +22,7 @@ interface LeadDetailHistoryModalProps {
     error: string | null;
     onSendMessage: (message: string, type: 'SMS' | 'WHATSAPP') => Promise<void>;
     onSendToCrm: (user: User) => Promise<void>;
+    onRegisterOrder: (user: User) => void;
     cars: Car[];
     conditions: CarSaleCondition[];
 }
@@ -32,7 +34,10 @@ const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ labe
     </div>
 );
 
-const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, onSendMessage, onSendToCrm, cars, conditions }) => {
+const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ 
+    isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, 
+    onSendMessage, onSendToCrm, onRegisterOrder, cars, conditions 
+}) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [newMessage, setNewMessage] = useState('');
@@ -57,7 +62,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
             const initialCarModel = fullUserDetails?.CarModel || lead?.CarModel || '';
             setQuickSendCarModel(initialCarModel);
         } else if (!isOpen) {
-            // Reset state on close
             setQuickSendCarModel('');
             setNewMessage('');
             setValidationError(null);
@@ -75,7 +79,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
     const handleSendSMS = async () => {
         if (!newMessage.trim() || isSending) return;
 
-        // SMS Validation
         if (newMessage.length > 170) {
             setValidationError('متن پیامک نمی‌تواند بیشتر از ۱۷۰ کاراکتر باشد.');
             return;
@@ -92,7 +95,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
             await onSendMessage(newMessage, 'SMS');
             setNewMessage('');
         } catch (error) {
-            // Error is handled in parent
         } finally {
             setIsSending(false);
         }
@@ -106,7 +108,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ isOpen,
             await onSendMessage(newMessage, 'WHATSAPP');
             setNewMessage('');
         } catch (error) {
-            // Error is handled in parent
         } finally {
             setIsSending(false);
         }
@@ -200,6 +201,13 @@ ${descriptionsText}`;
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => fullUserDetails && onRegisterOrder(fullUserDetails)} 
+                                className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors" 
+                                title="ثبت سفارش فروش"
+                            >
+                                <ClipboardListIcon className="w-5 h-5" />
+                            </button>
                             {fullUserDetails && !fullUserDetails.crmIsSend ? (
                                 <button onClick={handleSendToCrm} disabled={isCrmSending} className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 disabled:opacity-50 disabled:cursor-wait" title="ارسال به CRM">
                                     {isCrmSending ? <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div> : <SendToCrmIcon />}
@@ -222,7 +230,6 @@ ${descriptionsText}`;
                              <div className="flex justify-center items-center h-full"><p className="text-red-500">{error}</p></div>
                         ) : (
                             <>
-                                {/* User Details Section */}
                                 <div className="p-4 bg-slate-50 border-b">
                                     <h3 className="text-md font-bold text-slate-700 mb-3">اطلاعات مشتری</h3>
                                     {fullUserDetails ? (
@@ -244,7 +251,6 @@ ${descriptionsText}`;
                                     )}
                                 </div>
 
-                                {/* Messages Section */}
                                 <div className="p-4">
                                     {messages.length === 0 ? (
                                         <div className="flex flex-col justify-center items-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200 mx-4 mt-4">

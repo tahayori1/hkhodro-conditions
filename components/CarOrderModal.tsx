@@ -9,11 +9,20 @@ import Spinner from './Spinner';
 interface CarOrderModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (order: Omit<CarOrder, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'status'>) => void;
+    onSave: (order: Omit<CarOrder, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'status'>, status: OrderStatus) => void;
     username: string;
+    initialBuyerData?: {
+        name?: string;
+        phone?: string;
+        city?: string;
+        nationalId?: string;
+        address?: string;
+        postalCode?: string;
+    };
+    editOrder?: CarOrder | null;
 }
 
-const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, username }) => {
+const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, username, initialBuyerData, editOrder }) => {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [cars, setCars] = useState<Car[]>([]);
@@ -39,14 +48,67 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
         if (isOpen) {
             setLoading(true);
             setStep(1);
+            
+            // 1. If we are editing an existing order (draft), load its full data
+            if (editOrder) {
+                setFormData({
+                    buyerName: editOrder.buyerName,
+                    buyerNationalId: editOrder.buyerNationalId,
+                    buyerPhone: editOrder.buyerPhone,
+                    buyerCity: editOrder.buyerCity,
+                    buyerAddress: editOrder.buyerAddress,
+                    buyerPostalCode: editOrder.buyerPostalCode,
+                    carName: editOrder.carName,
+                    conditionId: editOrder.conditionId,
+                    conditionSummary: editOrder.conditionSummary,
+                    selectedColor: editOrder.selectedColor,
+                    proposedPrice: editOrder.proposedPrice,
+                    userNotes: editOrder.userNotes || ''
+                });
+            }
+            // 2. Otherwise, if initial buyer data is provided (from Customers page)
+            else if (initialBuyerData) {
+                setFormData(prev => ({
+                    ...prev,
+                    buyerName: initialBuyerData.name || prev.buyerName,
+                    buyerPhone: initialBuyerData.phone || prev.buyerPhone,
+                    buyerCity: initialBuyerData.city || prev.buyerCity,
+                    buyerNationalId: initialBuyerData.nationalId || prev.buyerNationalId,
+                    buyerAddress: initialBuyerData.address || prev.buyerAddress,
+                    buyerPostalCode: initialBuyerData.postalCode || prev.buyerPostalCode,
+                }));
+            } else {
+                // Reset
+                setFormData({
+                    buyerName: '',
+                    buyerNationalId: '',
+                    buyerPhone: '',
+                    buyerCity: '',
+                    buyerAddress: '',
+                    buyerPostalCode: '',
+                    carName: '',
+                    conditionId: 0,
+                    conditionSummary: '',
+                    selectedColor: '',
+                    proposedPrice: 0,
+                    userNotes: ''
+                });
+            }
+
             Promise.all([getCars(), getConditions()])
                 .then(([carsData, conditionsData]) => {
                     setCars(carsData);
                     setConditions(conditionsData);
+                    
+                    // If editing, find and set the condition object
+                    if (editOrder) {
+                        const cond = conditionsData.find(c => c.id === editOrder.conditionId);
+                        if (cond) setSelectedConditionObj(cond);
+                    }
                 })
                 .finally(() => setLoading(false));
         }
-    }, [isOpen]);
+    }, [isOpen, initialBuyerData, editOrder]);
 
     const handleNext = () => {
         // Validation for each step
@@ -66,13 +128,19 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
             ...formData, 
             conditionId: c.id, 
             conditionSummary: `بخشنامه ${c.id}: ${c.sale_type} - ${c.pay_type} | مدل ${c.model} | تحویل ${c.delivery_time} | پیش‌پرداخت ${c.initial_deposit.toLocaleString('fa-IR')}`,
-            selectedColor: c.colors.length > 0 ? c.colors[0] : ''
+            selectedColor: c.colors.length > 0 ? c.colors[0] : '',
+            proposedPrice: c.initial_deposit // Automatically pre-fill proposedPrice with initial_deposit
         });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleFinalSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSave(formData, OrderStatus.PENDING_ADMIN);
+    };
+
+    const handleSaveAsDraft = (e: React.MouseEvent) => {
+        e.preventDefault();
+        onSave(formData, OrderStatus.DRAFT);
     };
 
     if (!isOpen) return null;
@@ -84,7 +152,9 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 rounded-t-2xl">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">ثبت سفارش فروش جدید</h3>
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                            {editOrder ? 'ویرایش سفارش فروش' : 'ثبت سفارش فروش جدید'}
+                        </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">گام {step} از ۳ - تکمیل چرخه فروش</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"><CloseIcon className="text-slate-500" /></button>
@@ -97,7 +167,7 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                             <p className="text-sm text-slate-400">در حال فراخوانی داده‌ها...</p>
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form className="space-y-6">
                             {/* Stepper Visual */}
                             <div className="flex items-center justify-center mb-8 gap-2">
                                 {[1, 2, 3].map(i => (
@@ -233,26 +303,36 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                     )}
                 </div>
 
-                <div className="p-6 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-between rounded-b-2xl">
+                <div className="p-6 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-wrap justify-between items-center gap-3 rounded-b-2xl">
                     <button onClick={step === 1 ? onClose : handleBack} className="px-6 py-2 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg">
                         {step === 1 ? 'انصراف' : 'قبلی'}
                     </button>
-                    {step < 3 ? (
-                        <button 
-                            disabled={loading || (step === 1 && (!formData.buyerPhone || !formData.buyerCity)) || (step === 2 && !formData.conditionId)} 
-                            onClick={handleNext} 
-                            className="px-8 py-2 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 disabled:opacity-30 shadow-md transition-all"
-                        >
-                            گام بعد
-                        </button>
-                    ) : (
-                        <button 
-                            onClick={handleSubmit} 
-                            className="px-8 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 dark:shadow-none transition-all"
-                        >
-                            ثبت و ارسال به ادمین
-                        </button>
-                    )}
+                    <div className="flex gap-2">
+                        {step < 3 ? (
+                            <button 
+                                disabled={loading || (step === 1 && (!formData.buyerPhone || !formData.buyerCity)) || (step === 2 && !formData.conditionId)} 
+                                onClick={handleNext} 
+                                className="px-8 py-2 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 disabled:opacity-30 shadow-md transition-all"
+                            >
+                                گام بعد
+                            </button>
+                        ) : (
+                            <>
+                                <button 
+                                    onClick={handleSaveAsDraft}
+                                    className="px-6 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition-all"
+                                >
+                                    ذخیره پیش‌نویس
+                                </button>
+                                <button 
+                                    onClick={handleFinalSubmit} 
+                                    className="px-8 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 dark:shadow-none transition-all"
+                                >
+                                    {editOrder && editOrder.status === OrderStatus.DRAFT ? 'ارسال نهایی برای ادمین' : 'ثبت نهایی'}
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

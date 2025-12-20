@@ -178,6 +178,7 @@ export interface DeliveryProcess {
 // --- Car Sale Orders ---
 
 export enum OrderStatus {
+    DRAFT = 'پیش‌نویس',
     PENDING_ADMIN = 'در انتظار تایید مدیریت',
     REJECTED = 'رد شده',
     PENDING_PAYMENT = 'منتظر پرداخت کاربر',

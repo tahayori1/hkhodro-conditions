@@ -1,8 +1,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, getLeadHistory, sendMessage, sendSMS, getUserByNumber, getCars, getConditions, getReferences } from '../services/api';
+import { 
+    getUsers, createUser, updateUser, deleteUser, getLeadHistory, 
+    sendMessage, sendSMS, getUserByNumber, getCars, getConditions, 
+    getReferences, carOrdersService 
+} from '../services/api';
 import type { Reference } from '../services/api';
 import type { User, LeadMessage, Car, CarSaleCondition, MyProfile } from '../types';
+import { OrderStatus } from '../types';
 import UserTable from '../components/UserTable';
 import UserModal from '../components/UserModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -11,11 +16,14 @@ import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
 import LeadDetailHistoryModal from '../components/LeadHistoryModal';
 import BroadcastModal from '../components/BroadcastModal';
+import CarOrderModal from '../components/CarOrderModal';
 import { BroadcastIcon } from '../components/icons/BroadcastIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 import UserFilterPanel from '../components/UserFilterPanel';
 import { PlusIcon } from '../components/icons/PlusIcon';
 
+// Declare moment from global scope (loaded via CDN in index.html)
+declare const moment: any;
 
 const ITEMS_PER_PAGE = 50;
 
@@ -48,6 +56,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
     const [userToDelete, setUserToDelete] = useState<number | null>(null);
+
+    const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+    const [selectedUserForOrder, setSelectedUserForOrder] = useState<User | null>(null);
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
@@ -132,7 +143,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                     const dateA = new Date((aValue as string || '').replace(' ', 'T')).getTime();
                     const dateB = new Date((bValue as string || '').replace(' ', 'T')).getTime();
                     if (dateA < dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
-                    if (dateA > dateB) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    if (dateB > dateA) return sortConfig.direction === 'ascending' ? 1 : -1;
                     return 0;
                 }
 
@@ -184,13 +195,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         setModalFullUser(null);
         
         try {
-            // Load history - catch error so it doesn't block the modal content if it fails
             const historyPromise = getLeadHistory(lead.Number).catch(e => {
                 console.error("Failed to load history", e);
                 return []; 
             });
 
-            // Load details - catch error so we can still show basic lead info
             const userPromise = getUserByNumber(lead.Number).catch(e => {
                 console.error("Failed to load user details", e);
                 return null;
@@ -206,13 +215,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
             if (userData) {
                 setModalFullUser(userData);
             } else {
-                // If API fails or returns no user, fall back to the lead data from the list
                 setModalFullUser(lead);
             }
 
         } catch (err) {
             console.error("Unexpected error in view details", err);
-            // We don't set modalError here to allow partial data to be shown
         } finally {
             setModalLoading(false);
         }
@@ -296,14 +303,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         }
 
         try {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const crmDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            const crmDate = moment().format('YYYY-MM-DD HH:mm:ss');
 
             const updatedUserForApi: User = {
                 ...user,
@@ -315,8 +315,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
             await updateUser(user.id, updatedUserForApi);
 
             showToast('کاربر با موفقیت به CRM ارسال شد', 'success');
-            
-            // Refetch data for both the main list and the modal if it's open
             fetchAllData();
             if (isDetailModalOpen && selectedLead) {
                 const updatedDetails = await getUserByNumber(selectedLead.Number);
@@ -328,6 +326,29 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         } catch (err) {
             showToast('خطا در ارسال به CRM', 'error');
             throw err;
+        }
+    };
+
+    const handleOpenOrderModal = (user: User) => {
+        setSelectedUserForOrder(user);
+        setIsOrderModalOpen(true);
+    };
+
+    const handleSaveOrder = async (orderData: any) => {
+        const now = moment().format('YYYY-MM-DD HH:mm:ss');
+        try {
+            await carOrdersService.create({
+                ...orderData,
+                status: OrderStatus.PENDING_ADMIN,
+                createdBy: loggedInUser?.username || 'ناشناس',
+                createdAt: now,
+                updatedAt: now,
+            });
+            showToast('سفارش فروش برای مشتری با موفقیت ثبت شد', 'success');
+            setIsOrderModalOpen(false);
+            setSelectedUserForOrder(null);
+        } catch (err) {
+            showToast('خطا در ثبت سفارش فروش', 'error');
         }
     };
 
@@ -429,6 +450,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                             onSelectionChange={handleSelectionChange}
                             onSelectAllChange={handleSelectAllChange}
                             onSendToCrm={handleSendToCrm}
+                            onRegisterOrder={handleOpenOrderModal}
                         />
                         {totalPages > 1 && (
                             <Pagination
@@ -463,6 +485,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                     error={modalError}
                     onSendMessage={handleSendMessage}
                     onSendToCrm={handleSendToCrm}
+                    onRegisterOrder={handleOpenOrderModal}
                     cars={cars}
                     conditions={conditions}
                 />
@@ -479,6 +502,25 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                     recipientCount={selectedUserIds.size}
                     cars={cars}
                     conditions={conditions}
+                />
+            )}
+
+            {isOrderModalOpen && (
+                <CarOrderModal
+                    isOpen={isOrderModalOpen}
+                    onClose={() => {
+                        setIsOrderModalOpen(false);
+                        setSelectedUserForOrder(null);
+                    }}
+                    onSave={handleSaveOrder}
+                    username={loggedInUser?.username || ''}
+                    initialBuyerData={selectedUserForOrder ? {
+                        name: selectedUserForOrder.FullName,
+                        phone: selectedUserForOrder.Number,
+                        city: selectedUserForOrder.City,
+                        address: selectedUserForOrder.Province, // Use province as fallback for address start
+                        postalCode: ''
+                    } : undefined}
                 />
             )}
             

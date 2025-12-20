@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { CarOrder, MyProfile, CarSaleCondition } from '../types';
 import { OrderStatus } from '../types';
 import { carOrdersService, getMyProfile, getConditions, updateCondition } from '../services/api';
@@ -9,10 +9,15 @@ import CarOrderModal from '../components/CarOrderModal';
 import { ClipboardListIcon } from '../components/icons/ClipboardListIcon';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
+import { EditIcon } from '../components/icons/EditIcon';
+
+// Declare moment from global scope (loaded via CDN in index.html)
+declare const moment: any;
 
 const STATUS_CONFIG: Record<string, { label: string, color: string }> = {
+    [OrderStatus.DRAFT]: { label: 'پیش‌نویس', color: 'bg-slate-100 text-slate-600 border-slate-200' },
     [OrderStatus.PENDING_ADMIN]: { label: 'در انتظار تایید ادمین', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-    [OrderStatus.REJECTED]: { label: 'رد شده', color: 'bg-rose-100 text-rose-700 border-rose-200' },
+    [OrderStatus.REJECTED]: { label: 'رد شده / ابطال', color: 'bg-rose-100 text-rose-700 border-rose-200' },
     [OrderStatus.PENDING_PAYMENT]: { label: 'منتظر پرداخت', color: 'bg-sky-100 text-sky-700 border-sky-200' },
     [OrderStatus.PENDING_FINANCE]: { label: 'تایید مالی', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
     [OrderStatus.READY_FOR_DELIVERY]: { label: 'آماده تحویل', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -45,7 +50,6 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                 carOrdersService.getAll(),
                 getMyProfile()
             ]);
-            // Filter out malformed data that might come from generic API error objects
             const validOrders = Array.isArray(ordersData) ? ordersData.filter(o => o && (o.id || o.status)) : [];
             setOrders(validOrders);
             if (profileData && 'id' in profileData) setCurrentUser(profileData as MyProfile);
@@ -60,17 +64,59 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         fetchData();
     }, []);
 
-    const handleCreateOrder = async (data: any) => {
+    // --- Stock Management Helpers ---
+
+    const returnStockIfNecessary = async (order: CarOrder) => {
+        // Statuses that have already subtracted from stock
+        const activeStatuses = [
+            OrderStatus.PENDING_PAYMENT,
+            OrderStatus.PENDING_FINANCE,
+            OrderStatus.READY_FOR_DELIVERY,
+            OrderStatus.EXIT_PROCESS,
+            OrderStatus.COMPLETED
+        ];
+
+        if (activeStatuses.includes(order.status)) {
+            try {
+                const allConditions = await getConditions();
+                const cond = allConditions.find(c => c.id === order.conditionId);
+                if (cond) {
+                    await updateCondition(cond.id, {
+                        ...cond,
+                        stock_quantity: cond.stock_quantity + 1
+                    });
+                    console.log(`Stock returned for condition ${cond.id}. New stock: ${cond.stock_quantity + 1}`);
+                }
+            } catch (err) {
+                console.error("Failed to return stock:", err);
+                throw new Error("خطا در بازگرداندن موجودی به انبار");
+            }
+        }
+    };
+
+    const handleCreateOrUpdateOrder = async (data: any, status: OrderStatus) => {
+        const now = moment().format('YYYY-MM-DD HH:mm:ss');
         try {
-            await carOrdersService.create({
-                ...data,
-                status: OrderStatus.PENDING_ADMIN,
-                createdBy: currentUser?.username || 'ناشناس',
-                createdAt: new Date().toLocaleDateString('fa-IR'),
-                updatedAt: new Date().toLocaleDateString('fa-IR'),
-            });
-            setToast({ message: 'سفارش با موفقیت ثبت و به کارتابل مدیریت ارسال شد', type: 'success' });
+            if (selectedOrder && selectedOrder.status === OrderStatus.DRAFT) {
+                await carOrdersService.update({
+                    ...selectedOrder,
+                    ...data,
+                    status,
+                    updatedAt: now,
+                });
+                setToast({ message: status === OrderStatus.DRAFT ? 'پیش‌نویس بروزرسانی شد' : 'سفارش با موفقیت ثبت و ارسال شد', type: 'success' });
+            } else {
+                await carOrdersService.create({
+                    ...data,
+                    status,
+                    createdBy: currentUser?.username || 'ناشناس',
+                    createdAt: now,
+                    updatedAt: now,
+                });
+                setToast({ message: status === OrderStatus.DRAFT ? 'سفارش در پیش‌نویس ذخیره شد' : 'سفارش با موفقیت ثبت و به کارتابل مدیریت ارسال شد', type: 'success' });
+            }
             setIsCreateModalOpen(false);
+            setSelectedOrder(null);
             fetchData();
         } catch (error) {
             setToast({ message: 'خطا در ثبت سفارش', type: 'error' });
@@ -87,11 +133,16 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         setIsReviewModalOpen(true);
     };
 
+    const handleEditDraft = (order: CarOrder) => {
+        setSelectedOrder(order);
+        setIsCreateModalOpen(true);
+    };
+
     const handleApprove = async () => {
         if (!selectedOrder) return;
+        const now = moment().format('YYYY-MM-DD HH:mm:ss');
         
         try {
-            // 1. Manage Stock Quantity
             const allConditions = await getConditions();
             const associatedCondition = allConditions.find(c => c.id === selectedOrder.conditionId);
             
@@ -100,61 +151,97 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                     setToast({ message: 'موجودی انبار برای این بخشنامه به پایان رسیده است.', type: 'error' });
                     return;
                 }
-                
-                // Decrement stock by 1
                 await updateCondition(associatedCondition.id, {
                     ...associatedCondition,
                     stock_quantity: Math.max(0, associatedCondition.stock_quantity - 1)
                 });
             }
 
-            // 2. Approve Order
             const trackingCode = `ACL-${Math.floor(100000 + Math.random() * 900000)}`;
             await carOrdersService.update({
                 ...selectedOrder,
                 ...reviewData,
                 trackingCode,
                 status: OrderStatus.PENDING_PAYMENT,
-                updatedAt: new Date().toLocaleDateString('fa-IR'),
+                updatedAt: now,
             });
 
-            setToast({ message: `سفارش تایید و کد رهگیری ${trackingCode} صادر شد. یک واحد از موجودی انبار کسر گردید.`, type: 'success' });
+            setToast({ message: `سفارش تایید و کد رهگیری ${trackingCode} صادر شد. موجودی کسر گردید.`, type: 'success' });
             setIsReviewModalOpen(false);
             fetchData();
         } catch (error) {
-            console.error("Approval error:", error);
-            setToast({ message: 'خطا در فرآیند تایید و بروزرسانی انبار', type: 'error' });
+            setToast({ message: 'خطا در فرآیند تایید', type: 'error' });
         }
     };
 
     const handleReject = async () => {
         if (!selectedOrder) return;
+        const now = moment().format('YYYY-MM-DD HH:mm:ss');
         try {
+            // Return stock if it was already deducted (e.g. rejecting an already approved order)
+            await returnStockIfNecessary(selectedOrder);
+
             await carOrdersService.update({
                 ...selectedOrder,
                 adminNotes: reviewData.adminNotes,
                 status: OrderStatus.REJECTED,
-                updatedAt: new Date().toLocaleDateString('fa-IR'),
+                updatedAt: now,
             });
-            setToast({ message: 'سفارش رد شد', type: 'error' });
+            setToast({ message: 'معامله رد/ابطال شد و موجودی انبار اصلاح گردید.', type: 'success' });
             setIsReviewModalOpen(false);
             fetchData();
         } catch (error) {
-            setToast({ message: 'خطا در رد سفارش', type: 'error' });
+            setToast({ message: error instanceof Error ? error.message : 'خطا در رد سفارش', type: 'error' });
+        }
+    };
+
+    const handleCancelAndReturn = async (order: CarOrder) => {
+        if (!window.confirm('آیا از ابطال/مرجوع کردن این معامله و بازگرداندن خودرو به انبار اطمینان دارید؟')) return;
+        const now = moment().format('YYYY-MM-DD HH:mm:ss');
+        try {
+            await returnStockIfNecessary(order);
+            await carOrdersService.update({
+                ...order,
+                status: OrderStatus.REJECTED,
+                updatedAt: now,
+            });
+            setToast({ message: 'معامله با موفقیت ابطال و واحد خودرو به انبار بازگشت.', type: 'success' });
+            fetchData();
+        } catch (error) {
+            setToast({ message: error instanceof Error ? error.message : 'خطا در ابطال معامله', type: 'error' });
         }
     };
 
     const handleAction = async (order: CarOrder, nextStatus: OrderStatus) => {
+        const now = moment().format('YYYY-MM-DD HH:mm:ss');
         try {
             await carOrdersService.update({
                 ...order,
                 status: nextStatus,
-                updatedAt: new Date().toLocaleDateString('fa-IR'),
+                updatedAt: now,
             });
             setToast({ message: 'وضعیت سفارش به‌روزرسانی شد', type: 'success' });
             fetchData();
         } catch (error) {
             setToast({ message: 'خطا در به‌روزرسانی', type: 'error' });
+        }
+    };
+
+    const handleDeleteOrder = async (id: number) => {
+        const order = orders.find(o => o.id === id);
+        if (!order) return;
+
+        if (!window.confirm('آیا از حذف این سفارش اطمینان دارید؟ در صورت لزوم موجودی انبار بازگردانده می‌شود.')) return;
+        
+        try {
+            // Return stock before deleting if the order was in an active state
+            await returnStockIfNecessary(order);
+            
+            await carOrdersService.delete(id);
+            setToast({ message: 'سفارش حذف و موجودی انبار اصلاح شد.', type: 'success' });
+            fetchData();
+        } catch (error) {
+            setToast({ message: error instanceof Error ? error.message : 'خطا در حذف', type: 'error' });
         }
     };
 
@@ -168,11 +255,11 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                     </div>
                     <div>
                         <h2 className="text-2xl font-black text-slate-800 dark:text-white">سفارشات فروش خودرو</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">مدیریت کامل چرخه فروش از سفارش تا تحویل</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">مدیریت چرخه فروش و موجودی انبار</p>
                     </div>
                 </div>
                 <button 
-                    onClick={() => setIsCreateModalOpen(true)} 
+                    onClick={() => { setSelectedOrder(null); setIsCreateModalOpen(true); }} 
                     className="bg-sky-600 text-white px-6 py-3 rounded-xl hover:bg-sky-700 flex items-center gap-2 font-bold shadow-md transition-all active:scale-95"
                 >
                     <PlusIcon className="w-5 h-5" /> ثبت سفارش جدید
@@ -185,18 +272,15 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                         <div className="text-center py-20 text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl">
                             <ClipboardListIcon className="w-16 h-16 mx-auto mb-4 opacity-20" />
                             <p className="text-lg">هنوز سفارشی ثبت نشده است.</p>
-                            <p className="text-sm">با کلیک روی دکمه ثبت سفارش جدید، اولین فروش را ثبت کنید.</p>
                         </div>
                     ) : (
                         [...orders].reverse().map(order => {
-                            // Safe configuration lookup to prevent TypeError if status is missing or unknown
                             const config = STATUS_CONFIG[order.status] || DEFAULT_STATUS_CONFIG;
                             const statusColor = config.color;
                             const sideBarColor = statusColor.split(' ')[0] || 'bg-slate-200';
 
                             return (
                                 <div key={order.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col md:flex-row transition-all hover:shadow-md">
-                                    {/* Left Info Bar */}
                                     <div className={`w-full md:w-2 ${sideBarColor}`}></div>
                                     
                                     <div className="p-6 flex-1">
@@ -224,27 +308,36 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                             <div>
                                                 <span className="block text-xs text-slate-400 mb-1">خریدار:</span>
                                                 <span className="font-bold">{order.buyerName}</span>
-                                                <span className="block text-[10px] text-slate-500 mt-0.5 font-medium">{order.buyerCity} - کد پستی: {order.buyerPostalCode}</span>
-                                                <span className="block text-[10px] text-slate-400 mt-0.5" dir="ltr">{order.buyerPhone}</span>
+                                                <span className="block text-[10px] text-slate-500 mt-0.5" dir="ltr">{order.buyerPhone}</span>
                                             </div>
                                             <div>
                                                 <span className="block text-xs text-slate-400 mb-1">قیمت پیشنهادی:</span>
-                                                <span className="font-mono font-bold text-slate-600 dark:text-slate-300">{(order.proposedPrice || 0).toLocaleString('fa-IR')} تومان</span>
+                                                <span className="font-mono font-bold text-slate-600 dark:text-slate-300">{(order.proposedPrice || 0).toLocaleString('fa-IR')}</span>
                                             </div>
-                                            {order.finalPrice ? (
-                                                <div>
-                                                    <span className="block text-xs text-slate-400 mb-1">قیمت نهایی مصوب:</span>
-                                                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{order.finalPrice.toLocaleString('fa-IR')} تومان</span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center text-slate-400 italic text-xs">در انتظار تایید قیمت...</div>
-                                            )}
+                                            <div>
+                                                <span className="block text-xs text-slate-400 mb-1">قیمت نهایی:</span>
+                                                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{order.finalPrice ? order.finalPrice.toLocaleString('fa-IR') : '---'}</span>
+                                            </div>
                                         </div>
 
                                         {/* Action Buttons */}
                                         <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                                            
+                                            {/* Logic for returning stock on delete */}
+                                            {[OrderStatus.DRAFT, OrderStatus.PENDING_ADMIN, OrderStatus.REJECTED].includes(order.status) ? (
+                                                 <button onClick={() => handleDeleteOrder(order.id)} className="px-4 py-2 rounded-lg text-sm font-bold text-rose-500 hover:bg-rose-50 transition-colors">حذف قطعی</button>
+                                            ) : (
+                                                 <button onClick={() => handleCancelAndReturn(order)} className="px-4 py-2 rounded-lg text-sm font-bold text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors">ابطال معامله و بازگشت به انبار</button>
+                                            )}
+
+                                            {order.status === OrderStatus.DRAFT && (
+                                                <button onClick={() => handleEditDraft(order)} className="bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-sky-700 flex items-center gap-2">
+                                                    <EditIcon className="w-4 h-4" /> ویرایش و ارسال
+                                                </button>
+                                            )}
+
                                             {isAdmin && order.status === OrderStatus.PENDING_ADMIN && (
-                                                <button onClick={() => handleOpenReview(order)} className="bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-sky-700">بررسی و تایید سفارش</button>
+                                                <button onClick={() => handleOpenReview(order)} className="bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-sky-700 shadow-md">بررسی و تایید نهایی</button>
                                             )}
                                             
                                             {!isAdmin && order.status === OrderStatus.PENDING_PAYMENT && (
@@ -252,7 +345,7 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                             )}
 
                                             {isAdmin && order.status === OrderStatus.PENDING_FINANCE && (
-                                                <button onClick={() => handleAction(order, OrderStatus.READY_FOR_DELIVERY)} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-700">تایید نهایی مالی</button>
+                                                <button onClick={() => handleAction(order, OrderStatus.READY_FOR_DELIVERY)} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-700">تایید مالی نهایی</button>
                                             )}
 
                                             {order.status === OrderStatus.READY_FOR_DELIVERY && (
@@ -271,13 +364,17 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                 </div>
             )}
 
-            {/* Create Modal */}
+            {/* Create/Edit Modal */}
             {isCreateModalOpen && (
                 <CarOrderModal 
                     isOpen={isCreateModalOpen} 
-                    onClose={() => setIsCreateModalOpen(false)} 
-                    onSave={handleCreateOrder} 
-                    username={currentUser?.username || ''} 
+                    onClose={() => {
+                        setIsCreateModalOpen(false);
+                        setSelectedOrder(null);
+                    }} 
+                    onSave={handleCreateOrUpdateOrder} 
+                    username={currentUser?.username || ''}
+                    editOrder={selectedOrder}
                 />
             )}
 
@@ -294,29 +391,27 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                             <div className="bg-sky-50 dark:bg-sky-900/20 p-4 rounded-xl text-xs space-y-2 mb-4">
                                 <div className="flex justify-between"><span>درخواست کننده:</span><span className="font-bold">@{selectedOrder.createdBy}</span></div>
                                 <div className="flex justify-between"><span>قیمت پیشنهادی کاربر:</span><span className="font-mono">{(selectedOrder.proposedPrice || 0).toLocaleString('fa-IR')}</span></div>
-                                <div className="flex justify-between"><span>آدرس خریدار:</span><span className="font-medium text-slate-600">{selectedOrder.buyerAddress}</span></div>
-                                <div className="mt-2 pt-2 border-t dark:border-slate-700"><span>توضیحات کاربر:</span><p className="italic text-slate-600 dark:text-slate-400 mt-1">{selectedOrder.userNotes || 'ندارد'}</p></div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">قیمت نهایی مصوب نمایندگی (تومان)</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">قیمت نهایی مصوب (تومان)</label>
                                 <input type="number" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-mono text-lg font-bold" value={reviewData.finalPrice || ''} onChange={e => setReviewData({...reviewData, finalPrice: Number(e.target.value)})} />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">زمان تخمینی تحویل (مثلا: ۴۵ روز کاری)</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">زمان تحویل (مثلاً ۴۵ روز)</label>
                                 <input type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white" value={reviewData.deliveryDeadline} onChange={e => setReviewData({...reviewData, deliveryDeadline: e.target.value})} />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">توضیحات مدیریتی</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">توضیحات مدیریت</label>
                                 <textarea rows={3} className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white" value={reviewData.adminNotes} onChange={e => setReviewData({...reviewData, adminNotes: e.target.value})}></textarea>
                             </div>
                         </div>
 
                         <div className="flex justify-between gap-3 mt-8 pt-4 border-t dark:border-slate-700">
-                            <button onClick={handleReject} className="px-6 py-2 bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 rounded-lg">رد درخواست</button>
+                            <button onClick={handleReject} className="px-6 py-2 bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 rounded-lg">رد درخواست / ابطال</button>
                             <div className="flex gap-3">
                                 <button onClick={() => setIsReviewModalOpen(false)} className="px-4 py-2 text-slate-500 font-bold">انصراف</button>
-                                <button onClick={handleApprove} className="px-8 py-2 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 shadow-lg shadow-sky-200 dark:shadow-none">تایید و صدور کد رهگیری</button>
+                                <button onClick={handleApprove} className="px-8 py-2 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 shadow-lg transition-all">تایید و کسر از انبار</button>
                             </div>
                         </div>
                     </div>
