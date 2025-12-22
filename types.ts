@@ -288,16 +288,19 @@ export interface PollCustomerFields {
 }
 
 export interface PollCustomerContact {
-    DisplayName: string;
-    MobilePhone: string;
+    DisplayName: string | null;
+    MobilePhone: string | null;
 }
 
 export interface PollCustomerResult {
     Fields: PollCustomerFields;
-    Description: string; // HTML string with car info
+    Description: string; 
     Contact: PollCustomerContact;
     PipelineChangeTime: string;
     DeliveryDate?: string;
+    DeliveryMonth?: number;
+    DeliveryYear?: string;
+    ignore?: boolean;
 }
 
 export interface PollAverages {
