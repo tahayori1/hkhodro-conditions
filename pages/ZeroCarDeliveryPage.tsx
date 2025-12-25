@@ -10,7 +10,6 @@ import { CloseIcon } from '../components/icons/CloseIcon';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import PersianDatePicker from '../components/PersianDatePicker';
-import PersianDateTimePicker from '../components/PersianDateTimePicker';
 
 const STATUS_LABELS = {
     'VERIFICATION': 'تایید مدارک',
@@ -216,10 +215,24 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                             <input type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-mono" dir="ltr" value={currentRecord.chassisNumber || ''} onChange={e => setCurrentRecord({...currentRecord, chassisNumber: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400">شماره پلاک</label>
+                                            <input type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-mono" value={currentRecord.plateNumber || ''} onChange={e => setCurrentRecord({...currentRecord, plateNumber: e.target.value})} placeholder="مثال: ۱۱ ع ۲۲۲ ایران ۳۳" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400">شماره قرارداد</label>
+                                            <input type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-mono" dir="ltr" value={currentRecord.contractNumber || ''} onChange={e => setCurrentRecord({...currentRecord, contractNumber: e.target.value})} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400">شماره سند</label>
+                                            <input type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-mono" dir="ltr" value={currentRecord.documentNumber || ''} onChange={e => setCurrentRecord({...currentRecord, documentNumber: e.target.value})} />
+                                        </div>
+                                        <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ سند</label>
-                                            <PersianDatePicker
+                                            <PersianDatePicker 
                                                 value={currentRecord.documentDate || ''}
-                                                onChange={(date) => setCurrentRecord({...currentRecord, documentDate: date})}
+                                                onChange={date => setCurrentRecord({...currentRecord, documentDate: date})}
+                                                enableTime={false}
+                                                placeholder="1403/xx/xx"
                                             />
                                         </div>
                                         <div className="space-y-1">
@@ -247,26 +260,29 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت ورود خودرو</label>
-                                            <PersianDateTimePicker
+                                            <PersianDatePicker 
                                                 value={currentRecord.arrivalDateTime || ''}
-                                                onChange={(date) => setCurrentRecord({...currentRecord, arrivalDateTime: date})}
-                                                placeholder="1403/09/01 10:00"
+                                                onChange={date => setCurrentRecord({...currentRecord, arrivalDateTime: date})}
+                                                enableTime={true}
+                                                placeholder="1403/xx/xx xx:xx"
                                             />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت تماس با مشتری</label>
-                                            <PersianDateTimePicker
+                                            <PersianDatePicker 
                                                 value={currentRecord.contactDateTime || ''}
-                                                onChange={(date) => setCurrentRecord({...currentRecord, contactDateTime: date})}
-                                                placeholder="1403/09/02 11:30"
+                                                onChange={date => setCurrentRecord({...currentRecord, contactDateTime: date})}
+                                                enableTime={true}
+                                                placeholder="1403/xx/xx xx:xx"
                                             />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت تحویل نهایی</label>
-                                            <PersianDateTimePicker
+                                            <PersianDatePicker 
                                                 value={currentRecord.deliveryDateTime || ''}
-                                                onChange={(date) => setCurrentRecord({...currentRecord, deliveryDateTime: date})}
-                                                placeholder="1403/09/05 16:00"
+                                                onChange={date => setCurrentRecord({...currentRecord, deliveryDateTime: date})}
+                                                enableTime={true}
+                                                placeholder="1403/xx/xx xx:xx"
                                             />
                                         </div>
                                         <div className="space-y-1">

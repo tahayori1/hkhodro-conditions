@@ -375,6 +375,9 @@ export interface ZeroCarDelivery {
     carModel: string;
     color: string;
     chassisNumber: string;
+    plateNumber?: string;
+    contractNumber?: string;
+    documentNumber?: string;
     documentDate: string;
     phoneNumber: string;
     status: 'VERIFICATION' | 'PROCESSING' | 'DELIVERED';
