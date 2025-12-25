@@ -9,6 +9,8 @@ import { TrashIcon } from '../components/icons/TrashIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
+import PersianDatePicker from '../components/PersianDatePicker';
+import PersianDateTimePicker from '../components/PersianDateTimePicker';
 
 const STATUS_LABELS = {
     'VERIFICATION': 'تایید مدارک',
@@ -215,7 +217,10 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ سند</label>
-                                            <input type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white text-left" dir="ltr" placeholder="1403/xx/xx" value={currentRecord.documentDate || ''} onChange={e => setCurrentRecord({...currentRecord, documentDate: e.target.value})} />
+                                            <PersianDatePicker
+                                                value={currentRecord.documentDate || ''}
+                                                onChange={(date) => setCurrentRecord({...currentRecord, documentDate: date})}
+                                            />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">نام مالک دوم (اختیاری)</label>
@@ -242,15 +247,27 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت ورود خودرو</label>
-                                            <input type="text" placeholder="1403/09/01 10:00" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white text-left font-mono" dir="ltr" value={currentRecord.arrivalDateTime || ''} onChange={e => setCurrentRecord({...currentRecord, arrivalDateTime: e.target.value})} />
+                                            <PersianDateTimePicker
+                                                value={currentRecord.arrivalDateTime || ''}
+                                                onChange={(date) => setCurrentRecord({...currentRecord, arrivalDateTime: date})}
+                                                placeholder="1403/09/01 10:00"
+                                            />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت تماس با مشتری</label>
-                                            <input type="text" placeholder="1403/09/02 11:30" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white text-left font-mono" dir="ltr" value={currentRecord.contactDateTime || ''} onChange={e => setCurrentRecord({...currentRecord, contactDateTime: e.target.value})} />
+                                            <PersianDateTimePicker
+                                                value={currentRecord.contactDateTime || ''}
+                                                onChange={(date) => setCurrentRecord({...currentRecord, contactDateTime: date})}
+                                                placeholder="1403/09/02 11:30"
+                                            />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت تحویل نهایی</label>
-                                            <input type="text" placeholder="1403/09/05 16:00" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white text-left font-mono" dir="ltr" value={currentRecord.deliveryDateTime || ''} onChange={e => setCurrentRecord({...currentRecord, deliveryDateTime: e.target.value})} />
+                                            <PersianDateTimePicker
+                                                value={currentRecord.deliveryDateTime || ''}
+                                                onChange={(date) => setCurrentRecord({...currentRecord, deliveryDateTime: date})}
+                                                placeholder="1403/09/05 16:00"
+                                            />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-600 dark:text-slate-400">آپشن‌های نصب شده</label>
