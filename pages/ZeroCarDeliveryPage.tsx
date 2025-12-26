@@ -12,6 +12,7 @@ import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import PersianDatePicker from '../components/PersianDatePicker';
 import ExcelUploadModal from '../components/ExcelUploadModal';
+import Pagination from '../components/Pagination';
 
 const STATUS_LABELS = {
     'VERIFICATION': 'تایید مدارک',
@@ -30,6 +31,8 @@ const CAR_MODELS = [
     'KMC J7', 'KMC X5', 'KMC SR3', 'KMC EAGLE', 'KMC SHADOW', 'KMC SR6'
 ];
 
+const ITEMS_PER_PAGE = 50;
+
 const ZeroCarDeliveryPage: React.FC = () => {
     const [deliveries, setDeliveries] = useState<ZeroCarDelivery[]>([]);
     const [loading, setLoading] = useState(true);
@@ -41,8 +44,12 @@ const ZeroCarDeliveryPage: React.FC = () => {
 
     // Filter States
     const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
 
     const fetchDeliveries = async () => {
         setLoading(true);
@@ -60,6 +67,11 @@ const ZeroCarDeliveryPage: React.FC = () => {
         fetchDeliveries();
     }, []);
 
+    // Reset pagination when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter, startDate, endDate]);
+
     // Filter Logic
     const filteredDeliveries = useMemo(() => {
         return deliveries.filter(item => {
@@ -70,6 +82,9 @@ const ZeroCarDeliveryPage: React.FC = () => {
                 (item.plateNumber?.toLowerCase() || '').includes(searchLower) ||
                 (item.chassisNumber?.toLowerCase() || '').includes(searchLower) ||
                 (item.phoneNumber || '').includes(searchLower);
+
+            // Status Filter
+            const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
 
             // Date Range Filter (Using documentDate as the reference date)
             let matchesDate = true;
@@ -84,9 +99,17 @@ const ZeroCarDeliveryPage: React.FC = () => {
                 matchesDate = false;
             }
 
-            return matchesSearch && matchesDate;
+            return matchesSearch && matchesStatus && matchesDate;
         });
-    }, [deliveries, searchQuery, startDate, endDate]);
+    }, [deliveries, searchQuery, statusFilter, startDate, endDate]);
+
+    // Pagination Logic
+    const paginatedDeliveries = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredDeliveries.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredDeliveries, currentPage]);
+
+    const totalPages = Math.ceil(filteredDeliveries.length / ITEMS_PER_PAGE);
 
     const handleSave = async () => {
         if (!currentRecord.customerName || !currentRecord.chassisNumber) {
@@ -131,7 +154,7 @@ const ZeroCarDeliveryPage: React.FC = () => {
     };
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-cyan-100 dark:bg-cyan-900 rounded-xl text-cyan-600 dark:text-cyan-300">
@@ -154,12 +177,12 @@ const ZeroCarDeliveryPage: React.FC = () => {
 
             {/* Search & Filter Section */}
             <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 mb-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                <div className="md:col-span-6">
+                <div className="md:col-span-4">
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">جستجو</label>
                     <div className="relative">
                         <input 
                             type="text" 
-                            placeholder="نام مشتری، پلاک، شاسی یا شماره موبایل..." 
+                            placeholder="نام، پلاک، شاسی، موبایل..." 
                             className="w-full px-4 py-2 pl-10 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -170,6 +193,19 @@ const ZeroCarDeliveryPage: React.FC = () => {
                             </svg>
                         </div>
                     </div>
+                </div>
+                <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">وضعیت</label>
+                    <select 
+                        className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                        <option value="all">همه وضعیت‌ها</option>
+                        {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                            <option key={key} value={key}>{label}</option>
+                        ))}
+                    </select>
                 </div>
                 <div className="md:col-span-3">
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">از تاریخ (سند)</label>
@@ -184,7 +220,7 @@ const ZeroCarDeliveryPage: React.FC = () => {
             {loading ? (
                 <div className="flex justify-center p-8"><Spinner /></div>
             ) : (
-                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
                     <div className="overflow-x-auto">
                         <table className="w-full text-right text-sm">
                             <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
@@ -199,7 +235,7 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {filteredDeliveries.map(item => (
+                                {paginatedDeliveries.map(item => (
                                     <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-slate-800 dark:text-slate-200">
                                         <td className="p-4 font-bold">{item.customerName}</td>
                                         <td className="p-4">
@@ -232,7 +268,7 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredDeliveries.length === 0 && (
+                                {paginatedDeliveries.length === 0 && (
                                     <tr>
                                         <td colSpan={7} className="p-8 text-center text-slate-400">موردی یافت نشد</td>
                                     </tr>
@@ -240,6 +276,15 @@ const ZeroCarDeliveryPage: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+                    {totalPages > 1 && (
+                        <Pagination 
+                            currentPage={currentPage} 
+                            totalPages={totalPages} 
+                            onPageChange={setCurrentPage} 
+                            totalItems={filteredDeliveries.length}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                        />
+                    )}
                 </div>
             )}
 
