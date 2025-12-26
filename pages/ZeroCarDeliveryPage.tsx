@@ -7,9 +7,11 @@ import { PlusIcon } from '../components/icons/PlusIcon';
 import { EditIcon } from '../components/icons/EditIcon';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
+import { UploadIcon } from '../components/icons/UploadIcon';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import PersianDatePicker from '../components/PersianDatePicker';
+import ExcelUploadModal from '../components/ExcelUploadModal';
 
 const STATUS_LABELS = {
     'VERIFICATION': 'تایید مدارک',
@@ -32,6 +34,7 @@ const ZeroCarDeliveryPage: React.FC = () => {
     const [deliveries, setDeliveries] = useState<ZeroCarDelivery[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
     const [currentRecord, setCurrentRecord] = useState<Partial<ZeroCarDelivery>>({});
     const [activeTab, setActiveTab] = useState<1 | 2>(1);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -96,7 +99,7 @@ const ZeroCarDeliveryPage: React.FC = () => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-8 flex justify-between items-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-cyan-100 dark:bg-cyan-900 rounded-xl text-cyan-600 dark:text-cyan-300">
                         <TruckIcon className="w-6 h-6" />
@@ -106,9 +109,14 @@ const ZeroCarDeliveryPage: React.FC = () => {
                         <p className="text-sm text-slate-500 dark:text-slate-400">مدیریت تایید مدارک و فرآیند تحویل</p>
                     </div>
                 </div>
-                <button onClick={() => openModal()} className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 flex items-center gap-2">
-                    <PlusIcon /> <span className="hidden sm:inline">ثبت جدید</span>
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={() => setIsExcelModalOpen(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 shadow-sm transition-transform active:scale-95">
+                        <UploadIcon className="w-5 h-5" /> <span className="hidden sm:inline">آپلود اکسل</span>
+                    </button>
+                    <button onClick={() => openModal()} className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 flex items-center gap-2 shadow-sm transition-transform active:scale-95">
+                        <PlusIcon /> <span className="hidden sm:inline">ثبت جدید</span>
+                    </button>
+                </div>
             </div>
 
             {loading ? (
@@ -305,6 +313,13 @@ const ZeroCarDeliveryPage: React.FC = () => {
                     </div>
                 </div>
             )}
+            
+            <ExcelUploadModal 
+                isOpen={isExcelModalOpen} 
+                onClose={() => setIsExcelModalOpen(false)} 
+                onSuccess={fetchDeliveries} 
+            />
+
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );

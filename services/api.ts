@@ -772,6 +772,27 @@ export const adCampaignsService = createCrudService<AdCampaign>(AD_CAMPAIGNS_URL
 export const usedCarsService = createCrudService<UsedCar>(USED_CARS_URL);
 export const carOrdersService = createCrudService<CarOrder>(CAR_ORDERS_URL);
 
+// New method for uploading Excel
+export const importZeroCarDeliveryExcel = async (file: File): Promise<any> => {
+    ensureOnline();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    const headers: HeadersInit = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    // Do NOT set Content-Type header for FormData, browser does it with boundary
+
+    const response = await fetch(`${API_BASE_URL}/ZeroCarDelivery/import`, {
+        method: 'POST',
+        headers: headers,
+        body: formData,
+    });
+    return handleResponse(response);
+};
+
 // My Profile Service
 export const getMyProfile = async (): Promise<MyProfile | {}> => {
     const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
