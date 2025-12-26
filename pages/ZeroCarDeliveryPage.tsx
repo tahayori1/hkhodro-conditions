@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { ZeroCarDelivery } from '../types';
 import { zeroCarDeliveryService } from '../services/api';
 import { TruckIcon } from '../components/icons/TruckIcon';
@@ -39,6 +39,11 @@ const ZeroCarDeliveryPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<1 | 2>(1);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+    // Filter States
+    const [searchQuery, setSearchQuery] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
     const fetchDeliveries = async () => {
         setLoading(true);
         try {
@@ -54,6 +59,34 @@ const ZeroCarDeliveryPage: React.FC = () => {
     useEffect(() => {
         fetchDeliveries();
     }, []);
+
+    // Filter Logic
+    const filteredDeliveries = useMemo(() => {
+        return deliveries.filter(item => {
+            // Search Query Filter
+            const searchLower = searchQuery.toLowerCase();
+            const matchesSearch = 
+                (item.customerName?.toLowerCase() || '').includes(searchLower) ||
+                (item.plateNumber?.toLowerCase() || '').includes(searchLower) ||
+                (item.chassisNumber?.toLowerCase() || '').includes(searchLower) ||
+                (item.phoneNumber || '').includes(searchLower);
+
+            // Date Range Filter (Using documentDate as the reference date)
+            let matchesDate = true;
+            const itemDate = item.documentDate; // Format: yyyy/mm/dd
+            
+            if (itemDate) {
+                if (startDate && itemDate < startDate) matchesDate = false;
+                if (endDate && itemDate > endDate) matchesDate = false;
+            } else if (startDate || endDate) {
+                // If filtering by date but item has no date, exclude it? 
+                // Usually yes, or include if lenient. Here strict:
+                matchesDate = false;
+            }
+
+            return matchesSearch && matchesDate;
+        });
+    }, [deliveries, searchQuery, startDate, endDate]);
 
     const handleSave = async () => {
         if (!currentRecord.customerName || !currentRecord.chassisNumber) {
@@ -99,7 +132,7 @@ const ZeroCarDeliveryPage: React.FC = () => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-cyan-100 dark:bg-cyan-900 rounded-xl text-cyan-600 dark:text-cyan-300">
                         <TruckIcon className="w-6 h-6" />
@@ -119,6 +152,35 @@ const ZeroCarDeliveryPage: React.FC = () => {
                 </div>
             </div>
 
+            {/* Search & Filter Section */}
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 mb-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div className="md:col-span-6">
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">جستجو</label>
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            placeholder="نام مشتری، پلاک، شاسی یا شماره موبایل..." 
+                            className="w-full px-4 py-2 pl-10 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <div className="absolute left-3 top-2.5 text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div className="md:col-span-3">
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">از تاریخ (سند)</label>
+                    <PersianDatePicker value={startDate} onChange={setStartDate} placeholder="انتخاب کنید" />
+                </div>
+                <div className="md:col-span-3">
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">تا تاریخ (سند)</label>
+                    <PersianDatePicker value={endDate} onChange={setEndDate} placeholder="انتخاب کنید" />
+                </div>
+            </div>
+
             {loading ? (
                 <div className="flex justify-center p-8"><Spinner /></div>
             ) : (
@@ -130,13 +192,14 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                     <th className="p-4">مشتری</th>
                                     <th className="p-4">خودرو</th>
                                     <th className="p-4">شاسی</th>
+                                    <th className="p-4">پلاک</th>
                                     <th className="p-4">وضعیت</th>
                                     <th className="p-4">تماس</th>
                                     <th className="p-4">عملیات</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {deliveries.map(item => (
+                                {filteredDeliveries.map(item => (
                                     <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-slate-800 dark:text-slate-200">
                                         <td className="p-4 font-bold">{item.customerName}</td>
                                         <td className="p-4">
@@ -145,7 +208,16 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                                 <span className="text-xs text-slate-400">{item.color}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4 font-mono">{item.chassisNumber}</td>
+                                        <td className="p-4 font-mono text-xs">{item.chassisNumber}</td>
+                                        <td className="p-4">
+                                            {item.plateNumber ? (
+                                                <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 inline-block direction-ltr">
+                                                    {item.plateNumber}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-400 text-xs">-</span>
+                                            )}
+                                        </td>
                                         <td className="p-4">
                                             <span className={`px-2 py-1 rounded text-xs font-bold ${STATUS_COLORS[item.status]}`}>
                                                 {STATUS_LABELS[item.status]}
@@ -160,9 +232,9 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                         </td>
                                     </tr>
                                 ))}
-                                {deliveries.length === 0 && (
+                                {filteredDeliveries.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="p-8 text-center text-slate-400">موردی یافت نشد</td>
+                                        <td colSpan={7} className="p-8 text-center text-slate-400">موردی یافت نشد</td>
                                     </tr>
                                 )}
                             </tbody>
