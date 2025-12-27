@@ -72,16 +72,17 @@ const ZeroCarDeliveryPage: React.FC = () => {
         setCurrentPage(1);
     }, [searchQuery, statusFilter, startDate, endDate]);
 
-    // Filter Logic
+    // Filter & Sort Logic
     const filteredDeliveries = useMemo(() => {
-        return deliveries.filter(item => {
+        const filtered = deliveries.filter(item => {
             // Search Query Filter
             const searchLower = searchQuery.toLowerCase();
             const matchesSearch = 
                 (item.customerName?.toLowerCase() || '').includes(searchLower) ||
                 (item.plateNumber?.toLowerCase() || '').includes(searchLower) ||
                 (item.chassisNumber?.toLowerCase() || '').includes(searchLower) ||
-                (item.phoneNumber || '').includes(searchLower);
+                (item.phoneNumber || '').includes(searchLower) ||
+                (item.contractNumber || '').includes(searchLower);
 
             // Status Filter
             const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
@@ -100,6 +101,14 @@ const ZeroCarDeliveryPage: React.FC = () => {
             }
 
             return matchesSearch && matchesStatus && matchesDate;
+        });
+
+        // Sort by Contract Number Descending
+        return filtered.sort((a, b) => {
+            const contractA = a.contractNumber || '';
+            const contractB = b.contractNumber || '';
+            // Use localeCompare with numeric: true to handle numbers within strings correctly
+            return contractB.localeCompare(contractA, 'fa-IR', { numeric: true });
         });
     }, [deliveries, searchQuery, statusFilter, startDate, endDate]);
 
@@ -182,7 +191,7 @@ const ZeroCarDeliveryPage: React.FC = () => {
                     <div className="relative">
                         <input 
                             type="text" 
-                            placeholder="نام، پلاک، شاسی، موبایل..." 
+                            placeholder="نام، قرارداد، شاسی، پلاک..." 
                             className="w-full px-4 py-2 pl-10 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -227,7 +236,7 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                 <tr>
                                     <th className="p-4">مشتری</th>
                                     <th className="p-4">خودرو</th>
-                                    <th className="p-4">شاسی</th>
+                                    <th className="p-4">شاسی / قرارداد</th>
                                     <th className="p-4">پلاک</th>
                                     <th className="p-4">وضعیت</th>
                                     <th className="p-4">تماس</th>
@@ -244,7 +253,12 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                                 <span className="text-xs text-slate-400">{item.color}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4 font-mono text-xs">{item.chassisNumber}</td>
+                                        <td className="p-4">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="font-mono text-xs">{item.chassisNumber}</span>
+                                                {item.contractNumber && <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded w-fit">{item.contractNumber}</span>}
+                                            </div>
+                                        </td>
                                         <td className="p-4">
                                             {item.plateNumber ? (
                                                 <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 inline-block direction-ltr">

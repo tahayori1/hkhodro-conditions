@@ -612,6 +612,16 @@ export const sendSMS = async (number: string, message: string): Promise<{ Sent: 
     return handleResponse(response);
 };
 
+export const sendBulkSMS = async (numbers: string[], message: string): Promise<any> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/sms/bulksend`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ number: numbers, message }),
+    });
+    return handleResponse(response);
+};
+
 // --- Poll / Survey ---
 export const getPollAverages = async (): Promise<ProcessedPollData> => {
     const response = await fetch(`${API_BASE_URL}/poll/avg`, { headers: getAuthHeaders() });

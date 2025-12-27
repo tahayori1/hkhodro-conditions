@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
     getUsers, createUser, updateUser, deleteUser, getLeadHistory, 
     sendMessage, sendSMS, getUserByNumber, getCars, getConditions, 
-    getReferences, carOrdersService 
+    getReferences, carOrdersService, sendBulkSMS
 } from '../services/api';
 import type { Reference } from '../services/api';
 import type { User, LeadMessage, Car, CarSaleCondition, MyProfile } from '../types';
@@ -21,6 +21,7 @@ import { BroadcastIcon } from '../components/icons/BroadcastIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 import UserFilterPanel from '../components/UserFilterPanel';
 import { PlusIcon } from '../components/icons/PlusIcon';
+import { ExportIcon } from '../components/icons/ExportIcon';
 
 // Declare moment from global scope (loaded via CDN in index.html)
 declare const moment: any;
@@ -162,9 +163,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         return sortedUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
     }, [sortedUsers, currentPage]);
     
-    useEffect(() => {
-        setSelectedUserIds(new Set());
-    }, [currentPage, paginatedUsers]);
+    // REMOVED: Effect that cleared selection on pagination change
+    // useEffect(() => {
+    //     setSelectedUserIds(new Set());
+    // }, [currentPage, paginatedUsers]);
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
@@ -367,10 +369,26 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     const handleSelectAllChange = (selectAll: boolean) => {
         if (selectAll) {
             const allUserIdsOnPage = paginatedUsers.map(u => u.id);
-            setSelectedUserIds(new Set(allUserIdsOnPage));
+            setSelectedUserIds(prev => {
+                const next = new Set(prev);
+                allUserIdsOnPage.forEach(id => next.add(id));
+                return next;
+            });
         } else {
-            setSelectedUserIds(new Set());
+            // Deselect only current page items
+            const allUserIdsOnPage = paginatedUsers.map(u => u.id);
+            setSelectedUserIds(prev => {
+                const next = new Set(prev);
+                allUserIdsOnPage.forEach(id => next.delete(id));
+                return next;
+            });
         }
+    };
+
+    const handleSelectAllFiltered = () => {
+        const allIds = filteredUsers.map(u => u.id);
+        setSelectedUserIds(new Set(allIds));
+        showToast(`${filteredUsers.length.toLocaleString('fa-IR')} کاربر انتخاب شدند`, 'success');
     };
     
     const handleSendBroadcast = async (
@@ -386,11 +404,29 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         let successCount = 0;
         let errorCount = 0;
 
+        // Use Bulk API for SMS
+        if (type === 'SMS') {
+            const numbers = selectedUsers.map(u => u.Number).filter(n => n && n.trim().length > 0);
+            if (numbers.length === 0) return { finalSuccess: 0, finalErrors: 0 };
+            
+            try {
+                await sendBulkSMS(numbers, message);
+                // Assume all sent successfully if 200 OK from bulk API
+                successCount = numbers.length;
+                onProgress({ sent: successCount, errors: 0 });
+            } catch (err) {
+                console.error("Bulk SMS failed", err);
+                errorCount = numbers.length;
+                onProgress({ sent: 0, errors: errorCount });
+                showToast('ارسال پیامک گروهی با خطا مواجه شد', 'error');
+            }
+            return { finalSuccess: successCount, finalErrors: errorCount };
+        }
+
+        // Loop for WhatsApp (since API likely sends one by one or no bulk endpoint specified)
         for (const user of selectedUsers) {
             try {
-                if (type === 'SMS') {
-                    await sendSMS(user.Number, message);
-                } else {
+                if (type === 'WHATSAPP') {
                     await sendMessage(user.Number, message);
                 }
                 successCount++;
@@ -402,6 +438,52 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         }
         
         return {finalSuccess: successCount, finalErrors: errorCount};
+    };
+
+    const handleExportSelectedToExcel = () => {
+        const selectedUsers = users.filter(u => selectedUserIds.has(u.id));
+        if (selectedUsers.length === 0) {
+            showToast('هیچ کاربری انتخاب نشده است.', 'error');
+            return;
+        }
+
+        // Helper to escape CSV fields
+        const escapeCsv = (str: any) => {
+            if (str === null || str === undefined) return '';
+            const stringValue = String(str);
+            if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+        };
+
+        const headers = ['نام و نام خانوادگی', 'شماره تماس', 'خودرو', 'استان', 'شهر', 'وضعیت CRM', 'توضیحات', 'تاریخ ثبت'];
+        
+        const csvContent = [
+            headers.join(','),
+            ...selectedUsers.map(u => [
+                u.FullName,
+                u.Number,
+                u.CarModel,
+                u.Province,
+                u.City,
+                u.crmIsSend ? 'ارسال شده' : 'ارسال نشده',
+                u.Decription,
+                u.RegisterTime
+            ].map(escapeCsv).join(','))
+        ].join('\n');
+
+        // Add BOM for Excel UTF-8 compatibility
+        const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        const dateStr = new Date().toLocaleDateString('fa-IR').replace(/\//g, '-');
+        link.setAttribute("download", `users_export_${dateStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('فایل اکسل با موفقیت دانلود شد', 'success');
     };
 
     const totalPages = Math.ceil(sortedUsers.length / ITEMS_PER_PAGE);
@@ -537,9 +619,26 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             {selectedUserIds.size > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 bg-sky-700 text-white p-3 sm:p-4 shadow-lg z-30 flex justify-between items-center animate-slide-up">
-                    <p className="text-sm sm:text-base">{selectedUserIds.size.toLocaleString('fa-IR')} کاربر انتخاب شده است</p>
+                <div className="fixed bottom-0 left-0 right-0 bg-sky-700 text-white p-3 sm:p-4 shadow-lg z-30 flex flex-col sm:flex-row justify-between items-center gap-3 animate-slide-up">
+                    <div className="flex items-center gap-4">
+                        <p className="text-sm sm:text-base font-bold">{selectedUserIds.size.toLocaleString('fa-IR')} کاربر انتخاب شده</p>
+                        {selectedUserIds.size < filteredUsers.length && (
+                             <button 
+                                onClick={handleSelectAllFiltered}
+                                className="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg transition-colors border border-white/30"
+                             >
+                                انتخاب کل {filteredUsers.length.toLocaleString('fa-IR')} نتیجه
+                             </button>
+                        )}
+                    </div>
                     <div className="flex items-center gap-2 sm:gap-4">
+                        <button
+                            onClick={handleExportSelectedToExcel}
+                            className="bg-emerald-600 text-white font-semibold px-3 sm:px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 text-sm sm:text-base"
+                            title="دانلود اکسل"
+                        >
+                            <ExportIcon className="w-5 h-5" /> اکسل
+                        </button>
                         <button
                             onClick={() => setIsBroadcastModalOpen(true)}
                             className="bg-white text-sky-700 font-semibold px-3 sm:px-4 py-2 rounded-lg hover:bg-sky-100 transition-colors flex items-center gap-2 text-sm sm:text-base"

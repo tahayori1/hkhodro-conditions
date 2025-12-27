@@ -94,7 +94,7 @@ const UserTable: React.FC<UserTableProps> = ({
                                         id="checkbox-all-desktop"
                                         type="checkbox"
                                         className="w-4 h-4 text-sky-600 bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 rounded focus:ring-sky-500 dark:focus:ring-sky-600 transition-all cursor-pointer"
-                                        checked={users.length > 0 && selectedUserIds.size === users.length}
+                                        checked={users.length > 0 && users.every(u => selectedUserIds.has(u.id))}
                                         onChange={(e) => onSelectAllChange(e.target.checked)}
                                     />
                                 </div>
