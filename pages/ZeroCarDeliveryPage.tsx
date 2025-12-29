@@ -14,6 +14,9 @@ import PersianDatePicker from '../components/PersianDatePicker';
 import ExcelUploadModal from '../components/ExcelUploadModal';
 import Pagination from '../components/Pagination';
 
+// Declare moment from global scope
+declare const moment: any;
+
 const STATUS_LABELS = {
     'VERIFICATION': 'تایید مدارک',
     'PROCESSING': 'در حال آماده‌سازی',
@@ -95,8 +98,6 @@ const ZeroCarDeliveryPage: React.FC = () => {
                 if (startDate && itemDate < startDate) matchesDate = false;
                 if (endDate && itemDate > endDate) matchesDate = false;
             } else if (startDate || endDate) {
-                // If filtering by date but item has no date, exclude it? 
-                // Usually yes, or include if lenient. Here strict:
                 matchesDate = false;
             }
 
@@ -107,7 +108,6 @@ const ZeroCarDeliveryPage: React.FC = () => {
         return filtered.sort((a, b) => {
             const contractA = a.contractNumber || '';
             const contractB = b.contractNumber || '';
-            // Use localeCompare with numeric: true to handle numbers within strings correctly
             return contractB.localeCompare(contractA, 'fa-IR', { numeric: true });
         });
     }, [deliveries, searchQuery, statusFilter, startDate, endDate]);
@@ -153,6 +153,22 @@ const ZeroCarDeliveryPage: React.FC = () => {
             } catch (error) {
                 setToast({ message: 'خطا در حذف رکورد', type: 'error' });
             }
+        }
+    };
+
+    const handleSetNow = (field: keyof ZeroCarDelivery, updateStatus: boolean = false) => {
+        const now = moment().locale('fa').format('jYYYY/jMM/jDD HH:mm');
+        setCurrentRecord(prev => {
+            const updates: Partial<ZeroCarDelivery> = { [field]: now };
+            if (updateStatus) {
+                updates.status = 'DELIVERED';
+            }
+            return { ...prev, ...updates };
+        });
+        if (updateStatus) {
+            setToast({ message: 'زمان ثبت شد و وضعیت به "تحویل شده" تغییر یافت.', type: 'success' });
+        } else {
+            setToast({ message: 'زمان کنونی ثبت شد.', type: 'success' });
         }
     };
 
@@ -398,7 +414,16 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                 <div className="space-y-4 animate-fade-in">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت ورود خودرو</label>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت ورود خودرو</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSetNow('arrivalDateTime')}
+                                                    className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-100 transition-colors dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                                                >
+                                                    ثبت زمان اکنون
+                                                </button>
+                                            </div>
                                             <PersianDatePicker 
                                                 value={currentRecord.arrivalDateTime || ''}
                                                 onChange={date => setCurrentRecord({...currentRecord, arrivalDateTime: date})}
@@ -407,7 +432,16 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت تماس با مشتری</label>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت تماس با مشتری</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSetNow('contactDateTime')}
+                                                    className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded border border-amber-200 hover:bg-amber-100 transition-colors dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-900/50"
+                                                >
+                                                    ثبت زمان اکنون
+                                                </button>
+                                            </div>
                                             <PersianDatePicker 
                                                 value={currentRecord.contactDateTime || ''}
                                                 onChange={date => setCurrentRecord({...currentRecord, contactDateTime: date})}
@@ -416,7 +450,16 @@ const ZeroCarDeliveryPage: React.FC = () => {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت تحویل نهایی</label>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400">تاریخ و ساعت تحویل نهایی</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSetNow('deliveryDateTime', true)}
+                                                    className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-200 hover:bg-emerald-100 transition-colors font-bold dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
+                                                >
+                                                    ثبت تحویل نهایی (اکنون)
+                                                </button>
+                                            </div>
                                             <PersianDatePicker 
                                                 value={currentRecord.deliveryDateTime || ''}
                                                 onChange={date => setCurrentRecord({...currentRecord, deliveryDateTime: date})}
