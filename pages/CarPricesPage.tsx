@@ -178,7 +178,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
         const statsText = priceStats
             .map(stat => {
                 const price = stat.maximum;
-                const havalehPrice = Math.round(price * 0.97); // 1 Month Max approx logic
+                const havalehPrice = Math.round(price * 0.90); // Havaleh Min approx logic (Changed to 0.90)
                 
                 return `🚗 ${stat.model_name}\n💰 قیمت: ${price.toLocaleString('fa-IR')}\n📄 حواله: ${havalehPrice.toLocaleString('fa-IR')}`;
             })
