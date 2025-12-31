@@ -172,12 +172,19 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
             return;
         }
 
-        const header = "بازه قیمت محصولات کرمان موتور";
-        const statsText = priceStats
-            .map(stat => `*${stat.model_name}* ${stat.minimum.toLocaleString('fa-IR')} - ${stat.maximum.toLocaleString('fa-IR')}`)
-            .join('\n');
+        const date = new Date().toLocaleDateString('fa-IR');
+        const header = `📋 لیست قیمت محصولات - ${date}`;
         
-        const fullText = `${header}\n\n${statsText}`;
+        const statsText = priceStats
+            .map(stat => {
+                const price = stat.maximum;
+                const havalehPrice = Math.round(price * 0.97); // 1 Month Max approx logic
+                
+                return `🚗 ${stat.model_name}\n💰 قیمت: ${price.toLocaleString('fa-IR')}\n📄 حواله: ${havalehPrice.toLocaleString('fa-IR')}`;
+            })
+            .join('\n\n');
+        
+        const fullText = `${header}\n\n${statsText}\n\n@HoseiniKhodro`;
 
         navigator.clipboard.writeText(fullText)
             .then(() => {
@@ -223,7 +230,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 </button>
             </div>
              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                * بالاترین حد برابر با بیشترین قیمت + ۷٪ است.
+                * بیشترین نرخ معامله برابر با قیمت + ۷٪ است.
             </p>
             {loading ? (
                 <div className="flex justify-center items-center h-40 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
@@ -255,39 +262,39 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                     
                                     {/* Base Price */}
                                     <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-700">
-                                        <span className="text-red-600 dark:text-red-400 font-bold">بیشترین قیمت (بازار):</span>
-                                        <span className="font-mono font-black text-red-700 dark:text-red-300 text-lg">{stat.maximum.toLocaleString('fa-IR')}</span>
+                                        <span className="text-blue-600 dark:text-blue-400 font-bold">قیمت:</span>
+                                        <span className="font-mono font-black text-blue-700 dark:text-blue-300 text-lg">{stat.maximum.toLocaleString('fa-IR')}</span>
                                     </div>
 
                                     {/* Havaleh 1 Month */}
-                                    <div className="bg-amber-50 dark:bg-amber-900/20 p-2.5 rounded-xl border border-amber-100 dark:border-amber-800">
+                                    <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-800">
                                         <div className="flex justify-between items-center mb-1.5">
-                                            <span className="text-xs font-bold text-amber-700 dark:text-amber-400">حواله ۱ ماهه</span>
-                                            <span className="text-[10px] text-amber-600/70 font-mono">(۳٪ - ۵٪)</span>
+                                            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">حواله ۱ ماهه</span>
+                                            <span className="text-[10px] text-emerald-600/70 font-mono">(۳٪ - ۵٪)</span>
                                         </div>
-                                        <div className="flex justify-between items-center font-mono text-sm text-amber-900 dark:text-amber-100 font-bold">
+                                        <div className="flex justify-between items-center font-mono text-sm text-emerald-900 dark:text-emerald-100 font-bold">
                                             <span>{Math.round(havaleh1Min).toLocaleString('fa-IR')}</span>
-                                            <span className="text-[10px] text-amber-400 mx-1 font-sans">تا</span>
+                                            <span className="text-[10px] text-emerald-400 mx-1 font-sans">تا</span>
                                             <span>{Math.round(havaleh1Max).toLocaleString('fa-IR')}</span>
                                         </div>
                                     </div>
 
                                     {/* Havaleh 2 Month */}
-                                    <div className="bg-orange-50 dark:bg-orange-900/20 p-2.5 rounded-xl border border-orange-100 dark:border-orange-800">
+                                    <div className="bg-cyan-50 dark:bg-cyan-900/20 p-2.5 rounded-xl border border-cyan-100 dark:border-cyan-800">
                                         <div className="flex justify-between items-center mb-1.5">
-                                            <span className="text-xs font-bold text-orange-700 dark:text-orange-400">حواله ۲ ماهه</span>
-                                            <span className="text-[10px] text-orange-600/70 font-mono">(۶٪ - ۱۰٪)</span>
+                                            <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400">حواله ۲ ماهه</span>
+                                            <span className="text-[10px] text-cyan-600/70 font-mono">(۶٪ - ۱۰٪)</span>
                                         </div>
-                                        <div className="flex justify-between items-center font-mono text-sm text-orange-900 dark:text-orange-100 font-bold">
+                                        <div className="flex justify-between items-center font-mono text-sm text-cyan-900 dark:text-cyan-100 font-bold">
                                             <span>{Math.round(havaleh2Min).toLocaleString('fa-IR')}</span>
-                                            <span className="text-[10px] text-orange-400 mx-1 font-sans">تا</span>
+                                            <span className="text-[10px] text-cyan-400 mx-1 font-sans">تا</span>
                                             <span>{Math.round(havaleh2Max).toLocaleString('fa-IR')}</span>
                                         </div>
                                     </div>
 
                                     {/* Limits */}
                                     <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-3">
-                                        <span className="text-slate-500 dark:text-slate-400 font-bold text-xs">بالاترین حد مجاز:</span>
+                                        <span className="text-slate-500 dark:text-slate-400 font-bold text-xs">بیشترین نرخ معامله:</span>
                                         <span className="font-mono font-bold text-slate-600 dark:text-slate-300">{Math.round(highestLimit).toLocaleString('fa-IR')}</span>
                                     </div>
                                 </div>
