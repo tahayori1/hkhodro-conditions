@@ -237,22 +237,58 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {priceStats.map(stat => {
                         const highestLimit = stat.maximum * 1.07;
+                        
+                        // Havaleh Calculations
+                        // 1 Month: Max - 5% (Min), Max - 3% (Max)
+                        const havaleh1Min = stat.maximum * 0.95; 
+                        const havaleh1Max = stat.maximum * 0.97;
+
+                        // 2 Month: Max - 10% (Min), Max - 6% (Max)
+                        const havaleh2Min = stat.maximum * 0.90;
+                        const havaleh2Max = stat.maximum * 0.94;
+
                         return (
-                        <div key={stat.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 border border-slate-100 dark:border-slate-700 flex flex-col justify-between">
+                        <div key={stat.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 border border-slate-100 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition-shadow">
                             <div>
                                 <h3 className="font-black text-slate-800 dark:text-white text-lg mb-4 truncate">{stat.model_name}</h3>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-green-600 dark:text-green-400 font-bold">کمترین قیمت:</span>
-                                        <span className="font-mono font-semibold text-green-700 dark:text-green-300">{stat.minimum.toLocaleString('fa-IR')}</span>
+                                <div className="space-y-4 text-sm">
+                                    
+                                    {/* Base Price */}
+                                    <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-700">
+                                        <span className="text-red-600 dark:text-red-400 font-bold">بیشترین قیمت (بازار):</span>
+                                        <span className="font-mono font-black text-red-700 dark:text-red-300 text-lg">{stat.maximum.toLocaleString('fa-IR')}</span>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-red-600 dark:text-red-400 font-bold">بیشترین قیمت:</span>
-                                        <span className="font-mono font-semibold text-red-700 dark:text-red-300">{stat.maximum.toLocaleString('fa-IR')}</span>
+
+                                    {/* Havaleh 1 Month */}
+                                    <div className="bg-amber-50 dark:bg-amber-900/20 p-2.5 rounded-xl border border-amber-100 dark:border-amber-800">
+                                        <div className="flex justify-between items-center mb-1.5">
+                                            <span className="text-xs font-bold text-amber-700 dark:text-amber-400">حواله ۱ ماهه</span>
+                                            <span className="text-[10px] text-amber-600/70 font-mono">(۳٪ - ۵٪)</span>
+                                        </div>
+                                        <div className="flex justify-between items-center font-mono text-sm text-amber-900 dark:text-amber-100 font-bold">
+                                            <span>{Math.round(havaleh1Min).toLocaleString('fa-IR')}</span>
+                                            <span className="text-[10px] text-amber-400 mx-1 font-sans">تا</span>
+                                            <span>{Math.round(havaleh1Max).toLocaleString('fa-IR')}</span>
+                                        </div>
                                     </div>
+
+                                    {/* Havaleh 2 Month */}
+                                    <div className="bg-orange-50 dark:bg-orange-900/20 p-2.5 rounded-xl border border-orange-100 dark:border-orange-800">
+                                        <div className="flex justify-between items-center mb-1.5">
+                                            <span className="text-xs font-bold text-orange-700 dark:text-orange-400">حواله ۲ ماهه</span>
+                                            <span className="text-[10px] text-orange-600/70 font-mono">(۶٪ - ۱۰٪)</span>
+                                        </div>
+                                        <div className="flex justify-between items-center font-mono text-sm text-orange-900 dark:text-orange-100 font-bold">
+                                            <span>{Math.round(havaleh2Min).toLocaleString('fa-IR')}</span>
+                                            <span className="text-[10px] text-orange-400 mx-1 font-sans">تا</span>
+                                            <span>{Math.round(havaleh2Max).toLocaleString('fa-IR')}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Limits */}
                                     <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-3">
-                                        <span className="text-slate-500 dark:text-slate-400 font-bold">بالاترین حد:</span>
-                                        <span className="font-mono font-semibold text-slate-600 dark:text-slate-300">{Math.round(highestLimit).toLocaleString('fa-IR')}</span>
+                                        <span className="text-slate-500 dark:text-slate-400 font-bold text-xs">بالاترین حد مجاز:</span>
+                                        <span className="font-mono font-bold text-slate-600 dark:text-slate-300">{Math.round(highestLimit).toLocaleString('fa-IR')}</span>
                                     </div>
                                 </div>
                             </div>
