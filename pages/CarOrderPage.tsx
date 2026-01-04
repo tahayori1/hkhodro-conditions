@@ -10,6 +10,9 @@ import { ClipboardListIcon } from '../components/icons/ClipboardListIcon';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 import { EditIcon } from '../components/icons/EditIcon';
+import { CheckCircleIcon } from '../components/icons/CheckCircleIcon';
+import { UploadIcon } from '../components/icons/UploadIcon';
+import { ExitFormIcon } from '../components/icons/ExitFormIcon';
 
 // Declare moment from global scope (loaded via CDN in index.html)
 declare const moment: any;
@@ -95,7 +98,7 @@ const PREDEFINED_ADMIN_NOTES = [
     'لطفا با من تماس بگیرید'
 ];
 
-type TabType = 'DRAFT' | 'PENDING' | 'REJECTED';
+type TabType = 'DRAFT' | 'PENDING' | 'PAYMENT' | 'EXIT_PERM' | 'REJECTED';
 
 const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [orders, setOrders] = useState<CarOrder[]>([]);
@@ -103,7 +106,28 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [priceStats, setPriceStats] = useState<CarPriceStats[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    
+    // Main Review Modal
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    
+    // Sub-Modals for Logic enforcement
+    const [isRejectReasonModalOpen, setIsRejectReasonModalOpen] = useState(false);
+    const [isApproveConfirmModalOpen, setIsApproveConfirmModalOpen] = useState(false);
+
+    // Payment Modals
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isPaymentConfirmModalOpen, setIsPaymentConfirmModalOpen] = useState(false);
+    const [paymentFormData, setPaymentFormData] = useState({
+        amount: '',
+        chassis: '',
+        plate: '',
+        description: '',
+        receiptImage: null as File | null
+    });
+
+    // Exit Modal
+    const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+
     const [selectedOrder, setSelectedOrder] = useState<CarOrder | null>(null);
     const [currentUser, setCurrentUser] = useState<MyProfile | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -194,24 +218,62 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
 
     // --- Filter Logic ---
     const filteredOrders = useMemo(() => {
-        return orders.filter(order => {
+        // 1. Filter by User Permissions (Admin sees all, User sees own)
+        let visibleOrders = orders;
+        if (!isAdmin && currentUser?.username) {
+            visibleOrders = orders.filter(o => o.createdBy === currentUser.username);
+        }
+
+        // 2. Filter by Tab Status
+        return visibleOrders.filter(order => {
             if (activeTab === 'DRAFT') {
                 return order.status === OrderStatus.DRAFT;
+            }
+            if (activeTab === 'PENDING') {
+                return order.status === OrderStatus.PENDING_ADMIN;
+            }
+            if (activeTab === 'PAYMENT') {
+                return [
+                    OrderStatus.PENDING_PAYMENT,
+                    OrderStatus.PENDING_FINANCE,
+                    OrderStatus.READY_FOR_DELIVERY
+                ].includes(order.status);
+            }
+            if (activeTab === 'EXIT_PERM') {
+                return [
+                    OrderStatus.EXIT_PROCESS,
+                    OrderStatus.COMPLETED
+                ].includes(order.status);
             }
             if (activeTab === 'REJECTED') {
                 return order.status === OrderStatus.REJECTED;
             }
-            // PENDING Tab includes all active workflows (not draft, not rejected)
-            return order.status !== OrderStatus.DRAFT && order.status !== OrderStatus.REJECTED;
+            return false;
         });
-    }, [orders, activeTab]);
+    }, [orders, activeTab, isAdmin, currentUser]);
 
     const counts = useMemo(() => {
-        const draft = orders.filter(o => o.status === OrderStatus.DRAFT).length;
-        const rejected = orders.filter(o => o.status === OrderStatus.REJECTED).length;
-        const pending = orders.length - draft - rejected;
-        return { draft, pending, rejected };
-    }, [orders]);
+        // First filter by user permission
+        let userOrders = orders;
+        if (!isAdmin && currentUser?.username) {
+            userOrders = orders.filter(o => o.createdBy === currentUser.username);
+        }
+
+        const draft = userOrders.filter(o => o.status === OrderStatus.DRAFT).length;
+        const pending = userOrders.filter(o => o.status === OrderStatus.PENDING_ADMIN).length;
+        const payment = userOrders.filter(o => [
+            OrderStatus.PENDING_PAYMENT,
+            OrderStatus.PENDING_FINANCE,
+            OrderStatus.READY_FOR_DELIVERY
+        ].includes(o.status)).length;
+        const exit = userOrders.filter(o => [
+            OrderStatus.EXIT_PROCESS,
+            OrderStatus.COMPLETED
+        ].includes(o.status)).length;
+        const rejected = userOrders.filter(o => o.status === OrderStatus.REJECTED).length;
+
+        return { draft, pending, payment, exit, rejected };
+    }, [orders, isAdmin, currentUser]);
 
     // --- Stock Management Helpers ---
 
@@ -267,10 +329,8 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
             setIsCreateModalOpen(false);
             setSelectedOrder(null);
             fetchData();
-            // Switch to relevant tab (if rejected, moving to pending means switching tab)
-            if (activeTab === 'REJECTED' && status === OrderStatus.PENDING_ADMIN) {
-                setActiveTab('PENDING');
-            } else if (status === OrderStatus.DRAFT) {
+            // Switch tab
+            if (status === OrderStatus.DRAFT) {
                 setActiveTab('DRAFT');
             } else {
                 setActiveTab('PENDING');
@@ -295,7 +355,13 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         setIsCreateModalOpen(true);
     };
 
-    const handleApprove = async () => {
+    // --- Action Handlers with Confirmation Modals ---
+
+    const handleApproveClick = () => {
+        setIsApproveConfirmModalOpen(true);
+    };
+
+    const executeApprove = async () => {
         if (!selectedOrder) return;
         const now = moment().format('YYYY-MM-DD HH:mm:ss');
         
@@ -323,15 +389,28 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                 updatedAt: now,
             });
 
-            setToast({ message: `سفارش تایید و کد رهگیری ${trackingCode} صادر شد. موجودی کسر گردید.`, type: 'success' });
+            setToast({ message: `سفارش تایید و کد رهگیری ${trackingCode} صادر شد. اجازه فروش صادر گردید.`, type: 'success' });
             setIsReviewModalOpen(false);
+            setIsApproveConfirmModalOpen(false);
             fetchData();
+            setActiveTab('PAYMENT');
         } catch (error) {
             setToast({ message: 'خطا در فرآیند تایید', type: 'error' });
         }
     };
 
-    const handleReject = async () => {
+    const handleRejectClick = () => {
+        if (!reviewData.adminNotes?.trim()) {
+            setIsRejectReasonModalOpen(true);
+        } else {
+            // Confirm directly if notes are present
+            if(window.confirm('آیا از رد این سفارش اطمینان دارید؟')) {
+                executeReject();
+            }
+        }
+    };
+
+    const executeReject = async () => {
         if (!selectedOrder) return;
         const now = moment().format('YYYY-MM-DD HH:mm:ss');
         try {
@@ -346,7 +425,9 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
             });
             setToast({ message: 'معامله رد/ابطال شد و موجودی انبار اصلاح گردید.', type: 'success' });
             setIsReviewModalOpen(false);
+            setIsRejectReasonModalOpen(false);
             fetchData();
+            setActiveTab('REJECTED');
         } catch (error) {
             setToast({ message: error instanceof Error ? error.message : 'خطا در رد سفارش', type: 'error' });
         }
@@ -402,6 +483,93 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         }
     };
 
+    // --- Payment & Exit Handlers ---
+
+    const handleOpenPaymentModal = (order: CarOrder) => {
+        setSelectedOrder(order);
+        setPaymentFormData({
+            amount: '',
+            chassis: '',
+            plate: '',
+            description: '',
+            receiptImage: null
+        });
+        setIsPaymentModalOpen(true);
+    };
+
+    const handlePaymentSubmit = () => {
+        if (!paymentFormData.chassis || !paymentFormData.plate || !paymentFormData.amount) {
+            setToast({ message: 'لطفاً شماره شاسی، پلاک و مبلغ را وارد کنید.', type: 'error' });
+            return;
+        }
+
+        const requiredAmount = selectedOrder?.finalPrice || selectedOrder?.proposedPrice || 0;
+        const enteredAmount = Number(paymentFormData.amount);
+
+        if (enteredAmount !== requiredAmount) {
+            setToast({ 
+                message: `مبلغ واریزی باید دقیقاً برابر با مبلغ تایید شده (${requiredAmount.toLocaleString('fa-IR')} تومان) باشد.`, 
+                type: 'error' 
+            });
+            return;
+        }
+
+        setIsPaymentConfirmModalOpen(true);
+    };
+
+    const confirmPaymentRegister = async () => {
+        if (!selectedOrder) return;
+        const now = moment().format('YYYY-MM-DD HH:mm:ss');
+        try {
+            // In a real app, upload image here and get URL.
+            // Appending payment info to userNotes for now as backend schema update is limited
+            const paymentNote = `
+            [ثبت فیش واریزی]
+            مبلغ: ${Number(paymentFormData.amount).toLocaleString('fa-IR')}
+            شاسی: ${paymentFormData.chassis}
+            پلاک: ${paymentFormData.plate}
+            توضیحات: ${paymentFormData.description}
+            `;
+
+            await carOrdersService.update({
+                ...selectedOrder,
+                userNotes: (selectedOrder.userNotes || '') + paymentNote,
+                status: OrderStatus.PENDING_FINANCE,
+                updatedAt: now,
+            });
+
+            setToast({ message: 'فیش واریزی با موفقیت ثبت شد و به واحد مالی ارسال گردید.', type: 'success' });
+            setIsPaymentConfirmModalOpen(false);
+            setIsPaymentModalOpen(false);
+            fetchData();
+        } catch (error) {
+            setToast({ message: 'خطا در ثبت فیش', type: 'error' });
+        }
+    };
+
+    const handleOpenExitModal = (order: CarOrder) => {
+        setSelectedOrder(order);
+        setIsExitModalOpen(true);
+    };
+
+    const handleConfirmExit = async () => {
+        if (!selectedOrder) return;
+        const now = moment().format('YYYY-MM-DD HH:mm:ss');
+        try {
+            await carOrdersService.update({
+                ...selectedOrder,
+                status: OrderStatus.EXIT_PROCESS,
+                updatedAt: now,
+            });
+            setToast({ message: 'مجوز خروج صادر شد و به واحد خروج ارسال گردید.', type: 'success' });
+            setIsExitModalOpen(false);
+            fetchData();
+            setActiveTab('EXIT_PERM');
+        } catch (error) {
+            setToast({ message: 'خطا در صدور مجوز خروج', type: 'error' });
+        }
+    };
+
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in pb-20">
             {/* Header */}
@@ -424,24 +592,38 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
             </div>
 
             {/* Tabs */}
-            <div className="bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-xl flex gap-2 mb-6 overflow-x-auto shadow-inner">
+            <div className="bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-xl flex gap-2 mb-6 overflow-x-auto shadow-inner no-scrollbar">
                 <button 
                     onClick={() => setActiveTab('DRAFT')}
-                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'DRAFT' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap min-w-[100px] ${activeTab === 'DRAFT' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                 >
                     پیش‌نویس
                     <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'DRAFT' ? 'bg-sky-100 text-sky-700' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>{counts.draft}</span>
                 </button>
                 <button 
                     onClick={() => setActiveTab('PENDING')}
-                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'PENDING' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap min-w-[100px] ${activeTab === 'PENDING' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                 >
                     در انتظار
                     <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'PENDING' ? 'bg-sky-100 text-sky-700' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>{counts.pending}</span>
                 </button>
                 <button 
+                    onClick={() => setActiveTab('PAYMENT')}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap min-w-[100px] ${activeTab === 'PAYMENT' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                >
+                    در انتظار پرداخت
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'PAYMENT' ? 'bg-sky-100 text-sky-700' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>{counts.payment}</span>
+                </button>
+                <button 
+                    onClick={() => setActiveTab('EXIT_PERM')}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap min-w-[100px] ${activeTab === 'EXIT_PERM' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                >
+                    اجازه خروج
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'EXIT_PERM' ? 'bg-sky-100 text-sky-700' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>{counts.exit}</span>
+                </button>
+                <button 
                     onClick={() => setActiveTab('REJECTED')}
-                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'REJECTED' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap min-w-[100px] ${activeTab === 'REJECTED' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                 >
                     رد شده
                     <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>{counts.rejected}</span>
@@ -528,8 +710,8 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                                 <button onClick={() => handleOpenReview(order)} className="bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-sky-700 shadow-md">بررسی و تایید نهایی</button>
                                             )}
                                             
-                                            {!isAdmin && order.status === OrderStatus.PENDING_PAYMENT && (
-                                                <button onClick={() => handleAction(order, OrderStatus.PENDING_FINANCE)} className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-600">ثبت فیش واریزی</button>
+                                            {order.status === OrderStatus.PENDING_PAYMENT && (
+                                                <button onClick={() => handleOpenPaymentModal(order)} className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-600">ثبت فیش واریزی</button>
                                             )}
 
                                             {isAdmin && order.status === OrderStatus.PENDING_FINANCE && (
@@ -537,7 +719,7 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                             )}
 
                                             {order.status === OrderStatus.READY_FOR_DELIVERY && (
-                                                <button onClick={() => handleAction(order, OrderStatus.EXIT_PROCESS)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700">ارسال به واحد خروج</button>
+                                                <button onClick={() => handleOpenExitModal(order)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700">ارسال به واحد خروج</button>
                                             )}
 
                                             <div className="mr-auto text-[10px] text-slate-400 flex items-center self-center">
@@ -771,7 +953,7 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                         {/* Footer Actions */}
                         <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4">
                             <button 
-                                onClick={handleReject} 
+                                onClick={handleRejectClick} 
                                 className="w-full sm:w-auto px-6 py-3 bg-white border-2 border-rose-100 text-rose-600 font-black rounded-xl hover:bg-rose-50 hover:border-rose-200 transition-all shadow-sm active:scale-95"
                             >
                                 رد درخواست / ابطال
@@ -784,13 +966,246 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                     انصراف
                                 </button>
                                 <button 
-                                    onClick={handleApprove} 
+                                    onClick={handleApproveClick} 
                                     className="flex-1 sm:flex-none px-8 py-3 bg-emerald-600 text-white font-black rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 dark:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2"
                                 >
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                                    تایید نهایی و کسر موجودی
+                                    تایید نهایی و اجازه فروش
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Forced Reject Reason Modal */}
+            {isRejectReasonModalOpen && (
+                <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-[60] p-4 backdrop-blur-sm" onClick={() => setIsRejectReasonModalOpen(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4 border-b pb-3 dark:border-slate-700">
+                            <h3 className="font-bold text-lg text-rose-600 dark:text-rose-400">ثبت دلیل رد سفارش</h3>
+                            <button onClick={() => setIsRejectReasonModalOpen(false)}><CloseIcon className="text-slate-500" /></button>
+                        </div>
+                        <div className="mb-4 bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-200 text-sm p-3 rounded-lg">
+                            لطفاً علت رد سفارش را وارد کنید. این متن برای درخواست‌کننده نمایش داده می‌شود.
+                        </div>
+                        <textarea 
+                            rows={4} 
+                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none transition-all mb-3 resize-none"
+                            value={reviewData.adminNotes}
+                            onChange={e => setReviewData({...reviewData, adminNotes: e.target.value})}
+                            placeholder="علت رد سفارش..."
+                            autoFocus
+                        ></textarea>
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            {PREDEFINED_ADMIN_NOTES.map(note => (
+                                <button 
+                                    key={note} 
+                                    onClick={() => setReviewData({...reviewData, adminNotes: note})}
+                                    className="text-[10px] border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                    {note}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={() => setIsRejectReasonModalOpen(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg">انصراف</button>
+                            <button 
+                                onClick={executeReject} 
+                                disabled={!reviewData.adminNotes.trim()}
+                                className="px-6 py-2 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 shadow-md disabled:bg-rose-300 disabled:cursor-not-allowed"
+                            >
+                                ثبت و رد سفارش
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Approval Confirmation Modal */}
+            {isApproveConfirmModalOpen && selectedOrder && (
+                <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-[60] p-4 backdrop-blur-sm" onClick={() => setIsApproveConfirmModalOpen(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border-t-4 border-emerald-500" onClick={e => e.stopPropagation()}>
+                        <h3 className="font-black text-xl text-slate-800 dark:text-white mb-6 text-center">تایید نهایی سفارش</h3>
+                        
+                        <div className="space-y-4 mb-8">
+                            <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
+                                <span className="text-slate-500 dark:text-slate-400 text-sm">خریدار:</span>
+                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.buyerName}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
+                                <span className="text-slate-500 dark:text-slate-400 text-sm">خودرو:</span>
+                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.carName}</span>
+                            </div>
+                            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-emerald-700 dark:text-emerald-400 text-sm font-bold">قیمت نهایی مصوب:</span>
+                                    <span className="font-mono font-black text-lg text-emerald-800 dark:text-emerald-300">
+                                        {(reviewData.finalPrice || selectedOrder.proposedPrice).toLocaleString('fa-IR')} <span className="text-xs font-sans">تومان</span>
+                                    </span>
+                                </div>
+                                <div className="text-xs text-emerald-600 dark:text-emerald-500 text-center font-bold">
+                                    {numberToPersianWords(reviewData.finalPrice || selectedOrder.proposedPrice)} تومان
+                                </div>
+                            </div>
+                            {reviewData.deliveryDeadline && (
+                                <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
+                                    <span className="text-slate-500 dark:text-slate-400 text-sm">زمان تحویل:</span>
+                                    <span className="font-bold text-slate-800 dark:text-white">{reviewData.deliveryDeadline}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <p className="text-center text-sm font-bold text-slate-600 dark:text-slate-300 mb-6">
+                            آیا از تایید نهایی و اجازه فروش اطمینان دارید؟
+                        </p>
+
+                        <div className="flex justify-center gap-3">
+                            <button onClick={() => setIsApproveConfirmModalOpen(false)} className="px-6 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl dark:text-slate-300 dark:hover:bg-slate-700 transition-colors w-1/3">
+                                خیر
+                            </button>
+                            <button 
+                                onClick={executeApprove} 
+                                className="px-6 py-3 bg-emerald-600 text-white font-black rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 dark:shadow-none transition-transform active:scale-95 w-2/3"
+                            >
+                                بله، تایید نهایی
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Payment Registration Modal */}
+            {isPaymentModalOpen && selectedOrder && (
+                <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4 backdrop-blur-sm" onClick={() => setIsPaymentModalOpen(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-6 border-b pb-4 dark:border-slate-700">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">ثبت فیش واریزی</h3>
+                            <button onClick={() => setIsPaymentModalOpen(false)}><CloseIcon className="text-slate-500" /></button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700 text-sm mb-4">
+                                <div className="flex justify-between mb-1">
+                                    <span className="text-slate-500">خریدار:</span>
+                                    <span className="font-bold">{selectedOrder.buyerName}</span>
+                                </div>
+                                <div className="flex justify-between mb-2">
+                                    <span className="text-slate-500">خودرو:</span>
+                                    <span className="font-bold">{selectedOrder.carName}</span>
+                                </div>
+                                <div className="flex justify-between bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-lg text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                    <span className="font-bold text-xs self-center">مبلغ مصوب قابل پرداخت:</span>
+                                    <span className="font-black font-mono text-sm">{(selectedOrder.finalPrice || selectedOrder.proposedPrice).toLocaleString('fa-IR')} تومان</span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">شماره شاسی <span className="text-red-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        value={paymentFormData.chassis}
+                                        onChange={e => setPaymentFormData({...paymentFormData, chassis: e.target.value})}
+                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-mono text-sm"
+                                        placeholder="VIN..."
+                                        dir="ltr"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">شماره پلاک <span className="text-red-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        value={paymentFormData.plate}
+                                        onChange={e => setPaymentFormData({...paymentFormData, plate: e.target.value})}
+                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-mono text-sm"
+                                        placeholder="11ب222-33"
+                                        dir="ltr"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">مبلغ واریزی (تومان) <span className="text-red-500">*</span></label>
+                                <input 
+                                    type="number" 
+                                    value={paymentFormData.amount}
+                                    onChange={e => setPaymentFormData({...paymentFormData, amount: e.target.value})}
+                                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-mono text-lg font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    placeholder="0"
+                                />
+                                {paymentFormData.amount && (
+                                    <p className="text-[10px] text-slate-500 mt-1">{numberToPersianWords(Number(paymentFormData.amount))} تومان</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">تصویر فیش <span className="text-red-500">*</span></label>
+                                <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                                        <UploadIcon className="w-8 h-8" />
+                                        <span className="text-xs">برای آپلود تصویر کلیک کنید</span>
+                                    </div>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && setPaymentFormData({...paymentFormData, receiptImage: e.target.files[0]})} />
+                                </div>
+                                {paymentFormData.receiptImage && <p className="text-xs text-green-600 mt-1 text-center font-bold">تصویر انتخاب شد: {paymentFormData.receiptImage.name}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">توضیحات (اختیاری)</label>
+                                <textarea 
+                                    rows={2}
+                                    value={paymentFormData.description}
+                                    onChange={e => setPaymentFormData({...paymentFormData, description: e.target.value})}
+                                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white text-sm"
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t dark:border-slate-700">
+                            <button onClick={() => setIsPaymentModalOpen(false)} className="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg dark:text-slate-300 dark:hover:bg-slate-700">انصراف</button>
+                            <button onClick={handlePaymentSubmit} className="px-8 py-2 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 shadow-lg shadow-amber-200 dark:shadow-none">ثبت فیش واریزی</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Payment Confirm Modal */}
+            {isPaymentConfirmModalOpen && (
+                <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-[70] p-4 backdrop-blur-sm" onClick={() => setIsPaymentConfirmModalOpen(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-4 text-center">تایید اطلاعات پرداخت</h3>
+                        <div className="space-y-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl text-sm mb-6">
+                            <div className="flex justify-between"><span className="text-slate-500">مبلغ:</span><span className="font-bold font-mono">{Number(paymentFormData.amount).toLocaleString('fa-IR')}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">شاسی:</span><span className="font-mono">{paymentFormData.chassis}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">پلاک:</span><span className="font-mono">{paymentFormData.plate}</span></div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsPaymentConfirmModalOpen(false)} className="flex-1 py-2.5 border border-slate-300 text-slate-600 rounded-xl font-bold hover:bg-slate-50">اصلاح</button>
+                            <button onClick={confirmPaymentRegister} className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-lg">تایید نهایی</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Exit Permission Modal */}
+            {isExitModalOpen && selectedOrder && (
+                <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4 backdrop-blur-sm" onClick={() => setIsExitModalOpen(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 text-center" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <ExitFormIcon className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">صدور اجازه خروج</h3>
+                        <p className="text-sm text-slate-500 mb-6">آیا از صدور مجوز خروج برای خودروی <span className="font-bold text-slate-800">{selectedOrder.carName}</span> اطمینان دارید؟</p>
+                        
+                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl text-left text-sm space-y-2 mb-6 border border-slate-200 dark:border-slate-700">
+                            <div className="flex justify-between"><span className="text-slate-500">خریدار:</span><span className="font-bold">{selectedOrder.buyerName}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">کد رهگیری:</span><span className="font-mono">{selectedOrder.trackingCode}</span></div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsExitModalOpen(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors">انصراف</button>
+                            <button onClick={handleConfirmExit} className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 shadow-lg shadow-purple-200 dark:shadow-none transition-transform active:scale-95">اجازه خروج</button>
                         </div>
                     </div>
                 </div>
