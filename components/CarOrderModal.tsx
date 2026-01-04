@@ -22,6 +22,15 @@ interface CarOrderModalProps {
     editOrder?: CarOrder | null;
 }
 
+const PREDEFINED_USER_NOTES = [
+    'فعلا بیعانه میدهد بقیه را تا تاریخ ... میدهد',
+    'بخشی الان بقیه چک میدهد',
+    'درخواست ارسال به شهر دیگر دارد',
+    'برای تامین نقدینگی به چند روز زمان نیاز دارد',
+    'با شرایطی که گفتید موافقت کرده است',
+    'با توجه به نتیجه کارشناسی خودرو درخواست تخفیف دارد'
+];
+
 const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, username, initialBuyerData, editOrder }) => {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -235,6 +244,20 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                         </div>
                     ) : (
                         <form className="space-y-6">
+                            
+                            {/* Rejection Alert */}
+                            {editOrder && editOrder.status === OrderStatus.REJECTED && editOrder.adminNotes && (
+                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-xl text-sm text-red-800 dark:text-red-200 mb-4 animate-pulse">
+                                    <div className="flex items-center gap-2 mb-1 font-bold">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        علت رد شدن درخواست:
+                                    </div>
+                                    <p className="mr-7">{editOrder.adminNotes}</p>
+                                </div>
+                            )}
+
                             {/* Stepper Visual */}
                             <div className="flex items-center justify-center mb-8 gap-2">
                                 {[1, 2, 3, 4].map(i => (
@@ -398,6 +421,18 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 mb-1">توضیحات اختصاصی سفارش</label>
                                         <textarea rows={3} className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all" value={formData.userNotes} onChange={e => setFormData({...formData, userNotes: e.target.value})} placeholder="مثلاً: هدیه روی ماشین، نصب آپشن‌های خاص و..."></textarea>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {PREDEFINED_USER_NOTES.map(note => (
+                                                <button
+                                                    key={note}
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({...prev, userNotes: prev.userNotes ? prev.userNotes + '\n' + note : note}))}
+                                                    className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors border border-slate-200 dark:border-slate-600"
+                                                >
+                                                    {note}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             )}
