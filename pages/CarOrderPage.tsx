@@ -9,6 +9,7 @@ import CarOrderModal from '../components/CarOrderModal';
 import CarOrderList from '../components/CarOrderList';
 import CarOrderReviewModal from '../components/CarOrderReviewModal';
 import CarOrderPaymentModal from '../components/CarOrderPaymentModal';
+import CarOrderFilterPanel from '../components/CarOrderFilterPanel';
 import { CarOrderApproveModal, CarOrderRejectModal, CarOrderExitModal } from '../components/CarOrderAdminModals';
 import { ClipboardListIcon } from '../components/icons/ClipboardListIcon';
 import { PlusIcon } from '../components/icons/PlusIcon';
@@ -28,6 +29,15 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     // Auto Refresh State
     const [autoRefresh, setAutoRefresh] = useState(false);
     
+    // Filters State
+    const [filters, setFilters] = useState({
+        search: '',
+        carName: 'all',
+        saleType: 'all',
+        creator: 'all',
+        status: 'all'
+    });
+
     // Modal States
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -86,23 +96,72 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         return () => clearInterval(interval);
     }, [autoRefresh, fetchData]);
 
+    // Filter Helpers
+    const carNames = useMemo(() => Array.from(new Set(orders.map(o => o.carName))).sort(), [orders]);
+    const creators = useMemo(() => Array.from(new Set(orders.map(o => o.createdBy))).sort(), [orders]);
+
     // --- Filter Logic ---
     const filteredOrders = useMemo(() => {
         let visibleOrders = orders;
+        
+        // 1. Filter by User Permissions (Admin sees all, User sees own)
         if (!isAdmin && currentUser?.username) {
             visibleOrders = orders.filter(o => o.createdBy === currentUser.username);
         }
 
         return visibleOrders.filter(order => {
-            if (activeTab === 'ALL') return true;
-            if (activeTab === 'DRAFT') return order.status === OrderStatus.DRAFT;
-            if (activeTab === 'PENDING') return order.status === OrderStatus.PENDING_ADMIN;
-            if (activeTab === 'PAYMENT') return [OrderStatus.PENDING_PAYMENT, OrderStatus.PENDING_FINANCE, OrderStatus.READY_FOR_DELIVERY].includes(order.status);
-            if (activeTab === 'EXIT_PERM') return [OrderStatus.EXIT_PROCESS, OrderStatus.COMPLETED].includes(order.status);
-            if (activeTab === 'REJECTED') return order.status === OrderStatus.REJECTED;
-            return false;
+            // Tab Logic
+            let tabMatch = true;
+            if (activeTab === 'DRAFT') tabMatch = order.status === OrderStatus.DRAFT;
+            else if (activeTab === 'PENDING') tabMatch = order.status === OrderStatus.PENDING_ADMIN;
+            else if (activeTab === 'PAYMENT') tabMatch = [OrderStatus.PENDING_PAYMENT, OrderStatus.PENDING_FINANCE, OrderStatus.READY_FOR_DELIVERY].includes(order.status);
+            else if (activeTab === 'EXIT_PERM') tabMatch = [OrderStatus.EXIT_PROCESS, OrderStatus.COMPLETED].includes(order.status);
+            else if (activeTab === 'REJECTED') tabMatch = order.status === OrderStatus.REJECTED;
+            
+            if (!tabMatch) return false;
+
+            // Manual Filters
+            // 1. Search (Phone, National ID, Address, Postal, City, Notes)
+            if (filters.search) {
+                const q = filters.search.toLowerCase();
+                const matchesSearch = 
+                    (order.buyerName?.toLowerCase().includes(q)) ||
+                    (order.buyerPhone?.includes(q)) ||
+                    (order.buyerNationalId?.includes(q)) ||
+                    (order.buyerPostalCode?.includes(q)) ||
+                    (order.buyerAddress?.toLowerCase().includes(q)) ||
+                    (order.buyerCity?.toLowerCase().includes(q)) ||
+                    (order.userNotes?.toLowerCase().includes(q)) ||
+                    (order.adminNotes?.toLowerCase().includes(q)) ||
+                    (order.trackingCode?.toLowerCase().includes(q));
+                
+                if (!matchesSearch) return false;
+            }
+
+            // 2. Car Name
+            if (filters.carName !== 'all' && order.carName !== filters.carName) return false;
+
+            // 3. Sale Type
+            if (filters.saleType !== 'all') {
+                const condition = conditions.find(c => c.id === order.conditionId);
+                // Fallback check if condition deleted: try finding saleType string in conditionSummary
+                const saleTypeInSummary = order.conditionSummary?.includes(filters.saleType);
+                if (condition) {
+                    if (condition.sale_type !== filters.saleType) return false;
+                } else if (!saleTypeInSummary) {
+                    return false;
+                }
+            }
+
+            // 4. Creator
+            if (filters.creator !== 'all' && order.createdBy !== filters.creator) return false;
+
+            // 5. Status
+            if (filters.status !== 'all' && order.status !== filters.status) return false;
+
+            return true;
         });
-    }, [orders, activeTab, isAdmin, currentUser]);
+    }, [orders, activeTab, isAdmin, currentUser, filters, conditions]);
 
     const counts = useMemo(() => {
         let userOrders = orders;
@@ -346,6 +405,15 @@ const CarOrderPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Filter Panel */}
+            <CarOrderFilterPanel 
+                filters={filters}
+                onChange={(key, value) => setFilters(prev => ({ ...prev, [key]: value }))}
+                onClear={() => setFilters({ search: '', carName: 'all', saleType: 'all', creator: 'all', status: 'all' })}
+                carNames={carNames}
+                creators={creators}
+            />
 
             {/* Tabs */}
             <div className="bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-xl flex gap-2 mb-6 overflow-x-auto shadow-inner no-scrollbar">
