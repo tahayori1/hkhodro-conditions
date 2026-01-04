@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
-import type { CarOrder, Car, CarSaleCondition } from '../types';
-import { OrderStatus } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import type { CarOrder, Car, CarSaleCondition, CarPriceStats } from '../types';
+import { OrderStatus, SaleType } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
-import { getCars, getConditions } from '../services/api';
+import { getCars, getConditions, getCarPriceStats } from '../services/api';
 import Spinner from './Spinner';
 
 interface CarOrderModalProps {
@@ -27,6 +27,7 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
     const [loading, setLoading] = useState(false);
     const [cars, setCars] = useState<Car[]>([]);
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
+    const [priceStats, setPriceStats] = useState<CarPriceStats[]>([]);
     const [selectedConditionObj, setSelectedConditionObj] = useState<CarSaleCondition | null>(null);
 
     const [formData, setFormData] = useState({
@@ -95,10 +96,11 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                 });
             }
 
-            Promise.all([getCars(), getConditions()])
-                .then(([carsData, conditionsData]) => {
+            Promise.all([getCars(), getConditions(), getCarPriceStats()])
+                .then(([carsData, conditionsData, statsData]) => {
                     setCars(carsData);
                     setConditions(conditionsData);
+                    setPriceStats(statsData);
                     
                     // If editing, find and set the condition object
                     if (editOrder) {
@@ -111,9 +113,17 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
     }, [isOpen, initialBuyerData, editOrder]);
 
     const handleNext = () => {
-        // Validation for each step
-        if (step === 1 && (!formData.buyerName || !formData.buyerNationalId || !formData.buyerPhone || !formData.buyerCity)) return;
-        if (step === 2 && (!formData.carName || !formData.conditionId)) return;
+        // Validation for each step (New Order)
+        // Step 1: Car & Condition
+        if (step === 1 && (!formData.carName || !formData.conditionId)) return;
+        
+        // Step 2: Price
+        if (step === 2 && (!formData.proposedPrice || formData.proposedPrice <= 0)) return;
+
+        // Step 3: Config (Color)
+        if (step === 3 && !formData.selectedColor) return;
+        
+        // Step 4: Buyer (Final step, validated at submit)
         
         setStep(prev => prev + 1);
     };
@@ -135,6 +145,7 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
 
     const handleFinalSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!formData.buyerName || !formData.buyerPhone) return;
         onSave(formData, OrderStatus.PENDING_ADMIN);
     };
 
@@ -142,6 +153,62 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
         e.preventDefault();
         onSave(formData, OrderStatus.DRAFT);
     };
+
+    // --- Price Analysis Logic ---
+    const priceAnalysis = useMemo(() => {
+        if (!selectedConditionObj || !formData.carName) return null;
+
+        const stat = priceStats.find(s => s.model_name === formData.carName);
+        const maxMarketPrice = stat ? stat.maximum : 0;
+        
+        const isHavaleh = selectedConditionObj.sale_type === SaleType.TRANSFER; // 'حواله'
+        const isZeroMarket = selectedConditionObj.sale_type === SaleType.NEW_MARKET; // 'صفر بازار'
+
+        let info = null;
+        let isUnderSellingGeneric = false;
+
+        if (isHavaleh && maxMarketPrice > 0) {
+            // Havaleh Logic
+            // 1 Month: 95% - 97%
+            const h1Min = maxMarketPrice * 0.95;
+            const h1Max = maxMarketPrice * 0.97;
+            const h1Avg = (h1Min + h1Max) / 2;
+
+            // 2 Month: 90% - 94%
+            const h2Min = maxMarketPrice * 0.90;
+            const h2Max = maxMarketPrice * 0.94;
+            const h2Avg = (h2Min + h2Max) / 2;
+
+            // Check specific warnings
+            // If proposed price is > 2% lower than 1-month average
+            const warnH1 = formData.proposedPrice > 0 && formData.proposedPrice < (h1Avg * 0.98);
+            
+            // If proposed price is > 2% lower than 2-month average
+            const warnH2 = formData.proposedPrice > 0 && formData.proposedPrice < (h2Avg * 0.98);
+
+            info = {
+                type: 'HAVALEH',
+                h1Range: `${Math.round(h1Min).toLocaleString('fa-IR')} تا ${Math.round(h1Max).toLocaleString('fa-IR')}`,
+                h2Range: `${Math.round(h2Min).toLocaleString('fa-IR')} تا ${Math.round(h2Max).toLocaleString('fa-IR')}`,
+                warnH1,
+                warnH2
+            };
+        } else if (isZeroMarket && maxMarketPrice > 0) {
+            // Zero Market Logic
+            const warningThreshold = maxMarketPrice * 0.98; // 2% below max market price
+            isUnderSellingGeneric = formData.proposedPrice > 0 && formData.proposedPrice < warningThreshold;
+
+            info = {
+                type: 'ZERO_MARKET',
+                maxLabel: 'بالاترین قیمت روز خودرو (بازار)',
+                maxValue: maxMarketPrice.toLocaleString('fa-IR'),
+                isUnderSelling: isUnderSellingGeneric
+            };
+        }
+
+        return { info };
+    }, [selectedConditionObj, formData.carName, formData.proposedPrice, priceStats]);
+
 
     if (!isOpen) return null;
 
@@ -155,7 +222,7 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                         <h3 className="text-xl font-bold text-slate-800 dark:text-white">
                             {editOrder ? 'ویرایش سفارش فروش' : 'ثبت سفارش فروش جدید'}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">گام {step} از ۳ - تکمیل چرخه فروش</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">گام {step} از ۴</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"><CloseIcon className="text-slate-500" /></button>
                 </div>
@@ -170,51 +237,20 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                         <form className="space-y-6">
                             {/* Stepper Visual */}
                             <div className="flex items-center justify-center mb-8 gap-2">
-                                {[1, 2, 3].map(i => (
+                                {[1, 2, 3, 4].map(i => (
                                     <React.Fragment key={i}>
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === i ? 'bg-sky-600 text-white shadow-lg shadow-sky-200' : step > i ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
                                             {step > i ? '✓' : i}
                                         </div>
-                                        {i < 3 && <div className={`w-12 h-0.5 ${step > i ? 'bg-emerald-500' : 'bg-slate-200'}`} />}
+                                        {i < 4 && <div className={`w-8 h-0.5 ${step > i ? 'bg-emerald-500' : 'bg-slate-200'}`} />}
                                     </React.Fragment>
                                 ))}
                             </div>
 
+                            {/* STEP 1: Select Car & Condition */}
                             {step === 1 && (
                                 <div className="space-y-4 animate-fade-in">
-                                    <h4 className="font-bold text-slate-700 dark:text-slate-300 border-r-4 border-sky-500 pr-3">۱. مشخصات و نشانی خریدار</h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="sm:col-span-2">
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">نام کامل خریدار</label>
-                                            <input required type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all" value={formData.buyerName} onChange={e => setFormData({...formData, buyerName: e.target.value})} placeholder="نام و نام خانوادگی مطابق شناسنامه" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">کد ملی</label>
-                                            <input required type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-mono" value={formData.buyerNationalId} onChange={e => setFormData({...formData, buyerNationalId: e.target.value})} dir="ltr" placeholder="1234567890" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">شماره تماس</label>
-                                            <input required type="tel" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-mono" value={formData.buyerPhone} onChange={e => setFormData({...formData, buyerPhone: e.target.value})} dir="ltr" placeholder="09170000000" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">شهر محل سکونت</label>
-                                            <input required type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all" value={formData.buyerCity} onChange={e => setFormData({...formData, buyerCity: e.target.value})} placeholder="مثال: شیراز" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">کد پستی</label>
-                                            <input required type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-mono" value={formData.buyerPostalCode} onChange={e => setFormData({...formData, buyerPostalCode: e.target.value})} dir="ltr" placeholder="7100000000" />
-                                        </div>
-                                        <div className="sm:col-span-2">
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">آدرس کامل پستی</label>
-                                            <textarea required rows={2} className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all" value={formData.buyerAddress} onChange={e => setFormData({...formData, buyerAddress: e.target.value})} placeholder="خیابان، کوچه، پلاک، واحد..."></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {step === 2 && (
-                                <div className="space-y-4 animate-fade-in">
-                                    <h4 className="font-bold text-slate-700 dark:text-slate-300 border-r-4 border-sky-500 pr-3">۲. انتخاب خودرو و شرایط فروش</h4>
+                                    <h4 className="font-bold text-slate-700 dark:text-slate-300 border-r-4 border-sky-500 pr-3">۱. انتخاب خودرو و شرایط فروش</h4>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 mb-1">خودرو</label>
                                         <select required className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-bold" value={formData.carName} onChange={e => setFormData({...formData, carName: e.target.value, conditionId: 0})}>
@@ -265,36 +301,136 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                                 </div>
                             )}
 
+                            {/* STEP 2: Financial Proposal */}
+                            {step === 2 && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <h4 className="font-bold text-slate-700 dark:text-slate-300 border-r-4 border-sky-500 pr-3">۲. پیشنهاد مالی</h4>
+                                    
+                                    {/* Price Analysis Box */}
+                                    {priceAnalysis && priceAnalysis.info && (
+                                        <div className="p-4 rounded-xl border text-xs space-y-3 bg-slate-50 border-slate-200 dark:bg-slate-900/30 dark:border-slate-700">
+                                            <h5 className="font-bold text-slate-700 dark:text-slate-300 border-b pb-2 mb-2 border-slate-200 dark:border-slate-600">اطلاعات بازار و قیمت‌گذاری</h5>
+                                            
+                                            {priceAnalysis.info.type === 'HAVALEH' && (
+                                                <>
+                                                    <div className={`flex flex-col sm:flex-row justify-between items-center p-2 rounded ${priceAnalysis.info.warnH1 ? 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800' : ''}`}>
+                                                        <span className="text-slate-500 dark:text-slate-400">قیمت حواله ۱ ماهه:</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-mono font-bold text-slate-700 dark:text-slate-200">{priceAnalysis.info.h1Range}</span>
+                                                            {priceAnalysis.info.warnH1 && (
+                                                                <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold whitespace-nowrap">
+                                                                    هشدار زیرفروشی
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className={`flex flex-col sm:flex-row justify-between items-center p-2 rounded ${priceAnalysis.info.warnH2 ? 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800' : ''}`}>
+                                                        <span className="text-slate-500 dark:text-slate-400">قیمت حواله ۲ ماهه:</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-mono font-bold text-slate-700 dark:text-slate-200">{priceAnalysis.info.h2Range}</span>
+                                                            {priceAnalysis.info.warnH2 && (
+                                                                <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold whitespace-nowrap">
+                                                                    هشدار زیرفروشی
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {priceAnalysis.info.type === 'ZERO_MARKET' && (
+                                                <>
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-slate-500 dark:text-slate-400">{priceAnalysis.info.maxLabel}:</span>
+                                                        <span className="font-mono font-black text-sky-600 dark:text-sky-400">{priceAnalysis.info.maxValue} تومان</span>
+                                                    </div>
+                                                    {priceAnalysis.info.isUnderSelling && (
+                                                        <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/50 rounded text-red-700 dark:text-red-200 font-bold flex items-center justify-center gap-2">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                            </svg>
+                                                            هشدار زیرفروشی (قیمت پیشنهادی بسیار پایین است)
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">قیمت پیشنهادی نهایی (تومان)</label>
+                                        <input 
+                                            required 
+                                            type="number" 
+                                            className={`w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 transition-all font-mono text-lg font-bold ${
+                                                priceAnalysis?.info?.warnH1 || priceAnalysis?.info?.warnH2 || priceAnalysis?.info?.isUnderSelling
+                                                ? 'border-red-500 text-red-600 focus:ring-red-500' 
+                                                : 'border-slate-300 focus:ring-sky-500'
+                                            }`} 
+                                            value={formData.proposedPrice || ''} 
+                                            onChange={e => setFormData({...formData, proposedPrice: Number(e.target.value)})} 
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 3: Configuration & Notes */}
                             {step === 3 && (
                                 <div className="space-y-4 animate-fade-in">
-                                    <h4 className="font-bold text-slate-700 dark:text-slate-300 border-r-4 border-sky-500 pr-3">۳. پیکربندی و پیشنهاد مالی</h4>
+                                    <h4 className="font-bold text-slate-700 dark:text-slate-300 border-r-4 border-sky-500 pr-3">۳. پیکربندی و توضیحات</h4>
                                     
                                     {/* Snapshot review */}
                                     <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-2">
-                                        <div className="flex justify-between"><span className="text-slate-400">خریدار:</span><span className="font-bold">{formData.buyerName} ({formData.buyerCity})</span></div>
-                                        <div className="flex justify-between"><span className="text-slate-400">خودرو و بخشنامه:</span><span className="font-bold text-sky-600">{formData.carName} - {selectedConditionObj?.sale_type}</span></div>
-                                        <div className="pt-1 border-t border-slate-200 dark:border-slate-700 text-[10px] italic text-slate-500">
-                                            {formData.conditionSummary}
-                                        </div>
+                                        <div className="flex justify-between"><span className="text-slate-400">خودرو:</span><span className="font-bold">{formData.carName}</span></div>
+                                        <div className="flex justify-between"><span className="text-slate-400">بخشنامه:</span><span className="font-bold text-sky-600">{formData.conditionSummary.split('|')[0]}</span></div>
+                                        <div className="flex justify-between"><span className="text-slate-400">قیمت پیشنهادی:</span><span className="font-bold font-mono text-emerald-600">{(formData.proposedPrice || 0).toLocaleString('fa-IR')}</span></div>
                                     </div>
 
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">انتخاب رنگ خودرو</label>
+                                        <select required className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-bold" value={formData.selectedColor} onChange={e => setFormData({...formData, selectedColor: e.target.value})}>
+                                            {selectedConditionObj?.colors.map(color => (
+                                                <option key={color} value={color}>{color}</option>
+                                            ))}
+                                            {(!selectedConditionObj || selectedConditionObj.colors.length === 0) && <option value="">بدون رنگ</option>}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">توضیحات اختصاصی سفارش</label>
+                                        <textarea rows={3} className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all" value={formData.userNotes} onChange={e => setFormData({...formData, userNotes: e.target.value})} placeholder="مثلاً: هدیه روی ماشین، نصب آپشن‌های خاص و..."></textarea>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 4: Buyer Details (Final) */}
+                            {step === 4 && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <h4 className="font-bold text-slate-700 dark:text-slate-300 border-r-4 border-sky-500 pr-3">۴. مشخصات و نشانی خریدار</h4>
+                                    
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">انتخاب رنگ خودرو</label>
-                                            <select required className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-bold" value={formData.selectedColor} onChange={e => setFormData({...formData, selectedColor: e.target.value})}>
-                                                {selectedConditionObj?.colors.map(color => (
-                                                    <option key={color} value={color}>{color}</option>
-                                                ))}
-                                                {(!selectedConditionObj || selectedConditionObj.colors.length === 0) && <option value="">بدون رنگ</option>}
-                                            </select>
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">نام کامل خریدار</label>
+                                            <input required type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all" value={formData.buyerName} onChange={e => setFormData({...formData, buyerName: e.target.value})} placeholder="نام و نام خانوادگی مطابق شناسنامه" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">قیمت پیشنهادی نهایی (تومان)</label>
-                                            <input required type="number" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-mono text-lg font-bold" value={formData.proposedPrice || ''} onChange={e => setFormData({...formData, proposedPrice: Number(e.target.value)})} />
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">کد ملی</label>
+                                            <input required type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-mono" value={formData.buyerNationalId} onChange={e => setFormData({...formData, buyerNationalId: e.target.value})} dir="ltr" placeholder="1234567890" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">شماره تماس</label>
+                                            <input required type="tel" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-mono" value={formData.buyerPhone} onChange={e => setFormData({...formData, buyerPhone: e.target.value})} dir="ltr" placeholder="09170000000" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">شهر محل سکونت</label>
+                                            <input required type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all" value={formData.buyerCity} onChange={e => setFormData({...formData, buyerCity: e.target.value})} placeholder="مثال: شیراز" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">کد پستی</label>
+                                            <input required type="text" className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all font-mono" value={formData.buyerPostalCode} onChange={e => setFormData({...formData, buyerPostalCode: e.target.value})} dir="ltr" placeholder="7100000000" />
                                         </div>
                                         <div className="sm:col-span-2">
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">توضیحات اختصاصی سفارش</label>
-                                            <textarea rows={3} className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all" value={formData.userNotes} onChange={e => setFormData({...formData, userNotes: e.target.value})} placeholder="مثلاً: هدیه روی ماشین، نصب آپشن‌های خاص و..."></textarea>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">آدرس کامل پستی</label>
+                                            <textarea required rows={2} className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 transition-all" value={formData.buyerAddress} onChange={e => setFormData({...formData, buyerAddress: e.target.value})} placeholder="خیابان، کوچه، پلاک، واحد..."></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -308,9 +444,9 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                         {step === 1 ? 'انصراف' : 'قبلی'}
                     </button>
                     <div className="flex gap-2">
-                        {step < 3 ? (
+                        {step < 4 ? (
                             <button 
-                                disabled={loading || (step === 1 && (!formData.buyerPhone || !formData.buyerCity)) || (step === 2 && !formData.conditionId)} 
+                                disabled={loading || (step === 1 && (!formData.carName || !formData.conditionId)) || (step === 2 && (!formData.proposedPrice || formData.proposedPrice <= 0)) || (step === 3 && !formData.selectedColor)} 
                                 onClick={handleNext} 
                                 className="px-8 py-2 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 disabled:opacity-30 shadow-md transition-all"
                             >
