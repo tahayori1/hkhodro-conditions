@@ -7,6 +7,7 @@ import Toast from '../components/Toast';
 import { SortIcon } from '../components/icons/SortIcon';
 import { CopyIcon } from '../components/icons/CopyIcon';
 import { EyeIcon } from '../components/icons/EyeIcon';
+import CarPriceCopySettingsModal from '../components/CarPriceCopySettingsModal';
 
 const timeAgo = (dateString: string): string => {
     try {
@@ -58,6 +59,9 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'model_name', direction: 'ascending' });
     const [lastUpdated, setLastUpdated] = useState<string>('');
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    
+    // Copy Modal State
+    const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
@@ -166,34 +170,12 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
         setSortConfig({ key, direction });
     };
     
-    const handleCopyStats = () => {
+    const handleCopyStatsClick = () => {
         if (priceStats.length === 0) {
             showToast('آماری برای کپی کردن وجود ندارد', 'error');
             return;
         }
-
-        const date = new Date().toLocaleDateString('fa-IR');
-        const header = `📋 لیست قیمت محصولات - ${date}`;
-        
-        const statsText = priceStats
-            .map(stat => {
-                const price = stat.maximum;
-                const havalehPrice = Math.round(price * 0.90); // Havaleh Min approx logic (Changed to 0.90)
-                
-                return `🚗 ${stat.model_name}\n💰 قیمت: ${price.toLocaleString('fa-IR')}\n📄 حواله: ${havalehPrice.toLocaleString('fa-IR')}`;
-            })
-            .join('\n\n');
-        
-        const fullText = `${header}\n\n${statsText}\n\n@HoseiniKhodro`;
-
-        navigator.clipboard.writeText(fullText)
-            .then(() => {
-                showToast('آمار با موفقیت کپی شد', 'success');
-            })
-            .catch(err => {
-                console.error('Failed to copy stats: ', err);
-                showToast('کپی کردن با خطا مواجه شد', 'error');
-            });
+        setIsCopyModalOpen(true);
     };
 
     const SortableHeader: React.FC<{ title: string; sortKey: string; className?: string }> = ({ title, sortKey, className='' }) => {
@@ -221,7 +203,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                     {lastUpdated && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">آخرین بروزرسانی: {timeAgo(lastUpdated)}</p>}
                  </div>
                  <button 
-                    onClick={handleCopyStats}
+                    onClick={handleCopyStatsClick}
                     className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 mt-2 sm:mt-0"
                     disabled={loading || !!error || priceStats.length === 0}
                 >
@@ -230,7 +212,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 </button>
             </div>
              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                * بیشترین نرخ معامله برابر با قیمت + ۷٪ است.
+                * بیشترین نرخ معامله برابر با قیمت + ۲٪ است.
             </p>
             {loading ? (
                 <div className="flex justify-center items-center h-40 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
@@ -243,7 +225,8 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {priceStats.map(stat => {
-                        const highestLimit = stat.maximum * 1.07;
+                        // Change: Highest limit is now +2% instead of +7%
+                        const highestLimit = stat.maximum * 1.02;
                         
                         // Havaleh Calculations
                         // 1 Month: Max - 5% (Min), Max - 3% (Max)
@@ -363,6 +346,14 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 {renderPriceStats()}
                 {renderComparisonTable()}
             </main>
+            
+            <CarPriceCopySettingsModal 
+                isOpen={isCopyModalOpen} 
+                onClose={() => setIsCopyModalOpen(false)} 
+                stats={priceStats}
+                onCopySuccess={() => showToast('آمار با موفقیت کپی شد', 'success')}
+            />
+
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </>
     );

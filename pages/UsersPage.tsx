@@ -22,6 +22,7 @@ import { CloseIcon } from '../components/icons/CloseIcon';
 import UserFilterPanel from '../components/UserFilterPanel';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { ExportIcon } from '../components/icons/ExportIcon';
+import { CopyIcon } from '../components/icons/CopyIcon';
 
 // Declare moment from global scope (loaded via CDN in index.html)
 declare const moment: any;
@@ -440,6 +441,22 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         return {finalSuccess: successCount, finalErrors: errorCount};
     };
 
+    const handleCopySelected = () => {
+        const selectedUsers = users.filter(u => selectedUserIds.has(u.id));
+        if (selectedUsers.length === 0) {
+            showToast('هیچ کاربری انتخاب نشده است.', 'error');
+            return;
+        }
+
+        const textToCopy = selectedUsers.map(u => 
+            `👤 ${u.FullName}\n🚗 ${u.CarModel || 'نامشخص'}\n📱 ${u.Number}`
+        ).join('\n\n-------------------\n\n');
+
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => showToast('اطلاعات مشتریان با موفقیت کپی شد', 'success'))
+            .catch(() => showToast('کپی کردن با خطا مواجه شد', 'error'));
+    };
+
     const handleExportSelectedToExcel = () => {
         const selectedUsers = users.filter(u => selectedUserIds.has(u.id));
         if (selectedUsers.length === 0) {
@@ -632,6 +649,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                         )}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4">
+                        <button
+                            onClick={handleCopySelected}
+                            className="bg-amber-500 text-white font-semibold px-3 sm:px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2 text-sm sm:text-base"
+                            title="کپی کردن اطلاعات"
+                        >
+                            <CopyIcon className="w-5 h-5" /> کپی
+                        </button>
                         <button
                             onClick={handleExportSelectedToExcel}
                             className="bg-emerald-600 text-white font-semibold px-3 sm:px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 text-sm sm:text-base"
