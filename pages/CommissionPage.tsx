@@ -22,11 +22,18 @@ interface AttendanceZone {
 
 const CommissionPage: React.FC = () => {
     // --- State ---
-    // 1. Raw Commission
-    const [inputMode, setInputMode] = useState<'percentage' | 'fixed'>('percentage');
-    const [salesAmount, setSalesAmount] = useState<number | ''>('');
-    const [commissionRate, setCommissionRate] = useState<number | ''>(2);
-    const [fixedCommission, setFixedCommission] = useState<number | ''>('');
+    // 1. Raw Commission by Sale Type
+    const [havalehProfit, setHavalehProfit] = useState<number | ''>('');
+    const [havalehRate, setHavalehRate] = useState<number | ''>(3);
+
+    const [leasingCount, setLeasingCount] = useState<number | ''>('');
+    const [leasingRate, setLeasingRate] = useState<number | ''>(200000);
+
+    const [usedProfit, setUsedProfit] = useState<number | ''>('');
+    const [usedRate, setUsedRate] = useState<number | ''>(10);
+
+    const [factoryCount, setFactoryCount] = useState<number | ''>('');
+    const [factoryRate, setFactoryRate] = useState<number | ''>(50000);
 
     // 2. Sales Volume Targets (New Section)
     const [leasingTarget, setLeasingTarget] = useState<number | ''>(5);
@@ -69,13 +76,12 @@ const CommissionPage: React.FC = () => {
 
     // Calculations
     const rawCommission = useMemo(() => {
-        if (inputMode === 'fixed') {
-            return Number(fixedCommission) || 0;
-        }
-        const sales = Number(salesAmount) || 0;
-        const rate = Number(commissionRate) || 0;
-        return sales * (rate / 100);
-    }, [salesAmount, commissionRate, inputMode, fixedCommission]);
+        const havalehComm = (Number(havalehProfit) || 0) * ((Number(havalehRate) || 0) / 100);
+        const leasingComm = (Number(leasingCount) || 0) * (Number(leasingRate) || 0);
+        const usedComm = (Number(usedProfit) || 0) * ((Number(usedRate) || 0) / 100);
+        const factoryComm = (Number(factoryCount) || 0) * (Number(factoryRate) || 0);
+        return havalehComm + leasingComm + usedComm + factoryComm;
+    }, [havalehProfit, havalehRate, leasingCount, leasingRate, usedProfit, usedRate, factoryCount, factoryRate]);
 
     const salesPerformanceFactor = useMemo(() => {
         let totalAchievement = 0;
@@ -175,69 +181,139 @@ const CommissionPage: React.FC = () => {
                     
                     {/* Step 1: Raw Commission */}
                     <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">۱</span>
-                                پورسانت خام
-                            </h3>
-                            <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-lg self-start sm:self-auto">
-                                <button
-                                    onClick={() => setInputMode('percentage')}
-                                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${inputMode === 'percentage' ? 'bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
-                                >
-                                    محاسبه درصدی
-                                </button>
-                                <button
-                                    onClick={() => setInputMode('fixed')}
-                                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${inputMode === 'fixed' ? 'bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
-                                >
-                                    ورود مستقیم مبلغ
-                                </button>
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-6">
+                            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">۱</span>
+                            پورسانت پایه بر اساس نوع فروش
+                        </h3>
+
+                        <div className="space-y-6">
+                            {/* Havaleh */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                                <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-3">فروش حواله</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">مجموع سود (تفاضل قیمت کارخانه و فروش)</label>
+                                        <input 
+                                            type="number" 
+                                            value={havalehProfit} 
+                                            onChange={e => setHavalehProfit(e.target.value === '' ? '' : Number(e.target.value))} 
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-sm"
+                                            placeholder="تومان" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">درصد پورسانت</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="number" 
+                                                value={havalehRate} 
+                                                onChange={e => setHavalehRate(e.target.value === '' ? '' : Number(e.target.value))} 
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-sm pl-8"
+                                            />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-3 text-left text-sm font-bold text-blue-600 dark:text-blue-400">
+                                    پورسانت حواله: {((Number(havalehProfit) || 0) * ((Number(havalehRate) || 0) / 100)).toLocaleString('fa-IR')} تومان
+                                </div>
+                            </div>
+
+                            {/* Leasing */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                                <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-3">فروش لیزینگی</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">تعداد پرونده‌های لیزینگ</label>
+                                        <input 
+                                            type="number" 
+                                            value={leasingCount} 
+                                            onChange={e => setLeasingCount(e.target.value === '' ? '' : Number(e.target.value))} 
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-sm"
+                                            placeholder="عدد" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">مبلغ پورسانت هر پرونده (تومان)</label>
+                                        <input 
+                                            type="number" 
+                                            value={leasingRate} 
+                                            onChange={e => setLeasingRate(e.target.value === '' ? '' : Number(e.target.value))} 
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-sm"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mt-3 text-left text-sm font-bold text-blue-600 dark:text-blue-400">
+                                    پورسانت لیزینگ: {((Number(leasingCount) || 0) * (Number(leasingRate) || 0)).toLocaleString('fa-IR')} تومان
+                                </div>
+                            </div>
+
+                            {/* Used/Zero */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                                <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-3">فروش صفر یا کارکرده (نقدی)</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">مجموع کارمزد یا سود فروش</label>
+                                        <input 
+                                            type="number" 
+                                            value={usedProfit} 
+                                            onChange={e => setUsedProfit(e.target.value === '' ? '' : Number(e.target.value))} 
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-sm"
+                                            placeholder="تومان" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">درصد پورسانت</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="number" 
+                                                value={usedRate} 
+                                                onChange={e => setUsedRate(e.target.value === '' ? '' : Number(e.target.value))} 
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-sm pl-8"
+                                            />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-3 text-left text-sm font-bold text-blue-600 dark:text-blue-400">
+                                    پورسانت نقدی: {((Number(usedProfit) || 0) * ((Number(usedRate) || 0) / 100)).toLocaleString('fa-IR')} تومان
+                                </div>
+                            </div>
+
+                            {/* Factory */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                                <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-3">ثبت نام کارخانه</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">تعداد ثبت نام</label>
+                                        <input 
+                                            type="number" 
+                                            value={factoryCount} 
+                                            onChange={e => setFactoryCount(e.target.value === '' ? '' : Number(e.target.value))} 
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-sm"
+                                            placeholder="عدد" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">مبلغ پورسانت هر ثبت نام (تومان)</label>
+                                        <input 
+                                            type="number" 
+                                            value={factoryRate} 
+                                            onChange={e => setFactoryRate(e.target.value === '' ? '' : Number(e.target.value))} 
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-sm"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mt-3 text-left text-sm font-bold text-blue-600 dark:text-blue-400">
+                                    پورسانت ثبت نام: {((Number(factoryCount) || 0) * (Number(factoryRate) || 0)).toLocaleString('fa-IR')} تومان
+                                </div>
                             </div>
                         </div>
 
-                        {inputMode === 'percentage' ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">مبلغ فروش کل (تومان)</label>
-                                    <input 
-                                        type="number" 
-                                        value={salesAmount} 
-                                        onChange={e => setSalesAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-lg"
-                                        placeholder="مثال: ۶۰۰,۰۰۰,۰۰۰"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">درصد پورسانت</label>
-                                    <div className="relative">
-                                        <input 
-                                            type="number" 
-                                            value={commissionRate} 
-                                            onChange={e => setCommissionRate(e.target.value === '' ? '' : Number(e.target.value))}
-                                            className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-lg pl-8"
-                                        />
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">مبلغ پایه پورسانت (تومان)</label>
-                                <input 
-                                    type="number" 
-                                    value={fixedCommission} 
-                                    onChange={e => setFixedCommission(e.target.value === '' ? '' : Number(e.target.value))}
-                                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-lg"
-                                    placeholder="مثال: ۱۲,۰۰۰,۰۰۰"
-                                />
-                            </div>
-                        )}
-
-                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex justify-between items-center">
-                            <span className="text-sm font-medium text-blue-800 dark:text-blue-300">مبلغ پایه (خام):</span>
-                            <span className="font-mono font-bold text-blue-900 dark:text-blue-200 text-lg">
-                                {rawCommission.toLocaleString('fa-IR')} <span className="text-xs font-sans">تومان</span>
+                        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex justify-between items-center border border-blue-100 dark:border-blue-800">
+                            <span className="text-sm font-bold text-blue-800 dark:text-blue-300">مجموع پورسانت پایه (خام):</span>
+                            <span className="font-mono font-black text-blue-900 dark:text-blue-200 text-xl">
+                                {rawCommission.toLocaleString('fa-IR')} <span className="text-sm font-sans font-normal">تومان</span>
                             </span>
                         </div>
                     </section>
