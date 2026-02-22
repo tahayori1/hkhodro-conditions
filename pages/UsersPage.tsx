@@ -3,11 +3,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
     getUsers, createUser, updateUser, deleteUser, getLeadHistory, 
     sendMessage, sendSMS, getUserByNumber, getCars, getConditions, 
-    getReferences, carOrdersService, sendBulkSMS
+    getReferences, carOrdersService, sendBulkSMS, getStaffUsers
 } from '../services/api';
 import type { Reference } from '../services/api';
-import type { User, LeadMessage, Car, CarSaleCondition, MyProfile } from '../types';
-import { OrderStatus } from '../types';
+import type { User, LeadMessage, Car, CarSaleCondition, MyProfile, StaffUser } from '../types';
+import { OrderStatus, LeadStatus } from '../types';
 import UserTable from '../components/UserTable';
 import UserModal from '../components/UserModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -17,12 +17,16 @@ import Pagination from '../components/Pagination';
 import LeadDetailHistoryModal from '../components/LeadHistoryModal';
 import BroadcastModal from '../components/BroadcastModal';
 import CarOrderModal from '../components/CarOrderModal';
+import TransferLeadModal from '../components/TransferLeadModal';
 import { BroadcastIcon } from '../components/icons/BroadcastIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 import UserFilterPanel from '../components/UserFilterPanel';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { ExportIcon } from '../components/icons/ExportIcon';
 import { CopyIcon } from '../components/icons/CopyIcon';
+import CrmKanbanBoard from '../components/CrmKanbanBoard';
+import { ChartBarIcon } from '../components/icons/ChartBarIcon';
+import { ClipboardListIcon } from '../components/icons/ClipboardListIcon'; // Reused for list icon
 
 // Declare moment from global scope (loaded via CDN in index.html)
 declare const moment: any;
@@ -30,7 +34,7 @@ declare const moment: any;
 const ITEMS_PER_PAGE = 50;
 
 type SortConfig = { key: keyof User; direction: 'ascending' | 'descending' } | null;
-type UserFilters = { query: string; carModel: string; reference: string; };
+type UserFilters = { query: string; carModel: string; reference: string; status: LeadStatus | 'all'; };
 
 interface UsersPageProps {
     initialFilters: { carModel?: string };
@@ -43,6 +47,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     const [cars, setCars] = useState<Car[]>([]);
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
     const [references, setReferences] = useState<Reference[]>([]);
+    const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -62,14 +67,20 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
     const [selectedUserForOrder, setSelectedUserForOrder] = useState<User | null>(null);
 
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [userToTransfer, setUserToTransfer] = useState<User | null>(null);
+
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'descending' });
-    const [filters, setFilters] = useState<UserFilters>({ query: '', carModel: 'all', reference: 'all' });
+    const [filters, setFilters] = useState<UserFilters>({ query: '', carModel: 'all', reference: 'all', status: 'all' });
 
     const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+    
+    // View Mode State
+    const [viewMode, setViewMode] = useState<'LIST' | 'BOARD'>('LIST');
 
     useEffect(() => {
         setFilters(prev => ({ ...prev, carModel: initialFilters.carModel || 'all' }));
@@ -80,17 +91,19 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         setLoading(true);
         setError(null);
         try {
-            const [usersData, carsData, conditionsData, referencesData] = await Promise.all([
+            const [usersData, carsData, conditionsData, referencesData, staffData] = await Promise.all([
                 getUsers(),
                 getCars(),
                 getConditions(),
-                getReferences()
+                getReferences(),
+                getStaffUsers()
             ]);
             
             setUsers(usersData);
             setCars(carsData);
             setConditions(conditionsData);
             setReferences(referencesData);
+            setStaffUsers(staffData);
         } catch (err) {
             setError('خطا در دریافت اطلاعات');
             showToast('خطا در دریافت اطلاعات', 'error');
@@ -106,7 +119,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     useEffect(() => {
         setCurrentPage(1);
         setSelectedUserIds(new Set());
-    }, [sortConfig, filters]);
+    }, [sortConfig, filters, viewMode]);
     
     const filteredUsers = useMemo(() => {
         const lowercasedQuery = filters.query.toLowerCase();
@@ -121,7 +134,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
 
             const carModelMatch = filters.carModel === 'all' || user.CarModel === filters.carModel;
             const referenceMatch = filters.reference === 'all' || user.reference === filters.reference;
-            return queryMatch && carModelMatch && referenceMatch;
+            const statusMatch = filters.status === 'all' || (user.leadStatus || LeadStatus.NEW) === filters.status;
+
+            return queryMatch && carModelMatch && referenceMatch && statusMatch;
         });
     }, [users, filters]);
 
@@ -160,14 +175,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     }, [filteredUsers, sortConfig]);
 
     const paginatedUsers = useMemo(() => {
+        if (viewMode === 'BOARD') return sortedUsers; // No pagination for board
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
         return sortedUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [sortedUsers, currentPage]);
-    
-    // REMOVED: Effect that cleared selection on pagination change
-    // useEffect(() => {
-    //     setSelectedUserIds(new Set());
-    // }, [currentPage, paginatedUsers]);
+    }, [sortedUsers, currentPage, viewMode]);
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
@@ -237,13 +248,15 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     
     const handleSave = async (userData: Omit<User, 'id'>) => {
         try {
+            let savedUser: User;
             if (currentUser) {
-                await updateUser(currentUser.id, { ...userData, id: currentUser.id });
+                savedUser = await updateUser(currentUser.id, { ...userData, id: currentUser.id });
                 showToast('کاربر با موفقیت ویرایش شد', 'success');
             } else {
-                await createUser(userData);
+                savedUser = await createUser(userData);
                 showToast('کاربر جدید با موفقیت اضافه شد', 'success');
             }
+            
             setIsModalOpen(false);
             setCurrentUser(null);
             fetchAllData();
@@ -252,6 +265,74 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         }
     };
     
+    const handleStatusChange = async (userId: number, newStatus: LeadStatus) => {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        // Check reservation
+        if (user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin) {
+            showToast('این مشتری توسط کاربر دیگری رزرو شده است.', 'error');
+            return;
+        }
+
+        // Optimistic Update
+        const originalUsers = [...users];
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, leadStatus: newStatus } : u));
+        
+        try {
+            // Update via API
+            await updateUser(userId, { ...user, leadStatus: newStatus });
+        } catch (e) {
+            // Revert on error
+            setUsers(originalUsers);
+            showToast('خطا در تغییر وضعیت سرنخ', 'error');
+        }
+    };
+
+    const handleReserve = async (user: User) => {
+        if (!loggedInUser) return;
+        
+        try {
+            const updatedUser: User = {
+                ...user,
+                reservedByUserId: loggedInUser.id,
+                reservedByUserName: loggedInUser.full_name || loggedInUser.username
+            };
+            
+            await updateUser(user.id, updatedUser);
+            showToast('مشتری با موفقیت برای شما رزرو شد', 'success');
+            fetchAllData();
+        } catch (err) {
+            showToast('خطا در رزرو مشتری', 'error');
+        }
+    };
+
+    const handleOpenTransferModal = (user: User) => {
+        setUserToTransfer(user);
+        setIsTransferModalOpen(true);
+    };
+
+    const handleTransfer = async (userId: number, newOwnerId: number, newOwnerName: string) => {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        try {
+            const updatedUser: User = {
+                ...user,
+                reservedByUserId: newOwnerId,
+                reservedByUserName: newOwnerName
+            };
+            
+            await updateUser(userId, updatedUser);
+            showToast(`مشتری با موفقیت به ${newOwnerName} منتقل شد`, 'success');
+            setIsTransferModalOpen(false);
+            setUserToTransfer(null);
+            fetchAllData();
+        } catch (err) {
+            showToast('خطا در انتقال مشتری', 'error');
+        }
+    };
+
     const confirmDelete = async () => {
         if (userToDelete !== null) {
             try {
@@ -376,7 +457,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                 return next;
             });
         } else {
-            // Deselect only current page items
             const allUserIdsOnPage = paginatedUsers.map(u => u.id);
             setSelectedUserIds(prev => {
                 const next = new Set(prev);
@@ -405,14 +485,12 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         let successCount = 0;
         let errorCount = 0;
 
-        // Use Bulk API for SMS
         if (type === 'SMS') {
             const numbers = selectedUsers.map(u => u.Number).filter(n => n && n.trim().length > 0);
             if (numbers.length === 0) return { finalSuccess: 0, finalErrors: 0 };
             
             try {
                 await sendBulkSMS(numbers, message);
-                // Assume all sent successfully if 200 OK from bulk API
                 successCount = numbers.length;
                 onProgress({ sent: successCount, errors: 0 });
             } catch (err) {
@@ -424,7 +502,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
             return { finalSuccess: successCount, finalErrors: errorCount };
         }
 
-        // Loop for WhatsApp (since API likely sends one by one or no bulk endpoint specified)
         for (const user of selectedUsers) {
             try {
                 if (type === 'WHATSAPP') {
@@ -464,7 +541,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
             return;
         }
 
-        // Helper to escape CSV fields
         const escapeCsv = (str: any) => {
             if (str === null || str === undefined) return '';
             const stringValue = String(str);
@@ -474,7 +550,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
             return stringValue;
         };
 
-        const headers = ['نام و نام خانوادگی', 'شماره تماس', 'خودرو', 'استان', 'شهر', 'وضعیت CRM', 'توضیحات', 'تاریخ ثبت'];
+        const headers = ['نام و نام خانوادگی', 'شماره تماس', 'خودرو', 'استان', 'شهر', 'وضعیت', 'توضیحات', 'تاریخ ثبت'];
         
         const csvContent = [
             headers.join(','),
@@ -484,19 +560,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                 u.CarModel,
                 u.Province,
                 u.City,
-                u.crmIsSend ? 'ارسال شده' : 'ارسال نشده',
+                u.leadStatus || LeadStatus.NEW,
                 u.Decription,
                 u.RegisterTime
             ].map(escapeCsv).join(','))
         ].join('\n');
 
-        // Add BOM for Excel UTF-8 compatibility
         const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
         const dateStr = new Date().toLocaleDateString('fa-IR').replace(/\//g, '-');
-        link.setAttribute("download", `users_export_${dateStr}.csv`);
+        link.setAttribute("download", `crm_export_${dateStr}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -507,10 +582,31 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
 
     return (
         <>
-            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-8 space-y-4">
+            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-6 space-y-4 flex-shrink-0">
                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h2 className="text-xl font-bold text-slate-700 dark:text-slate-100">مدیریت مشتریان</h2>
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-xl font-bold text-slate-700 dark:text-slate-100">مدیریت ارتباط با مشتری (CRM)</h2>
+                            
+                            {/* View Switcher */}
+                            <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-lg">
+                                <button 
+                                    onClick={() => setViewMode('LIST')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'LIST' ? 'bg-white dark:bg-slate-600 shadow text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}
+                                >
+                                    <ClipboardListIcon className="w-4 h-4" />
+                                    لیست
+                                </button>
+                                <button 
+                                    onClick={() => setViewMode('BOARD')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'BOARD' ? 'bg-white dark:bg-slate-600 shadow text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}
+                                >
+                                    <ChartBarIcon className="w-4 h-4" />
+                                    برد کانبان
+                                </button>
+                            </div>
+                        </div>
+
                         <button
                             onClick={handleAddNew}
                             className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
@@ -521,43 +617,58 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                     </div>
                     <UserFilterPanel
                         filters={filters}
-                        onFilterChange={setFilters}
+                        onFilterChange={(newFilters: any) => setFilters(prev => ({...prev, ...newFilters}))}
                         references={references}
                         onClear={() => {
-                            setFilters({ query: '', carModel: 'all', reference: 'all' });
+                            setFilters({ query: '', carModel: 'all', reference: 'all', status: 'all' });
                             onFiltersCleared();
                         }}
                     />
                 </div>
 
                 {loading ? (
-                    <div className="flex justify-center items-center h-64">
+                    <div className="flex justify-center items-center flex-grow">
                         <Spinner />
                     </div>
                 ) : error ? (
-                    <p className="text-center text-red-500">{error}</p>
+                    <p className="text-center text-red-500 flex-grow">{error}</p>
                 ) : (
                     <>
-                        <UserTable 
-                            users={paginatedUsers} 
-                            onEdit={handleEdit} 
-                            onDelete={handleDelete}
-                            onViewDetails={handleViewDetails}
-                            onSort={handleSort}
-                            sortConfig={sortConfig}
-                            selectedUserIds={selectedUserIds}
-                            onSelectionChange={handleSelectionChange}
-                            onSelectAllChange={handleSelectAllChange}
-                            onSendToCrm={handleSendToCrm}
-                            onRegisterOrder={handleOpenOrderModal}
-                        />
-                        {totalPages > 1 && (
-                            <Pagination
-                                currentPage={currentPage}
-                                totalPages={totalPages}
-                                onPageChange={setCurrentPage}
-                                totalItems={sortedUsers.length}
-                                itemsPerPage={ITEMS_PER_PAGE}
+                        {viewMode === 'LIST' ? (
+                            <>
+                                <UserTable 
+                                    users={paginatedUsers} 
+                                    onEdit={handleEdit} 
+                                    onDelete={handleDelete}
+                                    onViewDetails={handleViewDetails}
+                                    onSort={handleSort}
+                                    sortConfig={sortConfig}
+                                    selectedUserIds={selectedUserIds}
+                                    onSelectionChange={handleSelectionChange}
+                                    onSelectAllChange={handleSelectAllChange}
+                                    onSendToCrm={handleSendToCrm}
+                                    onRegisterOrder={handleOpenOrderModal}
+                                    onReserve={handleReserve}
+                                    onTransfer={handleOpenTransferModal}
+                                    loggedInUser={loggedInUser}
+                                />
+                                {totalPages > 1 && (
+                                    <Pagination
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        onPageChange={setCurrentPage}
+                                        totalItems={sortedUsers.length}
+                                        itemsPerPage={ITEMS_PER_PAGE}
+                                    />
+                                )}
+                            </>
+                        ) : (
+                            <CrmKanbanBoard 
+                                users={sortedUsers.filter(u => !!u.reservedByUserId)}
+                                onStatusChange={handleStatusChange}
+                                onViewDetails={handleViewDetails}
+                                onTransfer={handleOpenTransferModal}
+                                loggedInUser={loggedInUser}
                             />
                         )}
                     </>
@@ -587,6 +698,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                     onRegisterOrder={handleOpenOrderModal}
                     cars={cars}
                     conditions={conditions}
+                    loggedInUser={loggedInUser}
                 />
             )}
             
@@ -617,9 +729,22 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                         name: selectedUserForOrder.FullName,
                         phone: selectedUserForOrder.Number,
                         city: selectedUserForOrder.City,
-                        address: selectedUserForOrder.Province, // Use province as fallback for address start
+                        address: selectedUserForOrder.Province,
                         postalCode: ''
                     } : undefined}
+                />
+            )}
+
+            {isTransferModalOpen && (
+                <TransferLeadModal
+                    isOpen={isTransferModalOpen}
+                    onClose={() => {
+                        setIsTransferModalOpen(false);
+                        setUserToTransfer(null);
+                    }}
+                    onTransfer={handleTransfer}
+                    user={userToTransfer}
+                    staffUsers={staffUsers}
                 />
             )}
             
@@ -635,7 +760,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
             
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-            {selectedUserIds.size > 0 && (
+            {selectedUserIds.size > 0 && viewMode === 'LIST' && (
                 <div className="fixed bottom-0 left-0 right-0 bg-sky-700 text-white p-3 sm:p-4 shadow-lg z-30 flex flex-col sm:flex-row justify-between items-center gap-3 animate-slide-up">
                     <div className="flex items-center gap-4">
                         <p className="text-sm sm:text-base font-bold">{selectedUserIds.size.toLocaleString('fa-IR')} کاربر انتخاب شده</p>

@@ -27,7 +27,8 @@ import type {
     MessageTemplate,
     AdCampaign,
     UsedCar,
-    CarOrder
+    CarOrder,
+    CustomerJournal
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -431,6 +432,35 @@ export const deleteUser = async (id: number): Promise<void> => {
     });
     return handleResponse(response);
 };
+
+// --- Customer Journals (CRM Reports) ---
+
+const JOURNALS_URL = `${API_BASE_URL}/CustomerJournals`;
+
+export const getCustomerJournals = async (userId: number): Promise<CustomerJournal[]> => {
+    // Note: Assuming API supports filtering by userId via query param or returns all and we filter (filtering client side for safety if API behaves as CRUD)
+    const response = await fetch(JOURNALS_URL, { headers: getAuthHeaders() });
+    const data = await handleResponse(response);
+    if(Array.isArray(data)) {
+        return data.filter((j: CustomerJournal) => j.userId === userId).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    return [];
+};
+
+export const createCustomerJournal = async (journal: Omit<CustomerJournal, 'id' | 'createdAt'>): Promise<CustomerJournal> => {
+    ensureOnline();
+    const payload = {
+        ...journal,
+        createdAt: new Date().toLocaleString('fa-IR'),
+    };
+    const response = await fetch(JOURNALS_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+};
+
 
 // --- Cars ---
 export const getCars = async (): Promise<Car[]> => {

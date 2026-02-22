@@ -34,6 +34,23 @@ export enum CustomerSegment {
     OCCUPATIONAL = 'تخفیف مشاغل',
 }
 
+export enum LeadStatus {
+    NEW = 'جدید',
+    CONTACTED = 'تماس گرفته شده',
+    MEETING = 'جلسه حضوری',
+    NEGOTIATION = 'در حال مذاکره',
+    WON = 'موفق (خرید)',
+    LOST = 'ناموفق',
+}
+
+export interface CustomerJournal {
+    id: number;
+    userId: number;
+    author: string;
+    content: string;
+    createdAt: string;
+}
+
 export interface CarSaleCondition {
     id: number;
     status: ConditionStatus;
@@ -71,6 +88,10 @@ export interface User {
     segment?: CustomerSegment;
     behaviorScore?: number; // 1 to 5
     tags?: string[]; // e.g., ["خوش‌حساب", "عجول"]
+    // CRM Fields
+    leadStatus?: LeadStatus;
+    reservedByUserId?: number | null;
+    reservedByUserName?: string | null;
 }
 
 export interface LeadMessage {

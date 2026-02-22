@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { User } from '../types';
+import type { User, MyProfile } from '../types';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { SortIcon } from './icons/SortIcon';
@@ -10,6 +10,7 @@ import { UsersIcon } from './icons/UsersIcon';
 import { SendToCrmIcon } from './icons/SendToCrmIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { ClipboardListIcon } from './icons/ClipboardListIcon';
+import { SecurityIcon } from './icons/SecurityIcon';
 
 interface UserTableProps {
     users: User[];
@@ -23,12 +24,15 @@ interface UserTableProps {
     onSelectAllChange: (selectAll: boolean) => void;
     onSendToCrm: (user: User) => void;
     onRegisterOrder: (user: User) => void;
+    onReserve: (user: User) => void;
+    onTransfer: (user: User) => void;
+    loggedInUser: MyProfile | null;
 }
 
 const UserTable: React.FC<UserTableProps> = ({ 
     users, onEdit, onDelete, onViewDetails, onSort, sortConfig, 
     selectedUserIds, onSelectionChange, onSelectAllChange, onSendToCrm,
-    onRegisterOrder
+    onRegisterOrder, onReserve, onTransfer, loggedInUser
 }) => {
     if (users.length === 0) {
         return (
@@ -102,6 +106,7 @@ const UserTable: React.FC<UserTableProps> = ({
                             <SortableHeader title="کاربر" sortKey="FullName" />
                             <SortableHeader title="تماس" sortKey="Number" />
                             <SortableHeader title="خودرو" sortKey="CarModel" />
+                            <SortableHeader title="رزرو" sortKey="reservedByUserId" />
                             <SortableHeader title="وضعیت CRM" sortKey="crmIsSend" />
                             <SortableHeader title="موقعیت" sortKey="Province" />
                             <SortableHeader title="آخرین بروزرسانی" sortKey="updatedAt" />
@@ -137,6 +142,32 @@ const UserTable: React.FC<UserTableProps> = ({
                                     <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600">{user.CarModel || '-'}</span>
                                 </td>
                                 <td className="px-6 py-4">
+                                    {user.reservedByUserId ? (
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                                <SecurityIcon className="w-3 h-3" />
+                                                <span className="text-[10px] font-bold">رزرو شده توسط:</span>
+                                            </div>
+                                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{user.reservedByUserName}</span>
+                                            {(loggedInUser?.isAdmin || loggedInUser?.id === user.reservedByUserId) && (
+                                                <button 
+                                                    onClick={() => onTransfer(user)}
+                                                    className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline text-right"
+                                                >
+                                                    انتقال به دیگری
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <button 
+                                            onClick={() => onReserve(user)}
+                                            className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors border border-amber-200 dark:border-amber-800"
+                                        >
+                                            رزرو مشتری
+                                        </button>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4">
                                     {user.crmIsSend ? (
                                         <div className="flex items-center gap-2 text-xs">
                                             <CheckCircleIcon className="w-5 h-5 text-emerald-500 flex-shrink-0" />
@@ -146,7 +177,12 @@ const UserTable: React.FC<UserTableProps> = ({
                                             </div>
                                         </div>
                                     ) : (
-                                        <button onClick={() => onSendToCrm(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-colors" title="ارسال به CRM">
+                                        <button 
+                                            disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
+                                            onClick={() => onSendToCrm(user)} 
+                                            className={`p-2 rounded-xl transition-colors ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
+                                            title="ارسال به CRM"
+                                        >
                                             <SendToCrmIcon />
                                         </button>
                                     )}
@@ -155,16 +191,36 @@ const UserTable: React.FC<UserTableProps> = ({
                                 <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500">{formatDate(user.updatedAt)}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-1">
-                                        <button onClick={() => onRegisterOrder(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-colors" title="ثبت سفارش فروش">
+                                        <button 
+                                            disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
+                                            onClick={() => onRegisterOrder(user)} 
+                                            className={`p-2 rounded-xl transition-colors ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`}
+                                            title="ثبت سفارش فروش"
+                                        >
                                             <ClipboardListIcon className="w-5 h-5" />
                                         </button>
-                                        <button onClick={() => onViewDetails(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-colors" title="گفتگو">
+                                        <button 
+                                            disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
+                                            onClick={() => onViewDetails(user)} 
+                                            className={`p-2 rounded-xl transition-colors ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30'}`}
+                                            title="گفتگو"
+                                        >
                                             <ChatIcon />
                                         </button>
-                                        <button onClick={() => onEdit(user)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-colors" title="ویرایش">
+                                        <button 
+                                            disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
+                                            onClick={() => onEdit(user)} 
+                                            className={`p-2 rounded-xl transition-colors ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30'}`}
+                                            title="ویرایش"
+                                        >
                                             <EditIcon />
                                         </button>
-                                        <button onClick={() => onDelete(user.id)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors" title="حذف">
+                                        <button 
+                                            disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
+                                            onClick={() => onDelete(user.id)} 
+                                            className={`p-2 rounded-xl transition-colors ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30'}`}
+                                            title="حذف"
+                                        >
                                             <TrashIcon />
                                         </button>
                                     </div>
@@ -207,6 +263,12 @@ const UserTable: React.FC<UserTableProps> = ({
                                         {user.Number}
                                     </div>
                                 </div>
+                                {user.reservedByUserId && (
+                                    <div className="mt-2 flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg w-fit">
+                                        <SecurityIcon className="w-3.5 h-3.5" />
+                                        <span>رزرو شده توسط: <b>{user.reservedByUserName}</b></span>
+                                    </div>
+                                )}
                                 {user.crmIsSend ? (
                                     <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
                                         <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
@@ -218,10 +280,19 @@ const UserTable: React.FC<UserTableProps> = ({
                             </div>
                             
                             <div className="flex flex-col gap-2">
-                                <button onClick={(e) => { e.stopPropagation(); onRegisterOrder(user); }} className="p-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl" title="ثبت سفارش">
+                                <button 
+                                    disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
+                                    onClick={(e) => { e.stopPropagation(); onRegisterOrder(user); }} 
+                                    className={`p-2 rounded-xl ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 bg-slate-50 dark:bg-slate-800' : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30'}`} 
+                                    title="ثبت سفارش"
+                                >
                                     <ClipboardListIcon className="w-5 h-5" />
                                 </button>
-                                <button onClick={(e) => { e.stopPropagation(); onViewDetails(user); }} className="p-2 text-sky-600 bg-sky-50 dark:bg-sky-900/30 rounded-xl">
+                                <button 
+                                    disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
+                                    onClick={(e) => { e.stopPropagation(); onViewDetails(user); }} 
+                                    className={`p-2 rounded-xl ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 bg-slate-50 dark:bg-slate-800' : 'text-sky-600 bg-sky-50 dark:bg-sky-900/30'}`}
+                                >
                                     <ChatIcon className="w-5 h-5" />
                                 </button>
                             </div>

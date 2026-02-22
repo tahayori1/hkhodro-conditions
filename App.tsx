@@ -180,7 +180,7 @@ const App: React.FC = () => {
         { view: 'car-prices' as ActiveView, label: 'قیمت روز', icon: <PriceIcon className="w-5 h-5" /> },
         
         // CRM
-        { view: 'users' as ActiveView, label: 'مشتریان', icon: <UsersIcon className="w-5 h-5" /> },
+        { view: 'users' as ActiveView, label: 'مدیریت مشتریان (CRM)', icon: <UsersIcon className="w-5 h-5" /> },
         { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
         
         // Operations
@@ -277,7 +277,7 @@ const App: React.FC = () => {
                 </button>
                 <button onClick={() => setActiveView('users')} className={`flex flex-col items-center p-2 ${activeView === 'users' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
                     <UsersIcon className="w-6 h-6" />
-                    <span className="text-[10px] mt-1 font-bold">مشتریان</span>
+                    <span className="text-[10px] mt-1 font-bold">CRM</span>
                 </button>
                 <button onClick={() => setIsMoreMenuOpen(true)} className={`flex flex-col items-center p-2 ${isMoreMenuOpen ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`}>
                     <MoreIcon className="w-6 h-6" />
