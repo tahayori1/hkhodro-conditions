@@ -53,7 +53,7 @@ import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'announcements' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders';
+export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders';
 
 interface MenuItemProps {
     label: string;
@@ -192,7 +192,8 @@ const App: React.FC = () => {
     const flatMenuItems = [
         { view: 'home' as ActiveView, label: 'داشبورد', icon: <HomeIcon className="w-5 h-5" /> },
         { view: 'car-orders' as ActiveView, label: 'ثبت سفارش فروش', icon: <ClipboardListIcon className="w-5 h-5" /> },
-        { view: 'announcements' as ActiveView, label: 'اطلاعیه‌ها و بخشنامه‌ها', icon: <ConditionsIcon className="w-5 h-5" /> },
+        { view: 'announcements' as ActiveView, label: 'اطلاعیه‌های داخلی', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
+        { view: 'conditions' as ActiveView, label: 'بخشنامه‌های فروش (شرایط)', icon: <ConditionsIcon className="w-5 h-5" /> },
         { view: 'car-prices' as ActiveView, label: 'قیمت روز خودرو', icon: <PriceIcon className="w-5 h-5" /> },
         { view: 'users' as ActiveView, label: 'مدیریت مشتریان (CRM)', icon: <UsersIcon className="w-5 h-5" /> },
         { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
@@ -231,7 +232,8 @@ const App: React.FC = () => {
             icon: <ClipboardListIcon className="w-5 h-5" />,
             items: [
                 { view: 'car-orders' as ActiveView, label: 'ثبت سفارش فروش', icon: <ClipboardListIcon className="w-5 h-5" /> },
-                { view: 'announcements' as ActiveView, label: 'اطلاعیه‌ها و بخشنامه‌ها', icon: <ConditionsIcon className="w-5 h-5" /> },
+                { view: 'conditions' as ActiveView, label: 'بخشنامه‌های فروش (شرایط)', icon: <ConditionsIcon className="w-5 h-5" /> },
+                { view: 'announcements' as ActiveView, label: 'اطلاعیه‌های داخلی', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
                 { view: 'car-prices' as ActiveView, label: 'قیمت روز خودروها', icon: <PriceIcon className="w-5 h-5" /> },
             ]
         },
@@ -463,6 +465,7 @@ const App: React.FC = () => {
             <main className="flex-1 overflow-y-auto overflow-x-hidden pt-16 lg:pt-0 pb-20 lg:pb-0">
                 {activeView === 'home' && <HomePage onNavigate={handleNavigate} />}
                 {activeView === 'announcements' && <AnnouncementsHubPage loggedInUser={currentUser} />}
+                {activeView === 'conditions' && <ConditionsPage />}
                 {activeView === 'users' && (
                     <UsersPage 
                         initialFilters={userPageInitialFilters} 
