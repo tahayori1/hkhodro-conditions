@@ -397,6 +397,19 @@ export interface AnonymousFeedback {
     isRead: boolean;
 }
 
+export type SalaryAdvanceStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface SalaryAdvanceRequest {
+    id: number;
+    requesterName: string;
+    amount: number; // amount in Tomans
+    targetDate: string; // "jYYYY/jMM/jDD"
+    reason: string;
+    status: SalaryAdvanceStatus;
+    createdAt: string;
+    notes?: string;
+}
+
 // --- Zero Car Delivery Types ---
 
 export interface ZeroCarDelivery {
