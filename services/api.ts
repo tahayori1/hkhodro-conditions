@@ -293,32 +293,53 @@ export const deleteStaffUser = async (id: number, username: string): Promise<voi
 const normalizeCondition = (condition: any): CarSaleCondition => {
     if (!condition) return condition;
 
-    const { indeed_status, is_public, stock_quantity, ...restOfApiData } = condition;
+    const { 
+        indeed_status, 
+        is_public, 
+        stock_quantity, 
+        stock, 
+        stock_qty, 
+        qty, 
+        inventory, 
+        ...restOfApiData 
+    } = condition;
     
     const colorsArray = typeof condition.colors === 'string'
         ? condition.colors.split(',').map((c: string) => c.trim()).filter(Boolean)
         : Array.isArray(condition.colors)
             ? condition.colors
             : [];
+
+    const rawStock = stock_quantity !== undefined ? stock_quantity
+                     : stock !== undefined ? stock
+                     : stock_qty !== undefined ? stock_qty
+                     : qty !== undefined ? qty
+                     : inventory !== undefined ? inventory
+                     : 0;
             
     return { 
         ...restOfApiData, 
         document_status: indeed_status,
         colors: colorsArray,
         is_public: !!is_public,
-        stock_quantity: parseInt(stock_quantity, 10) || 0
+        stock_quantity: parseInt(rawStock, 10) || 0
     } as CarSaleCondition;
 };
 
 const denormalizeCondition = (condition: Omit<CarSaleCondition, 'id'> | CarSaleCondition) => {
     const { document_status, ...restOfAppData } = condition;
+    const stockQtyVal = parseInt(condition.stock_quantity as any, 10) || 0;
 
     return {
         ...restOfAppData,
         indeed_status: document_status,
         colors: Array.isArray(condition.colors) ? condition.colors.join(',') : '',
         is_public: condition.is_public ? 1 : 0,
-        stock_quantity: condition.stock_quantity
+        stock_quantity: stockQtyVal,
+        stock: stockQtyVal,
+        stock_qty: stockQtyVal,
+        qty: stockQtyVal,
+        inventory: stockQtyVal
     };
 };
 
@@ -433,16 +454,59 @@ export const deleteUser = async (id: number): Promise<void> => {
     return handleResponse(response);
 };
 
+// --- Announcements ---
+const ANNOUNCEMENTS_URL = `${API_BASE_URL}/announcements`;
+
+export const getAnnouncements = async (): Promise<any[]> => {
+    try {
+        const response = await fetch(ANNOUNCEMENTS_URL, { headers: getAuthHeaders() });
+        const data = await handleResponse(response);
+        if (Array.isArray(data)) {
+            return data.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+        return [];
+    } catch (e) {
+        // Fallback if endpoint doesn't exist
+        return [];
+    }
+};
+
+export const createAnnouncement = async (announcement: Omit<any, 'id' | 'createdAt'>): Promise<any> => {
+    ensureOnline();
+    const payload = {
+        ...announcement,
+        createdAt: new Date().toLocaleString('fa-IR'),
+    };
+    const response = await fetch(ANNOUNCEMENTS_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+};
+
+export const deleteAnnouncement = async (id: number): Promise<void> => {
+    ensureOnline();
+    const response = await fetch(`${ANNOUNCEMENTS_URL}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ id }),
+    });
+    return handleResponse(response);
+};
+
 // --- Customer Journals (CRM Reports) ---
 
 const JOURNALS_URL = `${API_BASE_URL}/CustomerJournals`;
 
-export const getCustomerJournals = async (userId: number): Promise<CustomerJournal[]> => {
-    // Note: Assuming API supports filtering by userId via query param or returns all and we filter (filtering client side for safety if API behaves as CRUD)
-    const response = await fetch(JOURNALS_URL, { headers: getAuthHeaders() });
-    const data = await handleResponse(response);
+export const getCustomerJournals = async (userId: number | string): Promise<CustomerJournal[]> => {
+    const response = await fetch(`${JOURNALS_URL}?userId=${userId}`, { headers: getAuthHeaders() });
+    let data = await handleResponse(response);
+    
+    // Fallback client-side filtering in case the API ignores the query parameter
     if(Array.isArray(data)) {
-        return data.filter((j: CustomerJournal) => j.userId === userId).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        data = data.filter((j: CustomerJournal) => String(j.userId) === String(userId));
+        return data.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
     return [];
 };

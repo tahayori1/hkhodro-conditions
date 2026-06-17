@@ -188,7 +188,7 @@ const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave
                         </div>
                         <div>
                             <label htmlFor="stock_quantity" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">تعداد موجود در انبار</label>
-                            <input type="number" id="stock_quantity" value={formState.stock_quantity} onChange={(e) => handleChange('stock_quantity', parseInt(e.target.value, 10) || 0)}
+                            <input type="number" id="stock_quantity" value={formState.stock_quantity ?? ''} onChange={(e) => handleChange('stock_quantity', parseInt(e.target.value, 10) || 0)}
                                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md dark:bg-slate-700 dark:text-white" />
                         </div>
                         <div>

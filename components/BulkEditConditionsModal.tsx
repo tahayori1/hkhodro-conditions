@@ -116,7 +116,7 @@ const BulkEditConditionsModal: React.FC<BulkEditConditionsModalProps> = ({ isOpe
                         </FieldWrapper>
 
                         <FieldWrapper label="تعداد در انبار" field="stock_quantity">
-                            <input type="number" value={formData.stock_quantity} onChange={e => handleChange('stock_quantity', parseInt(e.target.value))} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white font-mono" />
+                            <input type="number" value={formData.stock_quantity ?? ''} onChange={e => handleChange('stock_quantity', parseInt(e.target.value, 10) || 0)} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white font-mono" />
                         </FieldWrapper>
 
                         <FieldWrapper label="زمان تحویل" field="delivery_time">

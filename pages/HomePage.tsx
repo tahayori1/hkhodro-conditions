@@ -339,7 +339,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 <h3 className="text-lg font-black text-slate-800 dark:text-white mb-4 px-1">دسترسی سریع</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                     {[
-                        { id: 'conditions', label: 'بخشنامه‌ها', icon: Tag, color: 'text-emerald-500' },
+                        { id: 'announcements', label: 'اطلاعیه‌ها', icon: Tag, color: 'text-emerald-500' },
                         { id: 'car-prices', label: 'قیمت روز', icon: TrendingUp, color: 'text-purple-500' },
                         { id: 'customer-club', label: 'باشگاه', icon: BadgeIcon, color: 'text-amber-500' },
                         { id: 'notification-center', label: 'پیام‌رسان', icon: MessageSquare, color: 'text-indigo-500' },

@@ -43,6 +43,16 @@ export enum LeadStatus {
     LOST = 'ناموفق',
 }
 
+export interface Announcement {
+    id: number;
+    title: string;
+    content: string;
+    category: 'NEWS' | 'ALERT' | 'SYSTEM';
+    isUrgent: boolean;
+    author: string;
+    createdAt: string;
+}
+
 export interface CustomerJournal {
     id: number;
     userId: number;

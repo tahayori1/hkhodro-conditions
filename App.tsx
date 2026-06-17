@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import ConditionsPage from './pages/ConditionsPage';
+import AnnouncementsHubPage from './pages/AnnouncementsHubPage';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
@@ -52,7 +53,7 @@ import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders';
+export type ActiveView = 'home' | 'announcements' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders';
 
 interface MenuItemProps {
     label: string;
@@ -84,6 +85,23 @@ const App: React.FC = () => {
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
     const [currentUser, setCurrentUser] = useState<MyProfile | null>(null);
+
+    // Sidebar Category Toggle states
+    const [openCategories, setOpenCategories] = useState<{ [key: string]: boolean }>({
+        sales: true,
+        crm: true,
+        ops: true,
+        stats: false,
+        hr: false,
+        system: false,
+    });
+
+    const toggleCategory = (category: string) => {
+        setOpenCategories(prev => ({
+            ...prev,
+            [category]: !prev[category]
+        }));
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -170,38 +188,113 @@ const App: React.FC = () => {
         return <LoginPage onLoginSuccess={handleLoginSuccess} />;
     }
 
-    // Organized Menu Items
-    const menuItems = [
+    // Flat list of all available menu items for mobile more menu mapping
+    const flatMenuItems = [
         { view: 'home' as ActiveView, label: 'داشبورد', icon: <HomeIcon className="w-5 h-5" /> },
-        
-        // Sales Lifecycle
         { view: 'car-orders' as ActiveView, label: 'ثبت سفارش فروش', icon: <ClipboardListIcon className="w-5 h-5" /> },
-        { view: 'conditions' as ActiveView, label: 'شرایط فروش', icon: <ConditionsIcon className="w-5 h-5" /> },
-        { view: 'car-prices' as ActiveView, label: 'قیمت روز', icon: <PriceIcon className="w-5 h-5" /> },
-        
-        // CRM
+        { view: 'announcements' as ActiveView, label: 'اطلاعیه‌ها و بخشنامه‌ها', icon: <ConditionsIcon className="w-5 h-5" /> },
+        { view: 'car-prices' as ActiveView, label: 'قیمت روز خودرو', icon: <PriceIcon className="w-5 h-5" /> },
         { view: 'users' as ActiveView, label: 'مدیریت مشتریان (CRM)', icon: <UsersIcon className="w-5 h-5" /> },
         { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
-        
-        // Operations
-        { view: 'cars' as ActiveView, label: 'خودروها', icon: <CarIcon className="w-5 h-5" /> },
-        { view: 'zero-car-delivery' as ActiveView, label: 'تحویل صفر', icon: <TruckIcon className="w-5 h-5" /> },
-        { view: 'used-cars' as ActiveView, label: 'خودرو کارکرده', icon: <ClipboardListIcon className="w-5 h-5" /> },
+        { view: 'notification-center' as ActiveView, label: 'پیام‌رسان هوشمند', icon: <ChatAltIcon className="w-5 h-5" /> },
+        { view: 'advertising' as ActiveView, label: 'کمپین‌های تبلیغاتی', icon: <RocketIcon className="w-5 h-5" /> },
+        { view: 'cars' as ActiveView, label: 'کاتالوگ خودروها', icon: <CarIcon className="w-5 h-5" /> },
+        { view: 'zero-car-delivery' as ActiveView, label: 'تحویل خودرو صفر', icon: <TruckIcon className="w-5 h-5" /> },
+        { view: 'used-cars' as ActiveView, label: 'کارشناسی خودرو کارکرده', icon: <ClipboardListIcon className="w-5 h-5" /> },
         { view: 'vehicle-exit' as ActiveView, label: 'خروج نهایی خودرو', icon: <ExitFormIcon className="w-5 h-5" /> },
-        
-        // Stats
-        { view: 'commission' as ActiveView, label: 'پورسانت', icon: <CalculatorIcon className="w-5 h-5" /> },
-        { view: 'poll' as ActiveView, label: 'نظرسنجی', icon: <PollIcon className="w-5 h-5" /> },
-        { view: 'reports' as ActiveView, label: 'گزارشات', icon: <ChartBarIcon className="w-5 h-5" /> },
+        { view: 'commission' as ActiveView, label: 'محاسبه پورسانت', icon: <CalculatorIcon className="w-5 h-5" /> },
+        { view: 'poll' as ActiveView, label: 'نظرسنجی مشتریان', icon: <PollIcon className="w-5 h-5" /> },
+        { view: 'reports' as ActiveView, label: 'آمار و گزارشات', icon: <ChartBarIcon className="w-5 h-5" /> },
+        { view: 'corrective-actions' as ActiveView, label: 'اقدامات اصلاحی', icon: <ClipboardCheckIcon className="w-5 h-5" /> },
+        { view: 'meeting-minutes' as ActiveView, label: 'صورت‌جلسات اداری', icon: <CalendarIcon className="w-5 h-5" /> },
+        { view: 'leave-requests' as ActiveView, label: 'درخواست‌های مرخصی', icon: <UserMinusIcon className="w-5 h-5" /> },
+        { view: 'anonymous-feedback' as ActiveView, label: 'صندوق انتقادات', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
+        { view: 'my-profile' as ActiveView, label: 'پروفایل کاربری من', icon: <UserIcon className="w-5 h-5" /> },
+        { view: 'access-control' as ActiveView, label: 'مدیریت کاربران', icon: <SecurityIcon className="w-5 h-5" /> },
+        { view: 'settings' as ActiveView, label: 'تنظیمات عمومی سیستم', icon: <SettingsIcon className="w-5 h-5" /> }
     ];
 
-    const adminItems = [
-        { view: 'access-control' as ActiveView, label: 'مدیریت کاربران', icon: <SecurityIcon className="w-5 h-5" /> },
-        { view: 'corrective-actions' as ActiveView, label: 'اقدامات اصلاحی', icon: <ClipboardCheckIcon className="w-5 h-5" /> },
-        { view: 'meeting-minutes' as ActiveView, label: 'صورت‌جلسات', icon: <CalendarIcon className="w-5 h-5" /> },
-        { view: 'leave-requests' as ActiveView, label: 'مرخصی‌ها', icon: <UserMinusIcon className="w-5 h-5" /> },
-        { view: 'anonymous-feedback' as ActiveView, label: 'صندوق انتقادات', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
-        { view: 'settings' as ActiveView, label: 'تنظیمات', icon: <SettingsIcon className="w-5 h-5" /> },
+    // Highly styled grouped menu categories
+    const menuGroups = [
+        {
+            id: 'home-group',
+            label: 'داشبورد پیشخوان',
+            isCollapsible: false,
+            items: [
+                { view: 'home' as ActiveView, label: 'پیشخوان اصلی', icon: <HomeIcon className="w-5 h-5" /> },
+            ]
+        },
+        {
+            id: 'sales',
+            label: 'فروش و چرخه تحویل',
+            isCollapsible: true,
+            icon: <ClipboardListIcon className="w-5 h-5" />,
+            items: [
+                { view: 'car-orders' as ActiveView, label: 'ثبت سفارش فروش', icon: <ClipboardListIcon className="w-5 h-5" /> },
+                { view: 'announcements' as ActiveView, label: 'اطلاعیه‌ها و بخشنامه‌ها', icon: <ConditionsIcon className="w-5 h-5" /> },
+                { view: 'car-prices' as ActiveView, label: 'قیمت روز خودروها', icon: <PriceIcon className="w-5 h-5" /> },
+            ]
+        },
+        {
+            id: 'crm',
+            label: 'مدیریت مشتریان (CRM)',
+            isCollapsible: true,
+            icon: <UsersIcon className="w-5 h-5" />,
+            items: [
+                { view: 'users' as ActiveView, label: 'مدیریت مشتریان (CRM)', icon: <UsersIcon className="w-5 h-5" /> },
+                { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
+                { view: 'notification-center' as ActiveView, label: 'پیام‌رسان هوشمند', icon: <ChatAltIcon className="w-5 h-5" /> },
+                { view: 'advertising' as ActiveView, label: 'کمپین‌های تبلیغاتی', icon: <RocketIcon className="w-5 h-5" /> },
+            ]
+        },
+        {
+            id: 'ops',
+            label: 'عملیات و پشتیبانی',
+            isCollapsible: true,
+            icon: <CarIcon className="w-5 h-5" />,
+            items: [
+                { view: 'cars' as ActiveView, label: 'کاتالوگ خودروها', icon: <CarIcon className="w-5 h-5" /> },
+                { view: 'zero-car-delivery' as ActiveView, label: 'تحویل خودرو صفر', icon: <TruckIcon className="w-5 h-5" /> },
+                { view: 'used-cars' as ActiveView, label: 'کارشناسی خودرو کارکرده', icon: <ClipboardListIcon className="w-5 h-5" /> },
+                { view: 'vehicle-exit' as ActiveView, label: 'خروج نهایی خودرو', icon: <ExitFormIcon className="w-5 h-5" /> },
+            ]
+        },
+        {
+            id: 'stats',
+            label: 'آمار و امور مالی',
+            isCollapsible: true,
+            icon: <ChartBarIcon className="w-5 h-5" />,
+            items: [
+                { view: 'reports' as ActiveView, label: 'گزارشات و نمودارها', icon: <ChartBarIcon className="w-5 h-5" /> },
+                { view: 'commission' as ActiveView, label: 'محاسبه پورسانت', icon: <CalculatorIcon className="w-5 h-5" /> },
+                { view: 'poll' as ActiveView, label: 'نظرسنجی مشتریان', icon: <PollIcon className="w-5 h-5" /> },
+            ]
+        },
+        {
+            id: 'hr',
+            label: 'امور اداری و هماهنگی',
+            isCollapsible: true,
+            icon: <CalendarIcon className="w-5 h-5" />,
+            items: [
+                { view: 'corrective-actions' as ActiveView, label: 'اقدامات اصلاحی', icon: <ClipboardCheckIcon className="w-5 h-5" /> },
+                { view: 'meeting-minutes' as ActiveView, label: 'صورت‌جلسات اداری', icon: <CalendarIcon className="w-5 h-5" /> },
+                { view: 'leave-requests' as ActiveView, label: 'درخواست‌های مرخصی', icon: <UserMinusIcon className="w-5 h-5" /> },
+                { view: 'anonymous-feedback' as ActiveView, label: 'صندوق انتقادات', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
+            ]
+        },
+        {
+            id: 'system',
+            label: 'تنظیمات و دسترسی',
+            isCollapsible: true,
+            icon: <SettingsIcon className="w-5 h-5" />,
+            items: [
+                { view: 'my-profile' as ActiveView, label: 'پروفایل کاربری من', icon: <UserIcon className="w-5 h-5" /> },
+                ...(currentUser?.isAdmin === 1 ? [
+                    { view: 'access-control' as ActiveView, label: 'مدیریت دسترسی کاربران', icon: <SecurityIcon className="w-5 h-5" /> },
+                    { view: 'settings' as ActiveView, label: 'تنظیمات عمومی سیستم', icon: <SettingsIcon className="w-5 h-5" /> },
+                ] : [])
+            ]
+        },
     ];
 
     return (
@@ -210,41 +303,62 @@ const App: React.FC = () => {
             <aside className="hidden lg:flex flex-col w-72 bg-[#F2F4F7] dark:bg-[#0f172a] border-l border-slate-200 dark:border-slate-800 p-4 overflow-y-auto">
                 <div className="flex items-center gap-3 px-2 mb-8 mt-2">
                     <img src="/vite.svg" alt="Logo" className="w-8 h-8" />
-                    <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">AutoLead</h1>
+                    <div>
+                        <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none">AutoLead</h1>
+                        <span className="text-[10px] font-bold text-slate-400">سامانه جامع مدیریت فروش</span>
+                    </div>
                 </div>
 
-                <nav className="flex-1 space-y-1">
-                    {menuItems.map((item, index) => (
-                        <React.Fragment key={item.view}>
-                            {/* Separators for logical grouping */}
-                            {index === 1 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">فروش و چرخه تحویل</div>}
-                            {index === 4 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مدیریت مشتریان</div>}
-                            {index === 6 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">عملیات</div>}
-                            {index === 10 && <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">مالی و آمار</div>}
-                            
-                            <MenuItem 
-                                label={item.label} 
-                                icon={item.icon} 
-                                isActive={activeView === item.view} 
-                                onClick={() => handleNavigate(item.view)}
-                            />
-                        </React.Fragment>
-                    ))}
-                    
-                    {currentUser?.isAdmin === 1 && (
-                        <>
-                            <div className="text-[10px] font-bold text-slate-400 px-4 pt-4 pb-2">پنل مدیریت</div>
-                            {adminItems.map(item => (
-                                <MenuItem 
-                                    key={item.view} 
-                                    label={item.label} 
-                                    icon={item.icon} 
-                                    isActive={activeView === item.view} 
-                                    onClick={() => handleNavigate(item.view)}
-                                />
-                            ))}
-                        </>
-                    )}
+                <nav className="flex-1 space-y-1 pr-1">
+                    {menuGroups.map((group) => {
+                        if (group.items.length === 0) return null;
+
+                        const isOpen = openCategories[group.id] !== false;
+                        const hasActiveChild = group.items.some(child => child.view === activeView);
+
+                        return (
+                            <div key={group.id} className="space-y-1">
+                                {group.isCollapsible ? (
+                                    <button
+                                        onClick={() => toggleCategory(group.id)}
+                                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-right mt-3 ${
+                                            hasActiveChild 
+                                            ? 'text-slate-800 dark:text-white font-bold' 
+                                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+                                        }`}
+                                    >
+                                        <div className="flex items-center space-x-2 space-x-reverse">
+                                            <span className={hasActiveChild ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500'}>
+                                                {group.icon}
+                                            </span>
+                                            <span className="text-xs font-black tracking-wider">{group.label}</span>
+                                        </div>
+                                        <svg className={`w-3.5 h-3.5 transform transition-transform duration-200 text-slate-400 ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+                                ) : (
+                                    <div className="text-[10px] font-bold text-slate-400 px-3 pt-3 pb-1 mt-2">
+                                        {group.label}
+                                    </div>
+                                )}
+
+                                {(!group.isCollapsible || isOpen) && (
+                                    <div className={group.isCollapsible ? "mr-3 pr-3 border-r border-slate-200 dark:border-slate-800 space-y-1" : "space-y-1"}>
+                                        {group.items.map((item) => (
+                                            <MenuItem 
+                                                key={item.view}
+                                                label={item.label} 
+                                                icon={item.icon} 
+                                                isActive={activeView === item.view} 
+                                                onClick={() => handleNavigate(item.view)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </nav>
 
                 <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
@@ -293,14 +407,28 @@ const App: React.FC = () => {
                             <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
-                            {[...menuItems, ...(currentUser?.isAdmin === 1 ? adminItems : [])].filter(i => !['home','car-orders','users'].includes(i.view)).map(item => (
-                                <button key={item.view} onClick={() => handleNavigate(item.view)} className="flex flex-col items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                    <div className={`p-3 rounded-2xl mb-2 ${activeView === item.view ? 'bg-sky-100 text-sky-600 dark:bg-sky-900 dark:text-sky-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
-                                        {item.icon}
-                                    </div>
-                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center">{item.label}</span>
-                                </button>
-                            ))}
+                            {flatMenuItems
+                                .filter(item => {
+                                    // Hide access-control and settings for non-admins
+                                    if (['access-control', 'settings'].includes(item.view) && currentUser?.isAdmin !== 1) {
+                                        return false;
+                                    }
+                                    // Exclude home, car-orders, users since they are in the persistent bottom nav
+                                    return !['home', 'car-orders', 'users'].includes(item.view);
+                                })
+                                .map(item => (
+                                    <button 
+                                        key={item.view} 
+                                        onClick={() => handleNavigate(item.view)} 
+                                        className="flex flex-col items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                    >
+                                        <div className={`p-3 rounded-2xl mb-2 ${activeView === item.view ? 'bg-sky-100 text-sky-600 dark:bg-sky-900 dark:text-sky-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                            {item.icon}
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center">{item.label}</span>
+                                    </button>
+                                ))
+                            }
                             <button onClick={toggleTheme} className="flex flex-col items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                 <div className="p-3 rounded-2xl mb-2 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                                     {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
@@ -334,7 +462,7 @@ const App: React.FC = () => {
             {/* Main Content Area */}
             <main className="flex-1 overflow-y-auto overflow-x-hidden pt-16 lg:pt-0 pb-20 lg:pb-0">
                 {activeView === 'home' && <HomePage onNavigate={handleNavigate} />}
-                {activeView === 'conditions' && <ConditionsPage />}
+                {activeView === 'announcements' && <AnnouncementsHubPage loggedInUser={currentUser} />}
                 {activeView === 'users' && (
                     <UsersPage 
                         initialFilters={userPageInitialFilters} 

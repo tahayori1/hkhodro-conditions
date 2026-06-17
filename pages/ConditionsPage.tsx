@@ -17,7 +17,11 @@ import { EditIcon } from '../components/icons/EditIcon';
 
 type SortConfig = { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
 
-const ConditionsPage: React.FC = () => {
+export interface ConditionsPageProps {
+    isSubPage?: boolean;
+}
+
+const ConditionsPage: React.FC<ConditionsPageProps> = ({ isSubPage = false }) => {
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
     const [cars, setCars] = useState<Car[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -251,86 +255,96 @@ const ConditionsPage: React.FC = () => {
         showToast('فایل CSV با موفقیت آماده شد.', 'success');
     };
 
+    const content = (
+        <>
+            <div className={`bg-white dark:bg-slate-800 ${isSubPage ? 'pb-6' : 'p-6 rounded-lg shadow-md mb-8'} space-y-4`}>
+                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    {!isSubPage && <h2 className="text-xl font-bold text-slate-700 dark:text-white">شرایط فروش</h2>}
+                    <div className={`flex items-center gap-2 flex-wrap ${isSubPage ? 'w-full justify-end' : ''}`}>
+                        <button
+                            onClick={handleExportCSV}
+                            disabled={sortedAndFilteredConditions.length === 0 || loading}
+                            className={`bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-sm flex items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed ${isSubPage ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
+                        >
+                            <ExportIcon />
+                            خروجی CSV
+                        </button>
+                        <button
+                            onClick={handleAddNew}
+                            className={`bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2 ${isSubPage ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
+                        >
+                            <PlusIcon />
+                            افزودن شرط جدید
+                        </button>
+                    </div>
+                </div>
+                <FilterPanel
+                    onFilterChange={setFilters}
+                    resultCount={sortedAndFilteredConditions.length}
+                    totalCount={conditions.length}
+                />
+            </div>
+
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                    <Spinner />
+                </div>
+            ) : error ? (
+                <p className="text-center text-red-500">{error}</p>
+            ) : (
+                <ConditionTable 
+                    conditions={sortedAndFilteredConditions} 
+                    onEdit={handleEdit} 
+                    onDelete={handleDelete} 
+                    onView={handleView}
+                    onDuplicate={handleDuplicate}
+                    onSort={handleSort}
+                    sortConfig={sortConfig}
+                    selectedIds={selectedIds}
+                    onSelectionChange={handleSelectionChange}
+                    onSelectAll={handleSelectAll}
+                />
+            )}
+
+            {/* Bulk Actions Floating Bar */}
+            {selectedIds.size > 0 && (
+                <div className={`${isSubPage ? 'absolute' : 'fixed'} bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-6 animate-slide-up border border-slate-700`}>
+                    <div className="flex items-center gap-3 border-l border-slate-700 pl-6">
+                        <span className="bg-sky-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                            {selectedIds.size.toLocaleString('fa-IR')}
+                        </span>
+                        <span className="text-sm font-bold">مورد انتخاب شد</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => setIsBulkEditModalOpen(true)}
+                            className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
+                        >
+                            <EditIcon className="w-4 h-4" />
+                            ویرایش گروهی
+                        </button>
+                        <button 
+                            onClick={() => setSelectedIds(new Set())}
+                            className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors"
+                        >
+                            <CloseIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+
     return (
         <>
-            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-8 space-y-4">
-                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h2 className="text-xl font-bold text-slate-700 dark:text-white">شرایط فروش</h2>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <button
-                                onClick={handleExportCSV}
-                                disabled={sortedAndFilteredConditions.length === 0 || loading}
-                                className="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-sm flex items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
-                            >
-                                <ExportIcon />
-                                خروجی CSV
-                            </button>
-                            <button
-                                onClick={handleAddNew}
-                                className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
-                            >
-                                <PlusIcon />
-                                افزودن شرط جدید
-                            </button>
-                        </div>
-                    </div>
-                    <FilterPanel
-                        onFilterChange={setFilters}
-                        resultCount={sortedAndFilteredConditions.length}
-                        totalCount={conditions.length}
-                    />
-                </div>
-
-                {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <Spinner />
-                    </div>
-                ) : error ? (
-                    <p className="text-center text-red-500">{error}</p>
-                ) : (
-                    <ConditionTable 
-                        conditions={sortedAndFilteredConditions} 
-                        onEdit={handleEdit} 
-                        onDelete={handleDelete} 
-                        onView={handleView}
-                        onDuplicate={handleDuplicate}
-                        onSort={handleSort}
-                        sortConfig={sortConfig}
-                        selectedIds={selectedIds}
-                        onSelectionChange={handleSelectionChange}
-                        onSelectAll={handleSelectAll}
-                    />
-                )}
-
-                {/* Bulk Actions Floating Bar */}
-                {selectedIds.size > 0 && (
-                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-6 animate-slide-up border border-slate-700">
-                        <div className="flex items-center gap-3 border-l border-slate-700 pl-6">
-                            <span className="bg-sky-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
-                                {selectedIds.size.toLocaleString('fa-IR')}
-                            </span>
-                            <span className="text-sm font-bold">مورد انتخاب شد</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => setIsBulkEditModalOpen(true)}
-                                className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
-                            >
-                                <EditIcon className="w-4 h-4" />
-                                ویرایش گروهی
-                            </button>
-                            <button 
-                                onClick={() => setSelectedIds(new Set())}
-                                className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors"
-                            >
-                                <CloseIcon className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </main>
+            {isSubPage ? (
+                <div className="animate-fade-in relative pb-20">{content}</div>
+            ) : (
+                <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+                    {content}
+                </main>
+            )}
 
             {isModalOpen && (
                 <ConditionModal 
