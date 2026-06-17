@@ -27,6 +27,8 @@ import { CopyIcon } from '../components/icons/CopyIcon';
 import CrmKanbanBoard from '../components/CrmKanbanBoard';
 import { ChartBarIcon } from '../components/icons/ChartBarIcon';
 import { ClipboardListIcon } from '../components/icons/ClipboardListIcon'; // Reused for list icon
+import CrmCallLogs from '../components/CrmCallLogs';
+import { Phone } from 'lucide-react';
 
 // Declare moment from global scope (loaded via CDN in index.html)
 declare const moment: any;
@@ -80,7 +82,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
     
     // View Mode State
-    const [viewMode, setViewMode] = useState<'LIST' | 'BOARD'>('LIST');
+    const [viewMode, setViewMode] = useState<'LIST' | 'BOARD' | 'CALLS'>('LIST');
 
     useEffect(() => {
         setFilters(prev => ({ ...prev, carModel: initialFilters.carModel || 'all' }));
@@ -586,7 +588,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-6 space-y-4 flex-shrink-0">
                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-bold text-slate-700 dark:text-slate-100">مدیریت ارتباط با مشتری (CRM)</h2>
+                            <h2 className="text-xl font-bold text-slate-700 dark:text-slate-100 font-extrabold">مدیریت ارتباط با مشتری (CRM)</h2>
                             
                             {/* View Switcher */}
                             <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-lg">
@@ -604,26 +606,37 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                                     <ChartBarIcon className="w-4 h-4" />
                                     برد کانبان
                                 </button>
+                                <button 
+                                    onClick={() => setViewMode('CALLS')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'CALLS' ? 'bg-white dark:bg-slate-600 shadow text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}
+                                >
+                                    <Phone className="w-4 h-4 text-sky-500" />
+                                    تماس‌ها
+                                </button>
                             </div>
                         </div>
 
-                        <button
-                            onClick={handleAddNew}
-                            className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
-                        >
-                            <PlusIcon />
-                            افزودن مشتری جدید
-                        </button>
+                        {viewMode !== 'CALLS' && (
+                            <button
+                                onClick={handleAddNew}
+                                className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
+                            >
+                                <PlusIcon />
+                                افزودن مشتری جدید
+                            </button>
+                        )}
                     </div>
-                    <UserFilterPanel
-                        filters={filters}
-                        onFilterChange={(newFilters: any) => setFilters(prev => ({...prev, ...newFilters}))}
-                        references={references}
-                        onClear={() => {
-                            setFilters({ query: '', carModel: 'all', reference: 'all', status: 'all' });
-                            onFiltersCleared();
-                        }}
-                    />
+                    {viewMode !== 'CALLS' && (
+                        <UserFilterPanel
+                            filters={filters}
+                            onFilterChange={(newFilters: any) => setFilters(prev => ({...prev, ...newFilters}))}
+                            references={references}
+                            onClear={() => {
+                                setFilters({ query: '', carModel: 'all', reference: 'all', status: 'all' });
+                                onFiltersCleared();
+                            }}
+                        />
+                    )}
                 </div>
 
                 {loading ? (
@@ -662,12 +675,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                                     />
                                 )}
                             </>
-                        ) : (
+                        ) : viewMode === 'BOARD' ? (
                             <CrmKanbanBoard 
                                 users={sortedUsers.filter(u => !!u.reservedByUserId)}
                                 onStatusChange={handleStatusChange}
                                 onViewDetails={handleViewDetails}
                                 onTransfer={handleOpenTransferModal}
+                                loggedInUser={loggedInUser}
+                            />
+                        ) : (
+                            <CrmCallLogs 
+                                users={users}
+                                staffUsers={staffUsers}
                                 loggedInUser={loggedInUser}
                             />
                         )}
