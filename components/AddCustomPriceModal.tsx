@@ -50,6 +50,16 @@ const convertToPersianWords = (tomanAmount: number): string => {
     return text;
 };
 
+const toEnglishDigits = (str: string): string => {
+    const persianDigits = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+    const arabicDigits = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
+    let res = str;
+    for (let i = 0; i < 10; i++) {
+        res = res.replace(persianDigits[i], String(i)).replace(arabicDigits[i], String(i));
+    }
+    return res;
+};
+
 const AddCustomPriceModal: React.FC<AddCustomPriceModalProps> = ({ isOpen, onClose, onSubmit, existingModels }) => {
     const [modelName, setModelName] = useState('');
     const [isCustomModel, setIsCustomModel] = useState(false);
@@ -80,7 +90,8 @@ const AddCustomPriceModal: React.FC<AddCustomPriceModalProps> = ({ isOpen, onClo
 
     // Format display and auto-generate words when Price Toman changes
     const handlePriceChange = (valStr: string) => {
-        const cleanVal = valStr.replace(/[^0-9]/g, '');
+        const engStr = toEnglishDigits(valStr);
+        const cleanVal = engStr.replace(/[^0-9]/g, '');
         if (!cleanVal) {
             setPriceToman('');
             setPriceText('');

@@ -9,7 +9,7 @@ import { CopyIcon } from '../components/icons/CopyIcon';
 import { EyeIcon } from '../components/icons/EyeIcon';
 import CarPriceCopySettingsModal from '../components/CarPriceCopySettingsModal';
 import AddCustomPriceModal from '../components/AddCustomPriceModal';
-import { Plus, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Clock, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
 const timeAgo = (dateString: string): string => {
     try {
@@ -40,6 +40,25 @@ const timeAgo = (dateString: string): string => {
 
     } catch(e) {
         return dateString;
+    }
+};
+
+const isOlderThan24Hours = (dateString: string): boolean => {
+    try {
+        const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})/);
+        if (!parts) return false;
+
+        const [_, year, month, day, hour, minute, second] = parts.map(Number);
+        // Date.UTC expects month to be 0-indexed.
+        const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+
+        if (isNaN(date.getTime())) return false;
+        
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        return diffMs > 24 * 60 * 60 * 1000;
+    } catch(e) {
+        return false;
     }
 };
 
@@ -109,8 +128,15 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 getCarPriceStats()
             ]);
             
+            const filteredPrices = pricesData.filter(price => {
+                if (price.source_name === 'custom') {
+                    return !isOlderThan24Hours(price.captured_at);
+                }
+                return true;
+            });
+
             const latestPrices = new Map<string, ScrapedCarPrice>();
-            pricesData.forEach(price => {
+            filteredPrices.forEach(price => {
                 const key = `${price.model_name}-${price.source_name}`;
                 const existing = latestPrices.get(key);
                 const priceDate = new Date(price.captured_at.replace(' ', 'T') + 'Z');
@@ -355,7 +381,12 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                             </div>
                                         ) : (
                                             <div className="flex justify-between items-center">
-                                                <span className="text-blue-600 dark:text-blue-400 font-bold">قیمت:</span>
+                                                <span className="text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1">
+                                                    قیمت:
+                                                    {isOlderThan24Hours(stat.computed_at) && (
+                                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" title="بیش از ۲۴ ساعت از آخرین بروزرسانی گذشته است" />
+                                                    )}
+                                                </span>
                                                 <span className="font-mono font-black text-blue-700 dark:text-blue-300 text-lg">
                                                     {stat.maximum.toLocaleString('fa-IR')} <span className="text-[10px] font-bold font-sans">تومان</span>
                                                 </span>
@@ -411,15 +442,24 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                                 {otherPrices.length === 0 ? (
                                                     <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center py-1">مرجع فعال دیگری یافت نشد.</p>
                                                 ) : (
-                                                    otherPrices.map(op => (
-                                                        <div key={op.id} className="flex justify-between items-center text-[11px] border-b border-slate-100/50 dark:border-slate-800/50 py-1 last:border-0">
-                                                            <span className="font-bold text-slate-600 dark:text-slate-300">{op.source_name}:</span>
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="font-mono font-semibold text-slate-755 dark:text-slate-300">{op.price_rial.toLocaleString('fa-IR')}</span>
-                                                                <span className="text-[10px] text-slate-455 font-normal">({timeAgo(op.captured_at)})</span>
+                                                    otherPrices.map(op => {
+                                                        const isStale = isOlderThan24Hours(op.captured_at);
+                                                        return (
+                                                            <div key={op.id} className="flex justify-between items-center text-[11px] border-b border-slate-100/50 dark:border-slate-800/50 py-1 last:border-0">
+                                                                <span className="font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                                                                    {op.source_name}
+                                                                    {isStale && (
+                                                                        <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" title="بیش از ۲۴ ساعت از آخرین بروزرسانی گذشته است" />
+                                                                    )}
+                                                                    :
+                                                                </span>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="font-mono font-semibold text-slate-755 dark:text-slate-300">{op.price_rial.toLocaleString('fa-IR')}</span>
+                                                                    <span className="text-[10px] text-slate-455 font-normal">({timeAgo(op.captured_at)})</span>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ))
+                                                        );
+                                                    })
                                                 )}
                                             </div>
                                         )}
@@ -459,6 +499,9 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                     </td>
                                     {sources.map(source => {
                                         const price = row[source] as number;
+                                        const modelRow = prices.find(p => p.model_name === row.model_name && p.source_name === source);
+                                        const isStale = modelRow ? isOlderThan24Hours(modelRow.captured_at) : false;
+                                        
                                         let cellClasses = 'px-4 py-3 text-center border-b border-slate-200 dark:border-slate-700 transition-colors duration-200 font-mono';
                                         
                                         if (price > 0 && row.minPrice !== row.maxPrice) {
@@ -471,7 +514,18 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
 
                                         return (
                                             <td key={source} className={cellClasses}>
-                                                {price > 0 ? price.toLocaleString('fa-IR') : <span className="text-slate-400 dark:text-slate-600">-</span>}
+                                                <div className="flex items-center justify-center gap-1">
+                                                    {price > 0 ? (
+                                                        <>
+                                                            <span>{price.toLocaleString('fa-IR')}</span>
+                                                            {isStale && (
+                                                                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" title="بیش از ۲۴ ساعت از آخرین بروزرسانی گذشته است" />
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-slate-400 dark:text-slate-600">-</span>
+                                                    )}
+                                                </div>
                                             </td>
                                         );
                                     })}
