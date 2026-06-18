@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getScrapedCarPrices, getScrapedCarPriceSources, getCarPriceStats, getCustomPrices, createCustomPrice } from '../services/api';
-import type { ScrapedCarPrice, CarPriceSource, CarPriceStats, CustomCarPrice } from '../types';
+import { getScrapedCarPrices, getScrapedCarPriceSources, getCarPriceStats, addCustomPrice } from '../services/api';
+import type { ScrapedCarPrice, CarPriceSource, CarPriceStats } from '../types';
 import Spinner from '../components/Spinner';
 import Toast from '../components/Toast';
 import { SortIcon } from '../components/icons/SortIcon';
 import { CopyIcon } from '../components/icons/CopyIcon';
 import { EyeIcon } from '../components/icons/EyeIcon';
 import CarPriceCopySettingsModal from '../components/CarPriceCopySettingsModal';
-import ManualCarPriceModal, { ManualCarPrice } from '../components/ManualCarPriceModal';
-import { Sliders } from 'lucide-react';
+import AddCustomPriceModal from '../components/AddCustomPriceModal';
+import { Plus, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 
 const timeAgo = (dateString: string): string => {
     try {
@@ -65,102 +65,50 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
     // Copy Modal State
     const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
 
-    // Manual Pricing States
-    const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-    const [manualPrices, setManualPrices] = useState<ManualCarPrice[]>(() => {
-        const saved = localStorage.getItem('crm_manual_car_prices');
-        return saved ? JSON.parse(saved) : [];
-    });
+    // Add Custom Price Modal State
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
+    const toggleCardExpanded = (modelName: string) => {
+        setExpandedCards(prev => ({
+            ...prev,
+            [modelName]: !prev[modelName]
+        }));
+    };
+
+    const existingModelsList = useMemo(() => {
+        const models = new Set<string>();
+        priceStats.forEach(stat => models.add(stat.model_name));
+        prices.forEach(p => models.add(p.model_name));
+        return Array.from(models).sort();
+    }, [priceStats, prices]);
+
+    const handleAddCustomPriceSubmit = async (payload: {
+        source_name: 'custom';
+        model_name: string;
+        price_rial: number;
+        price_text: string;
+        captured_at: string;
+    }) => {
+        await addCustomPrice(payload);
+        showToast('قیمت دستی خودرو با موفقیت ثبت شد', 'success');
+        await fetchAllData();
+    };
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
-    };
-
-    const handleSaveManualPrice = async (modelName: string, priceRial: number) => {
-        const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-        const priceText = `${priceRial.toLocaleString('fa-IR')} ریال`;
-        
-        try {
-            await createCustomPrice({
-                source_name: 'custom',
-                model_name: modelName,
-                price_rial: priceRial,
-                price_text: priceText,
-                captured_at: now
-            });
-            showToast(`قیمت دستی خودروی ${modelName} با موفقیت در سرور ثبت شد`, 'success');
-        } catch (err) {
-            console.error(err);
-            showToast(`خطا در ثبت روی سرور؛ به صورت محلی ذخیره شد.`, 'error');
-        }
-
-        setManualPrices(prev => {
-            const existingIndex = prev.findIndex(p => p.model_name === modelName);
-            const updated = [...prev];
-            
-            if (existingIndex !== -1) {
-                updated[existingIndex] = {
-                    ...updated[existingIndex],
-                    price_rial: priceRial,
-                    updated_at: now
-                };
-            } else {
-                updated.push({
-                    id: Math.random().toString(36).substring(2, 9),
-                    model_name: modelName,
-                    price_rial: priceRial,
-                    updated_at: now
-                });
-            }
-            localStorage.setItem('crm_manual_car_prices', JSON.stringify(updated));
-            return updated;
-        });
-    };
-
-    const handleDeleteManualPrice = (id: string) => {
-        setManualPrices(prev => {
-            const item = prev.find(p => p.id === id);
-            const updated = prev.filter(p => p.id !== id);
-            localStorage.setItem('crm_manual_car_prices', JSON.stringify(updated));
-            if (item) {
-                showToast(`قیمت دستی برای ${item.model_name} برداشته شد`, 'success');
-            }
-            return updated;
-        });
     };
 
     const fetchAllData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const [pricesData, sourcesData, statsData, customPricesData] = await Promise.all([
+            const [pricesData, sourcesData, statsData] = await Promise.all([
                 getScrapedCarPrices(),
                 getScrapedCarPriceSources(),
-                getCarPriceStats(),
-                getCustomPrices().catch(err => {
-                    console.error("Failed to fetch custom prices:", err);
-                    return [];
-                })
+                getCarPriceStats()
             ]);
             
-            const mappedManualPrices: ManualCarPrice[] = (customPricesData || []).map((cp, idx) => ({
-                id: cp.id?.toString() || `manual-${idx}`,
-                model_name: cp.model_name,
-                price_rial: cp.price_rial,
-                updated_at: cp.captured_at
-            }));
-
-            if (mappedManualPrices.length > 0) {
-                setManualPrices(mappedManualPrices);
-                localStorage.setItem('crm_manual_car_prices', JSON.stringify(mappedManualPrices));
-            } else {
-                const saved = localStorage.getItem('crm_manual_car_prices');
-                if (saved) {
-                    setManualPrices(JSON.parse(saved));
-                }
-            }
-
             const latestPrices = new Map<string, ScrapedCarPrice>();
             pricesData.forEach(price => {
                 const key = `${price.model_name}-${price.source_name}`;
@@ -173,7 +121,13 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
 
             const uniquePrices = Array.from(latestPrices.values());
             setPrices(uniquePrices);
-            setSources(sourcesData.map((s: CarPriceSource) => s.source_name).sort());
+            
+            const customExists = uniquePrices.some(p => p.source_name === 'custom');
+            const sourceNamesList = sourcesData.map((s: CarPriceSource) => s.source_name);
+            if (customExists && !sourceNamesList.includes('custom')) {
+                sourceNamesList.push('custom');
+            }
+            setSources(sourceNamesList.sort());
             setPriceStats(statsData.sort((a, b) => b.maximum - a.maximum));
 
             if (uniquePrices.length > 0) {
@@ -198,64 +152,8 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
         fetchAllData();
     }, [fetchAllData]);
 
-    const mergedPrices = useMemo(() => {
-        const manualScrapedFormat: ScrapedCarPrice[] = manualPrices.map((mp, index) => ({
-            id: -(index + 1000),
-            source_name: 'قیمت دستی',
-            model_name: mp.model_name,
-            price_text: mp.price_rial.toLocaleString('fa-IR'),
-            price_rial: mp.price_rial,
-            status: 'manual',
-            captured_at: mp.updated_at
-        }));
-        return [...prices, ...manualScrapedFormat];
-    }, [prices, manualPrices]);
-
-    const orderedSources = useMemo(() => {
-        const otherSources = sources.filter(s => s !== 'قیمت دستی');
-        const hasManual = manualPrices.length > 0;
-        return hasManual ? ['قیمت دستی', ...otherSources] : otherSources;
-    }, [sources, manualPrices]);
-
-    const mergedPriceStats = useMemo(() => {
-        const updatedStats = [...priceStats];
-        
-        manualPrices.forEach(mp => {
-            const existingIndex = updatedStats.findIndex(s => s.model_name === mp.model_name);
-            
-            if (existingIndex !== -1) {
-                updatedStats[existingIndex] = {
-                    ...updatedStats[existingIndex],
-                    maximum: mp.price_rial,
-                    average: mp.price_rial,
-                    minimum: Math.min(updatedStats[existingIndex].minimum, mp.price_rial),
-                    isManual: true as any
-                };
-            } else {
-                updatedStats.push({
-                    id: Math.floor(Math.random() * -100000),
-                    model_name: mp.model_name,
-                    minimum: mp.price_rial,
-                    maximum: mp.price_rial,
-                    average: mp.price_rial,
-                    computed_at: mp.updated_at,
-                    isManual: true as any
-                });
-            }
-        });
-
-        return updatedStats.sort((a, b) => {
-            const aIsManual = (a as any).isManual ? 1 : 0;
-            const bIsManual = (b as any).isManual ? 1 : 0;
-            if (aIsManual !== bIsManual) {
-                return bIsManual - aIsManual;
-            }
-            return b.maximum - a.maximum;
-        });
-    }, [priceStats, manualPrices]);
-
     const tableData = useMemo((): TableRow[] => {
-        const groupedByModel = mergedPrices.reduce((acc, price) => {
+        const groupedByModel = prices.reduce((acc, price) => {
             if (!acc[price.model_name]) {
                 acc[price.model_name] = {};
             }
@@ -272,12 +170,12 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 maxPrice: numericPrices.length > 0 ? Math.max(...numericPrices) : 0,
             };
 
-            orderedSources.forEach(source => {
+            sources.forEach(source => {
                 row[source] = sourcePrices[source] ?? 0;
             });
             return row as TableRow;
         });
-    }, [mergedPrices, orderedSources]);
+    }, [prices, sources]);
 
     const sortedTableData = useMemo(() => {
         if (!sortConfig.key) return tableData;
@@ -311,7 +209,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
     };
     
     const handleCopyStatsClick = () => {
-        if (mergedPriceStats.length === 0) {
+        if (priceStats.length === 0) {
             showToast('آماری برای کپی کردن وجود ندارد', 'error');
             return;
         }
@@ -335,100 +233,138 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
         );
     };
 
+    const priceStatsWithOverride = useMemo(() => {
+        // First map existing stats
+        const overridden = priceStats.map(stat => {
+            const manualPrice = prices.find(p => p.model_name === stat.model_name && p.source_name === 'custom');
+            if (manualPrice) {
+                return {
+                    ...stat,
+                    maximum: manualPrice.price_rial,
+                };
+            }
+            return stat;
+        });
+
+        // Search for manual prices of models NOT in priceStats yet
+        const existingModelNames = new Set(priceStats.map(s => s.model_name));
+        let syntheticId = priceStats.length + 1000;
+        
+        prices.forEach(price => {
+            if (price.source_name === 'custom' && !existingModelNames.has(price.model_name)) {
+                overridden.push({
+                    id: syntheticId++,
+                    model_name: price.model_name,
+                    minimum: price.price_rial,
+                    maximum: price.price_rial,
+                    average: price.price_rial,
+                    computed_at: price.captured_at
+                });
+                existingModelNames.add(price.model_name);
+            }
+        });
+
+        return overridden;
+    }, [priceStats, prices]);
+
     const renderPriceStats = () => (
         <div className="mb-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-3">
                  <div>
                     <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200">آمار خلاصه قیمت‌ها</h2>
                     {lastUpdated && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">آخرین بروزرسانی: {timeAgo(lastUpdated)}</p>}
                  </div>
-                 <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
-                     <button 
-                        onClick={() => setIsManualModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black rounded-lg transition-colors shadow-sm"
-                     >
-                        <Sliders className="w-3.5 h-3.5" />
-                        ثبت و مدیریت قیمت‌های دستی
-                     </button>
-                     <button 
+                 <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button 
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        ثبت دستی قیمت
+                    </button>
+                    <button 
                         onClick={handleCopyStatsClick}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
-                        disabled={loading || !!error || mergedPriceStats.length === 0}
-                     >
+                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+                        disabled={loading || !!error || priceStatsWithOverride.length === 0}
+                    >
                         <CopyIcon />
                         کپی آمار
-                     </button>
+                    </button>
                  </div>
             </div>
              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                * بیشترین نرخ معامله برابر با قیمت + ۲٪ است. قیمت‌های اعلامی دستی دفتر مرکزی در صدر قرار دارند.
-            </p>
+                * بیشترین نرخ معامله برابر با قیمت + ۲٪ است. قیمت‌های دستی دارای بالاترین اولویت می‌باشند.
+             </p>
             {loading ? (
                 <div className="flex justify-center items-center h-40 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
                     <Spinner />
                 </div>
+            ) : error ? (
+                <div className="bg-red-100 text-red-700 p-4 rounded-lg shadow-md">
+                    <p>{error}</p>
+                </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {mergedPriceStats.map(stat => {
-                        const manualPrice = manualPrices.find(mp => mp.model_name === stat.model_name);
-                        const isManual = !!manualPrice;
-                        
-                        // If manual exists, base maximum on manual price, otherwise original computed maximum
-                        const basePrice = isManual ? manualPrice.price_rial : stat.maximum;
+                    {priceStatsWithOverride.map(stat => {
+                        const manualPrice = prices.find(p => p.model_name === stat.model_name && p.source_name === 'custom');
+                        const otherPrices = prices.filter(p => p.model_name === stat.model_name && p.source_name !== 'custom' && p.price_rial > 0);
                         
                         // Change: Highest limit is now +2% instead of +7%
-                        const highestLimit = basePrice * 1.02;
+                        const highestLimit = stat.maximum * 1.02;
                         
                         // Havaleh Calculations
                         // 1 Month: Max - 5% (Min), Max - 3% (Max)
-                        const havaleh1Min = basePrice * 0.95; 
-                        const havaleh1Max = basePrice * 0.97;
+                        const havaleh1Min = stat.maximum * 0.95; 
+                        const havaleh1Max = stat.maximum * 0.97;
 
                         // 2 Month: Max - 10% (Min), Max - 6% (Max)
-                        const havaleh2Min = basePrice * 0.90;
-                        const havaleh2Max = basePrice * 0.94;
-
-                        const otherPricesForModel = prices.filter(p => p.model_name === stat.model_name && p.source_name !== 'قیمت دستی');
-                        const isExpanded = !!expandedCards[stat.model_name];
+                        const havaleh2Min = stat.maximum * 0.90;
+                        const havaleh2Max = stat.maximum * 0.94;
 
                         return (
-                        <div 
-                            key={stat.id} 
-                            className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4 sm:p-5 border flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden ${
-                                isManual 
-                                ? 'border-amber-400 dark:border-amber-600/40 bg-gradient-to-tr from-white to-amber-50/10 dark:from-slate-800 dark:to-amber-950/10 shadow-md' 
-                                : 'border-slate-100 dark:border-slate-700'
-                            }`}
-                        >
-                            {isManual && (
-                                <div className="absolute top-0 right-0 left-0 h-1 bg-amber-500"></div>
+                        <div key={stat.id} className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 border ${manualPrice ? 'border-sky-300 dark:border-sky-700 ring-2 ring-sky-100 dark:ring-sky-950/20' : 'border-slate-100 dark:border-slate-700'} flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden`}>
+                            {manualPrice && (
+                                <div className="absolute top-0 right-0 bg-sky-500 text-white text-[10px] font-black px-2 py-0.5 rounded-bl-lg flex items-center gap-1.5 shadow-sm">
+                                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                                    قیمت دستی مصوب
+                                </div>
                             )}
                             <div>
-                                {isManual && (
-                                    <div className="flex items-center justify-between mb-2 pb-1 border-b border-amber-100 dark:border-amber-900/30">
-                                        <span className="text-[10px] bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-black border border-amber-250 dark:border-amber-900/30 shadow-sm animate-pulse flex items-center gap-1">
-                                            👑 قیمت اعلامی دفتر (دارای اولویت)
-                                        </span>
-                                        <span className="text-[9px] text-amber-700 dark:text-amber-400 font-bold" dir="rtl">
-                                            بروزرسانی: {timeAgo(manualPrice.updated_at)}
-                                        </span>
-                                    </div>
-                                )}
-                                <h3 className="font-black text-slate-800 dark:text-white text-lg mb-4 truncate">{stat.model_name}</h3>
+                                <h3 className="font-black text-slate-800 dark:text-white text-lg mb-4 truncate pr-16">{stat.model_name}</h3>
                                 <div className="space-y-4 text-sm">
                                     
-                                    {/* Prominent / Larger Base Price for Manual */}
-                                    <div className={`flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-700 ${isManual ? 'bg-amber-50/45 dark:bg-amber-955/10 p-2 rounded-lg border-none mt-2' : ''}`}>
-                                        <span className={`font-bold ${isManual ? 'text-amber-800 dark:text-amber-300 text-sm' : 'text-slate-500 dark:text-slate-400 text-xs'}`}>
-                                            قیمت مبنا:
-                                        </span>
-                                        <span className={`font-mono font-black ${isManual ? 'text-amber-600 dark:text-amber-400 text-xl lg:text-2xl' : 'text-blue-700 dark:text-blue-300 text-lg'}`}>
-                                            {basePrice.toLocaleString('fa-IR')} <span className="text-xs font-normal">ریال</span>
-                                        </span>
+                                    {/* Base Price */}
+                                    <div className="pb-3 border-b border-slate-100 dark:border-slate-700">
+                                        {manualPrice ? (
+                                            <div>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-sky-600 dark:text-sky-400 font-bold text-xs">قیمت دستی اصلی:</span>
+                                                    <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        {timeAgo(manualPrice.captured_at)}
+                                                    </span>
+                                                </div>
+                                                <div className="bg-sky-50/50 dark:bg-sky-950/20 p-2.5 rounded-xl border border-sky-100/40 dark:border-sky-900/30 flex flex-col">
+                                                    <span className="font-mono font-black text-sky-700 dark:text-sky-300 text-2xl">
+                                                        {manualPrice.price_rial.toLocaleString('fa-IR')} <span className="text-xs font-bold font-sans">تومان</span>
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1">
+                                                        {manualPrice.price_text}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-blue-600 dark:text-blue-400 font-bold">قیمت:</span>
+                                                <span className="font-mono font-black text-blue-700 dark:text-blue-300 text-lg">
+                                                    {stat.maximum.toLocaleString('fa-IR')} <span className="text-[10px] font-bold font-sans">تومان</span>
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Havaleh 1 Month */}
-                                    <div className="bg-emerald-50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-800">
+                                    <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-800">
                                         <div className="flex justify-between items-center mb-1.5">
                                             <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">حواله ۱ ماهه</span>
                                             <span className="text-[10px] text-emerald-600/70 font-mono">(۳٪ - ۵٪)</span>
@@ -441,12 +377,12 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                     </div>
 
                                     {/* Havaleh 2 Month */}
-                                    <div className="bg-cyan-50 dark:bg-cyan-950/20 p-2.5 rounded-xl border border-cyan-100 dark:border-cyan-800">
+                                    <div className="bg-cyan-50 dark:bg-cyan-900/20 p-2.5 rounded-xl border border-cyan-100 dark:border-cyan-800">
                                         <div className="flex justify-between items-center mb-1.5">
                                             <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400">حواله ۲ ماهه</span>
                                             <span className="text-[10px] text-cyan-600/70 font-mono">(۶٪ - ۱۰٪)</span>
                                         </div>
-                                        <div className="flex justify-between items-center font-mono text-sm text-cyan-950 dark:text-cyan-100 font-bold">
+                                        <div className="flex justify-between items-center font-mono text-sm text-cyan-900 dark:text-cyan-100 font-bold">
                                             <span>{Math.round(havaleh2Min).toLocaleString('fa-IR')}</span>
                                             <span className="text-[10px] text-cyan-400 mx-1 font-sans">تا</span>
                                             <span>{Math.round(havaleh2Max).toLocaleString('fa-IR')}</span>
@@ -459,31 +395,35 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                         <span className="font-mono font-bold text-slate-600 dark:text-slate-300">{Math.round(highestLimit).toLocaleString('fa-IR')}</span>
                                     </div>
 
-                                    {/* Collapsible section for other sources */}
-                                    {otherPricesForModel.length > 0 && (
-                                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60">
-                                            <button
-                                                onClick={() => setExpandedCards(prev => ({ ...prev, [stat.model_name]: !prev[stat.model_name] }))}
-                                                className="w-full flex justify-between items-center text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors focus:outline-none"
-                                            >
-                                                <span>استعلام‌های خودکار ({otherPricesForModel.length} منبع)</span>
-                                                <span className="font-mono text-sm leading-none">{isExpanded ? '▲' : '▼'}</span>
-                                            </button>
-                                            {isExpanded && (
-                                                <div className="mt-3 space-y-2 max-h-36 overflow-y-auto pr-1">
-                                                    {otherPricesForModel.map(p => (
-                                                        <div key={p.id} className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800/60">
-                                                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{p.source_name}</span>
-                                                            <div className="text-left font-mono">
-                                                                <span className="text-xs font-black text-slate-750 dark:text-slate-300">{p.price_rial.toLocaleString('fa-IR')}</span>
-                                                                <span className="block text-[8px] text-slate-400 dark:text-slate-500 font-sans mt-0.5" dir="ltr">{timeAgo(p.captured_at)}</span>
+                                    {/* Collapsible Panel for other prices */}
+                                    <div className="pt-2 border-t border-slate-50 dark:border-slate-800">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleCardExpanded(stat.model_name)}
+                                            className="w-full flex items-center justify-between text-xs py-1.5 px-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-850 rounded-lg text-slate-500 dark:text-slate-400 font-semibold transition-all outline-none"
+                                        >
+                                            <span>مشاهده قیمت سایر مراجع ({otherPrices.length} مرجع)</span>
+                                            {expandedCards[stat.model_name] ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+                                        </button>
+                                        
+                                        {expandedCards[stat.model_name] && (
+                                            <div className="mt-2 space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                                                {otherPrices.length === 0 ? (
+                                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center py-1">مرجع فعال دیگری یافت نشد.</p>
+                                                ) : (
+                                                    otherPrices.map(op => (
+                                                        <div key={op.id} className="flex justify-between items-center text-[11px] border-b border-slate-100/50 dark:border-slate-800/50 py-1 last:border-0">
+                                                            <span className="font-bold text-slate-600 dark:text-slate-300">{op.source_name}:</span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="font-mono font-semibold text-slate-755 dark:text-slate-300">{op.price_rial.toLocaleString('fa-IR')}</span>
+                                                                <span className="text-[10px] text-slate-455 font-normal">({timeAgo(op.captured_at)})</span>
                                                             </div>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -504,7 +444,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                     <thead className="text-xs text-slate-700 bg-slate-100 dark:bg-slate-800">
                         <tr>
                             <SortableHeader title="مدل خودرو" sortKey="model_name" className="sticky left-0 bg-slate-200 dark:bg-slate-900 z-20" />
-                            {orderedSources.map(source => (
+                            {sources.map(source => (
                                 <SortableHeader key={source} title={source} sortKey={source} />
                             ))}
                         </tr>
@@ -517,14 +457,11 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                     <td className={`px-4 py-3 font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap sticky left-0 z-10 border-b border-slate-200 dark:border-slate-700 ${rowBg}`}>
                                         {row.model_name}
                                     </td>
-                                    {orderedSources.map(source => {
+                                    {sources.map(source => {
                                         const price = row[source] as number;
-                                        const isManualColumn = source === 'قیمت دستی';
                                         let cellClasses = 'px-4 py-3 text-center border-b border-slate-200 dark:border-slate-700 transition-colors duration-200 font-mono';
                                         
-                                        if (isManualColumn && price > 0) {
-                                            cellClasses += ' bg-amber-50 dark:bg-amber-955/40 text-amber-800 dark:text-amber-300 font-bold border-r border-l border-amber-100 dark:border-amber-900/40';
-                                        } else if (price > 0 && row.minPrice !== row.maxPrice) {
+                                        if (price > 0 && row.minPrice !== row.maxPrice) {
                                             if (price === row.minPrice) {
                                                 cellClasses += ' bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 font-bold';
                                             } else if (price === row.maxPrice) {
@@ -534,12 +471,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
 
                                         return (
                                             <td key={source} className={cellClasses}>
-                                                {price > 0 ? (
-                                                    <span className="flex items-center justify-center gap-1">
-                                                        {isManualColumn && <span>👑</span>}
-                                                        <span>{price.toLocaleString('fa-IR')}</span>
-                                                    </span>
-                                                ) : <span className="text-slate-400 dark:text-slate-600">-</span>}
+                                                {price > 0 ? price.toLocaleString('fa-IR') : <span className="text-slate-400 dark:text-slate-600">-</span>}
                                             </td>
                                         );
                                     })}
@@ -562,17 +494,15 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
             <CarPriceCopySettingsModal 
                 isOpen={isCopyModalOpen} 
                 onClose={() => setIsCopyModalOpen(false)} 
-                stats={mergedPriceStats}
+                stats={priceStatsWithOverride}
                 onCopySuccess={() => showToast('آمار با موفقیت کپی شد', 'success')}
             />
 
-            <ManualCarPriceModal
-                isOpen={isManualModalOpen}
-                onClose={() => setIsManualModalOpen(false)}
-                manualPrices={manualPrices}
-                knownModels={useMemo(() => Array.from(new Set(priceStats.map(s => s.model_name))).sort(), [priceStats])}
-                onSave={handleSaveManualPrice}
-                onDelete={handleDeleteManualPrice}
+            <AddCustomPriceModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onSubmit={handleAddCustomPriceSubmit}
+                existingModels={existingModelsList}
             />
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

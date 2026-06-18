@@ -167,15 +167,6 @@ export interface ScrapedCarPrice {
     captured_at: string;
 }
 
-export interface CustomCarPrice {
-    id?: number;
-    source_name: 'custom';
-    model_name: string;
-    price_rial: number;
-    price_text: string;
-    captured_at: string;
-}
-
 export interface CarPriceSource {
     source_name: string;
 }

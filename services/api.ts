@@ -7,7 +7,6 @@ import type {
     DealershipInfo, 
     CarPrice, 
     ScrapedCarPrice, 
-    CustomCarPrice,
     CarPriceSource, 
     CarPriceStats,
     ActiveLead,
@@ -627,6 +626,22 @@ export const getScrapedCarPrices = async (): Promise<ScrapedCarPrice[]> => {
     return handleScrapedApiResponse(response);
 };
 
+export const addCustomPrice = async (payload: {
+    source_name: 'custom';
+    model_name: string;
+    price_rial: number;
+    price_text: string;
+    captured_at: string;
+}): Promise<any> => {
+    ensureOnline();
+    const response = await fetch(`${API_BASE_URL}/CustomPrice`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+};
+
 export const getScrapedCarPriceSources = async (): Promise<CarPriceSource[]> => {
     const SCRAPED_SOURCES_URL = `${API_BASE_URL}/sources`;
     const response = await fetch(SCRAPED_SOURCES_URL);
@@ -648,25 +663,6 @@ export const getCarPriceStats = async (): Promise<CarPriceStats[]> => {
         average: parseFloat(item.avg_price) || 0,
         computed_at: new Date().toISOString(), // This is in the type but not the API
     }));
-};
-
-// --- Custom Prices (Manual Prices) ---
-export const getCustomPrices = async (): Promise<CustomCarPrice[]> => {
-    const CUSTOM_PRICES_URL = `${API_BASE_URL}/CustomPrice`;
-    const response = await fetch(CUSTOM_PRICES_URL);
-    return handleScrapedApiResponse(response);
-};
-
-export const createCustomPrice = async (price: Omit<CustomCarPrice, 'id'>): Promise<CustomCarPrice> => {
-    const CUSTOM_PRICES_URL = `${API_BASE_URL}/CustomPrice`;
-    const response = await fetch(CUSTOM_PRICES_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(price)
-    });
-    return handleResponse(response);
 };
 
 // --- Active Leads (for dashboard/hot leads) ---
