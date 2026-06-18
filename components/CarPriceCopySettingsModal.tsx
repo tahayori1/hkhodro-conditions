@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { CarPriceStats, CustomCarPrice } from '../types';
+import type { CarPriceStats } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
 import { CopyIcon } from './icons/CopyIcon';
 
@@ -9,10 +9,9 @@ interface CarPriceCopySettingsModalProps {
     onClose: () => void;
     stats: CarPriceStats[];
     onCopySuccess: () => void;
-    customPrices?: CustomCarPrice[];
 }
 
-const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ isOpen, onClose, stats, onCopySuccess, customPrices = [] }) => {
+const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ isOpen, onClose, stats, onCopySuccess }) => {
     const [headerText, setHeaderText] = useState('');
     const [footerText, setFooterText] = useState('https://t.me/kermanmotor2606');
     const [includeHavaleh1, setIncludeHavaleh1] = useState(true);
@@ -57,7 +56,6 @@ const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ i
         const selectedStats = stats.filter(s => selectedModels.has(s.model_name));
         
         const rows = selectedStats.map(stat => {
-            const hasManual = customPrices.some(cp => cp.model_name === stat.model_name);
             const price = stat.maximum;
             const havaleh1Min = Math.round(stat.maximum * 0.95);
             const havaleh1Max = Math.round(stat.maximum * 0.97);
@@ -65,7 +63,7 @@ const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ i
             const havaleh2Max = Math.round(stat.maximum * 0.94);
             const maxLimit = Math.round(stat.maximum * 1.02);
 
-            let line = `🚗 ${stat.model_name}\n💰 قیمت${hasManual ? ' دستی (مصوب) ⭐' : ''}: ${price.toLocaleString('fa-IR')} تومان`;
+            let line = `🚗 ${stat.model_name}\n💰 قیمت: ${price.toLocaleString('fa-IR')}`;
             
             if (includeHavaleh1) {
                 line += `\n📄 حواله ۱ ماهه: ${havaleh1Min.toLocaleString('fa-IR')} تا ${havaleh1Max.toLocaleString('fa-IR')}`;
@@ -81,7 +79,7 @@ const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ i
         });
 
         return `${headerText}\n\n${rows.join('\n\n')}\n\n${footerText}`;
-    }, [stats, selectedModels, headerText, footerText, includeHavaleh1, includeHavaleh2, includeMaxLimit, customPrices]);
+    }, [stats, selectedModels, headerText, footerText, includeHavaleh1, includeHavaleh2, includeMaxLimit]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(generatedText).then(() => {

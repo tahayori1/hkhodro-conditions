@@ -7,6 +7,7 @@ import type {
     DealershipInfo, 
     CarPrice, 
     ScrapedCarPrice, 
+    CustomCarPrice,
     CarPriceSource, 
     CarPriceStats,
     ActiveLead,
@@ -28,8 +29,7 @@ import type {
     AdCampaign,
     UsedCar,
     CarOrder,
-    CustomerJournal,
-    CustomCarPrice
+    CustomerJournal
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -650,6 +650,25 @@ export const getCarPriceStats = async (): Promise<CarPriceStats[]> => {
     }));
 };
 
+// --- Custom Prices (Manual Prices) ---
+export const getCustomPrices = async (): Promise<CustomCarPrice[]> => {
+    const CUSTOM_PRICES_URL = `${API_BASE_URL}/CustomPrice`;
+    const response = await fetch(CUSTOM_PRICES_URL);
+    return handleScrapedApiResponse(response);
+};
+
+export const createCustomPrice = async (price: Omit<CustomCarPrice, 'id'>): Promise<CustomCarPrice> => {
+    const CUSTOM_PRICES_URL = `${API_BASE_URL}/CustomPrice`;
+    const response = await fetch(CUSTOM_PRICES_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(price)
+    });
+    return handleResponse(response);
+};
+
 // --- Active Leads (for dashboard/hot leads) ---
 export const getActiveLeads = async (): Promise<ActiveLead[]> => {
     const response = await fetch(`${API_BASE_URL}/users/active`, { headers: getAuthHeaders() });
@@ -1050,73 +1069,3 @@ export const deleteMessageTemplate = async (id: string): Promise<void> => {
     localStorage.setItem('messageTemplates', JSON.stringify(filtered));
     return Promise.resolve();
 };
-
-export const getCustomCarPrices = async (): Promise<CustomCarPrice[]> => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/CustomPrice`);
-        if (!response.ok) {
-            throw new Error(`GET /CustomPrice failed: ${response.statusText}`);
-        }
-        const data = await response.json();
-        const apiList = Array.isArray(data) ? data : [];
-        
-        // Sync with localStorage
-        const stored = localStorage.getItem('crm_custom_car_prices');
-        const localList: CustomCarPrice[] = stored ? JSON.parse(stored) : [];
-        
-        // Merge list: items from API are authoritative, but we keep local items that might not be in API
-        const mergedMap = new Map<string, CustomCarPrice>();
-        localList.forEach(item => mergedMap.set(item.model_name, item));
-        apiList.forEach(item => mergedMap.set(item.model_name, item));
-        
-        const mergedList = Array.from(mergedMap.values());
-        localStorage.setItem('crm_custom_car_prices', JSON.stringify(mergedList));
-        return mergedList;
-    } catch (e) {
-        console.error("Error fetching custom prices from server:", e);
-        const stored = localStorage.getItem('crm_custom_car_prices');
-        return stored ? JSON.parse(stored) : [];
-    }
-};
-
-export const createCustomCarPrice = async (price: CustomCarPrice): Promise<CustomCarPrice> => {
-    // Save locally first for robust performance
-    const stored = localStorage.getItem('crm_custom_car_prices');
-    const localList: CustomCarPrice[] = stored ? JSON.parse(stored) : [];
-    
-    // Check if it already exists to overwrite/update
-    const index = localList.findIndex(item => item.model_name === price.model_name);
-    const newPrice: CustomCarPrice = {
-        ...price,
-        id: price.id || Date.now(),
-        captured_at: price.captured_at || new Date().toISOString()
-    };
-    
-    if (index >= 0) {
-        localList[index] = newPrice;
-    } else {
-        localList.unshift(newPrice);
-    }
-    
-    localStorage.setItem('crm_custom_car_prices', JSON.stringify(localList));
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/CustomPrice`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(newPrice)
-        });
-        if (!response.ok) {
-            console.warn(`POST /CustomPrice failed with status ${response.status}: ${response.statusText}`);
-        } else {
-            const data = await response.json().catch(() => newPrice);
-            return data;
-        }
-    } catch (e) {
-        console.error("Error creating custom price in server:", e);
-    }
-    return newPrice;
-};
-
