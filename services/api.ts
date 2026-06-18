@@ -328,7 +328,9 @@ const normalizeCondition = (condition: any): CarSaleCondition => {
 
 const denormalizeCondition = (condition: Omit<CarSaleCondition, 'id'> | CarSaleCondition) => {
     const { document_status, ...restOfAppData } = condition;
-    const stockQtyVal = parseInt(condition.stock_quantity as any, 10) || 0;
+    const stockQtyVal = typeof condition.stock_quantity === 'number' 
+        ? condition.stock_quantity 
+        : parseInt(condition.stock_quantity as any, 10) || 0;
 
     return {
         ...restOfAppData,
@@ -339,7 +341,22 @@ const denormalizeCondition = (condition: Omit<CarSaleCondition, 'id'> | CarSaleC
         stock: stockQtyVal,
         stock_qty: stockQtyVal,
         qty: stockQtyVal,
-        inventory: stockQtyVal
+        inventory: stockQtyVal,
+        quantity: stockQtyVal,
+        stockQuantity: stockQtyVal,
+        stockQty: stockQtyVal,
+        stock_count: stockQtyVal,
+        count: stockQtyVal,
+        stock_quantity_str: String(stockQtyVal),
+        stock_qty_str: String(stockQtyVal),
+        stock_str: String(stockQtyVal),
+        qty_str: String(stockQtyVal),
+        inventory_str: String(stockQtyVal),
+        quantity_str: String(stockQtyVal),
+        stockQuantity_str: String(stockQtyVal),
+        stockQty_str: String(stockQtyVal),
+        stock_count_str: String(stockQtyVal),
+        count_str: String(stockQtyVal)
     };
 };
 
