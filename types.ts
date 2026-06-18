@@ -554,3 +554,12 @@ export interface UsedCar {
     status: UsedCarStatus;
     createdAt: string;
 }
+
+export interface CustomCarPrice {
+    id?: number;
+    model_name: string;
+    price_rial: number;
+    captured_at?: string;
+    notes?: string;
+}
+
