@@ -8,6 +8,8 @@ import { SortIcon } from '../components/icons/SortIcon';
 import { CopyIcon } from '../components/icons/CopyIcon';
 import { EyeIcon } from '../components/icons/EyeIcon';
 import CarPriceCopySettingsModal from '../components/CarPriceCopySettingsModal';
+import ManualCarPriceModal, { ManualCarPrice } from '../components/ManualCarPriceModal';
+import { Sliders } from 'lucide-react';
 
 const timeAgo = (dateString: string): string => {
     try {
@@ -63,8 +65,54 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
     // Copy Modal State
     const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
 
+    // Manual Pricing States
+    const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+    const [manualPrices, setManualPrices] = useState<ManualCarPrice[]>(() => {
+        const saved = localStorage.getItem('crm_manual_car_prices');
+        return saved ? JSON.parse(saved) : [];
+    });
+
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
+    };
+
+    const handleSaveManualPrice = (modelName: string, priceRial: number) => {
+        setManualPrices(prev => {
+            const existingIndex = prev.findIndex(p => p.model_name === modelName);
+            const updated = [...prev];
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            
+            if (existingIndex !== -1) {
+                updated[existingIndex] = {
+                    ...updated[existingIndex],
+                    price_rial: priceRial,
+                    updated_at: now
+                };
+                showToast(`قیمت دستی خودروی ${modelName} بر اساس سیاست کل به روز شد`, 'success');
+            } else {
+                updated.push({
+                    id: Math.random().toString(36).substring(2, 9),
+                    model_name: modelName,
+                    price_rial: priceRial,
+                    updated_at: now
+                });
+                showToast(`قیمت خودروی ${modelName} به صورت دستی ثبت شد`, 'success');
+            }
+            localStorage.setItem('crm_manual_car_prices', JSON.stringify(updated));
+            return updated;
+        });
+    };
+
+    const handleDeleteManualPrice = (id: string) => {
+        setManualPrices(prev => {
+            const item = prev.find(p => p.id === id);
+            const updated = prev.filter(p => p.id !== id);
+            localStorage.setItem('crm_manual_car_prices', JSON.stringify(updated));
+            if (item) {
+                showToast(`قیمت دستی برای ${item.model_name} برداشته شد`, 'success');
+            }
+            return updated;
+        });
     };
 
     const fetchAllData = useCallback(async () => {
@@ -114,8 +162,64 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
         fetchAllData();
     }, [fetchAllData]);
 
+    const mergedPrices = useMemo(() => {
+        const manualScrapedFormat: ScrapedCarPrice[] = manualPrices.map((mp, index) => ({
+            id: -(index + 1000),
+            source_name: 'قیمت دستی',
+            model_name: mp.model_name,
+            price_text: mp.price_rial.toLocaleString('fa-IR'),
+            price_rial: mp.price_rial,
+            status: 'manual',
+            captured_at: mp.updated_at
+        }));
+        return [...prices, ...manualScrapedFormat];
+    }, [prices, manualPrices]);
+
+    const orderedSources = useMemo(() => {
+        const otherSources = sources.filter(s => s !== 'قیمت دستی');
+        const hasManual = manualPrices.length > 0;
+        return hasManual ? ['قیمت دستی', ...otherSources] : otherSources;
+    }, [sources, manualPrices]);
+
+    const mergedPriceStats = useMemo(() => {
+        const updatedStats = [...priceStats];
+        
+        manualPrices.forEach(mp => {
+            const existingIndex = updatedStats.findIndex(s => s.model_name === mp.model_name);
+            
+            if (existingIndex !== -1) {
+                updatedStats[existingIndex] = {
+                    ...updatedStats[existingIndex],
+                    maximum: mp.price_rial,
+                    average: mp.price_rial,
+                    minimum: Math.min(updatedStats[existingIndex].minimum, mp.price_rial),
+                    isManual: true as any
+                };
+            } else {
+                updatedStats.push({
+                    id: Math.floor(Math.random() * -100000),
+                    model_name: mp.model_name,
+                    minimum: mp.price_rial,
+                    maximum: mp.price_rial,
+                    average: mp.price_rial,
+                    computed_at: mp.updated_at,
+                    isManual: true as any
+                });
+            }
+        });
+
+        return updatedStats.sort((a, b) => {
+            const aIsManual = (a as any).isManual ? 1 : 0;
+            const bIsManual = (b as any).isManual ? 1 : 0;
+            if (aIsManual !== bIsManual) {
+                return bIsManual - aIsManual;
+            }
+            return b.maximum - a.maximum;
+        });
+    }, [priceStats, manualPrices]);
+
     const tableData = useMemo((): TableRow[] => {
-        const groupedByModel = prices.reduce((acc, price) => {
+        const groupedByModel = mergedPrices.reduce((acc, price) => {
             if (!acc[price.model_name]) {
                 acc[price.model_name] = {};
             }
@@ -132,12 +236,12 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 maxPrice: numericPrices.length > 0 ? Math.max(...numericPrices) : 0,
             };
 
-            sources.forEach(source => {
+            orderedSources.forEach(source => {
                 row[source] = sourcePrices[source] ?? 0;
             });
             return row as TableRow;
         });
-    }, [prices, sources]);
+    }, [mergedPrices, orderedSources]);
 
     const sortedTableData = useMemo(() => {
         if (!sortConfig.key) return tableData;
@@ -171,7 +275,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
     };
     
     const handleCopyStatsClick = () => {
-        if (priceStats.length === 0) {
+        if (mergedPriceStats.length === 0) {
             showToast('آماری برای کپی کردن وجود ندارد', 'error');
             return;
         }
@@ -202,17 +306,26 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                     <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200">آمار خلاصه قیمت‌ها</h2>
                     {lastUpdated && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">آخرین بروزرسانی: {timeAgo(lastUpdated)}</p>}
                  </div>
-                 <button 
-                    onClick={handleCopyStatsClick}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 mt-2 sm:mt-0"
-                    disabled={loading || !!error || priceStats.length === 0}
-                >
-                    <CopyIcon />
-                    کپی آمار
-                </button>
+                 <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+                     <button 
+                        onClick={() => setIsManualModalOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black rounded-lg transition-colors shadow-sm"
+                     >
+                        <Sliders className="w-3.5 h-3.5" />
+                        ثبت و مدیریت قیمت‌های دستی
+                     </button>
+                     <button 
+                        onClick={handleCopyStatsClick}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+                        disabled={loading || !!error || mergedPriceStats.length === 0}
+                     >
+                        <CopyIcon />
+                        کپی آمار
+                     </button>
+                 </div>
             </div>
              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                * بیشترین نرخ معامله برابر با قیمت + ۲٪ است.
+                * بیشترین نرخ معامله برابر با قیمت + ۲٪ است. قیمت‌های اعلامی دستی دفتر مرکزی در صدر قرار دارند.
             </p>
             {loading ? (
                 <div className="flex justify-center items-center h-40 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
@@ -224,7 +337,8 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {priceStats.map(stat => {
+                    {mergedPriceStats.map(stat => {
+                        const isManual = (stat as any).isManual;
                         // Change: Highest limit is now +2% instead of +7%
                         const highestLimit = stat.maximum * 1.02;
                         
@@ -238,14 +352,31 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                         const havaleh2Max = stat.maximum * 0.94;
 
                         return (
-                        <div key={stat.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 border border-slate-100 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition-shadow">
+                        <div 
+                            key={stat.id} 
+                            className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 border flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden ${
+                                isManual 
+                                ? 'border-amber-400 dark:border-amber-600/40 bg-gradient-to-tr from-white to-amber-50/20 dark:from-slate-800 dark:to-amber-950/10 shadow-md' 
+                                : 'border-slate-100 dark:border-slate-700'
+                            }`}
+                        >
+                            {isManual && (
+                                <div className="absolute top-0 right-0 left-0 h-1 bg-amber-500"></div>
+                            )}
                             <div>
+                                {isManual && (
+                                    <div className="flex items-center gap-1 mb-2">
+                                        <span className="text-[10px] bg-amber-100 dark:bg-amber-955/80 text-amber-800 dark:text-amber-300 px-2 rounded-full font-black border border-amber-200 dark:border-amber-900/40 shadow-sm animate-pulse">
+                                            👑 قیمت اعلامی دفتر (دارای اولویت)
+                                        </span>
+                                    </div>
+                                )}
                                 <h3 className="font-black text-slate-800 dark:text-white text-lg mb-4 truncate">{stat.model_name}</h3>
                                 <div className="space-y-4 text-sm">
                                     
                                     {/* Base Price */}
                                     <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-700">
-                                        <span className="text-blue-600 dark:text-blue-400 font-bold">قیمت:</span>
+                                        <span className="text-blue-605 dark:text-blue-405 font-bold">قیمت مبنا:</span>
                                         <span className="font-mono font-black text-blue-700 dark:text-blue-300 text-lg">{stat.maximum.toLocaleString('fa-IR')}</span>
                                     </div>
 
@@ -268,7 +399,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                             <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400">حواله ۲ ماهه</span>
                                             <span className="text-[10px] text-cyan-600/70 font-mono">(۶٪ - ۱۰٪)</span>
                                         </div>
-                                        <div className="flex justify-between items-center font-mono text-sm text-cyan-900 dark:text-cyan-100 font-bold">
+                                        <div className="flex justify-between items-center font-mono text-sm text-cyan-950 dark:text-cyan-100 font-bold">
                                             <span>{Math.round(havaleh2Min).toLocaleString('fa-IR')}</span>
                                             <span className="text-[10px] text-cyan-400 mx-1 font-sans">تا</span>
                                             <span>{Math.round(havaleh2Max).toLocaleString('fa-IR')}</span>
@@ -300,7 +431,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                     <thead className="text-xs text-slate-700 bg-slate-100 dark:bg-slate-800">
                         <tr>
                             <SortableHeader title="مدل خودرو" sortKey="model_name" className="sticky left-0 bg-slate-200 dark:bg-slate-900 z-20" />
-                            {sources.map(source => (
+                            {orderedSources.map(source => (
                                 <SortableHeader key={source} title={source} sortKey={source} />
                             ))}
                         </tr>
@@ -313,11 +444,14 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                     <td className={`px-4 py-3 font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap sticky left-0 z-10 border-b border-slate-200 dark:border-slate-700 ${rowBg}`}>
                                         {row.model_name}
                                     </td>
-                                    {sources.map(source => {
+                                    {orderedSources.map(source => {
                                         const price = row[source] as number;
+                                        const isManualColumn = source === 'قیمت دستی';
                                         let cellClasses = 'px-4 py-3 text-center border-b border-slate-200 dark:border-slate-700 transition-colors duration-200 font-mono';
                                         
-                                        if (price > 0 && row.minPrice !== row.maxPrice) {
+                                        if (isManualColumn && price > 0) {
+                                            cellClasses += ' bg-amber-50 dark:bg-amber-955/40 text-amber-800 dark:text-amber-300 font-bold border-r border-l border-amber-100 dark:border-amber-900/40';
+                                        } else if (price > 0 && row.minPrice !== row.maxPrice) {
                                             if (price === row.minPrice) {
                                                 cellClasses += ' bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 font-bold';
                                             } else if (price === row.maxPrice) {
@@ -327,7 +461,12 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
 
                                         return (
                                             <td key={source} className={cellClasses}>
-                                                {price > 0 ? price.toLocaleString('fa-IR') : <span className="text-slate-400 dark:text-slate-600">-</span>}
+                                                {price > 0 ? (
+                                                    <span className="flex items-center justify-center gap-1">
+                                                        {isManualColumn && <span>👑</span>}
+                                                        <span>{price.toLocaleString('fa-IR')}</span>
+                                                    </span>
+                                                ) : <span className="text-slate-400 dark:text-slate-600">-</span>}
                                             </td>
                                         );
                                     })}
@@ -350,8 +489,17 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
             <CarPriceCopySettingsModal 
                 isOpen={isCopyModalOpen} 
                 onClose={() => setIsCopyModalOpen(false)} 
-                stats={priceStats}
+                stats={mergedPriceStats}
                 onCopySuccess={() => showToast('آمار با موفقیت کپی شد', 'success')}
+            />
+
+            <ManualCarPriceModal
+                isOpen={isManualModalOpen}
+                onClose={() => setIsManualModalOpen(false)}
+                manualPrices={manualPrices}
+                knownModels={useMemo(() => Array.from(new Set(priceStats.map(s => s.model_name))).sort(), [priceStats])}
+                onSave={handleSaveManualPrice}
+                onDelete={handleDeleteManualPrice}
             />
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
