@@ -28,8 +28,7 @@ import type {
     AdCampaign,
     UsedCar,
     CarOrder,
-    CustomerJournal,
-    OvertimeRequest
+    CustomerJournal
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -861,7 +860,6 @@ const MEETING_MINUTES_URL = `${API_BASE_URL}/MeetingMinutes`;
 const AD_CAMPAIGNS_URL = `${API_BASE_URL}/AdCampaigns`;
 const USED_CARS_URL = `${API_BASE_URL}/UsedCars`;
 const CAR_ORDERS_URL = `${API_BASE_URL}/CarOrders`;
-const OVERTIME_URL = `${API_BASE_URL}/Overtime`;
 
 // Generic CRUD helper
 const createCrudService = <T>(url: string) => ({
@@ -910,7 +908,6 @@ export const meetingMinutesService = createCrudService<MeetingMinute>(MEETING_MI
 export const adCampaignsService = createCrudService<AdCampaign>(AD_CAMPAIGNS_URL);
 export const usedCarsService = createCrudService<UsedCar>(USED_CARS_URL);
 export const carOrdersService = createCrudService<CarOrder>(CAR_ORDERS_URL);
-export const overtimeService = createCrudService<OvertimeRequest>(OVERTIME_URL);
 
 // New method for uploading Excel
 export const importZeroCarDeliveryExcel = async (file: File): Promise<any> => {
