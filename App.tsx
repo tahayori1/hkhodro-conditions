@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Wallet } from 'lucide-react';
+import { Wallet, Clock } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import ConditionsPage from './pages/ConditionsPage';
 import AnnouncementsHubPage from './pages/AnnouncementsHubPage';
@@ -26,6 +26,7 @@ import AdvertisingPage from './pages/AdvertisingPage';
 import UsedCarPage from './pages/UsedCarPage';
 import CarOrderPage from './pages/CarOrderPage';
 import SalaryAdvancePage from './pages/SalaryAdvancePage';
+import OvertimePage from './pages/OvertimePage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -55,7 +56,7 @@ import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders' | 'salary-advance';
+export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders' | 'salary-advance' | 'overtime';
 
 interface MenuItemProps {
     label: string;
@@ -213,6 +214,7 @@ const App: React.FC = () => {
         { view: 'leave-requests' as ActiveView, label: 'درخواست‌های مرخصی', icon: <UserMinusIcon className="w-5 h-5" /> },
         { view: 'anonymous-feedback' as ActiveView, label: 'صندوق انتقادات', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
         { view: 'salary-advance' as ActiveView, label: 'امور مساعده کارمندان', icon: <Wallet className="w-5 h-5" /> },
+        { view: 'overtime' as ActiveView, label: 'درخواست اضافه کاری', icon: <Clock className="w-5 h-5" /> },
         { view: 'my-profile' as ActiveView, label: 'پروفایل کاربری من', icon: <UserIcon className="w-5 h-5" /> },
         { view: 'access-control' as ActiveView, label: 'مدیریت کاربران', icon: <SecurityIcon className="w-5 h-5" /> },
         { view: 'settings' as ActiveView, label: 'تنظیمات عمومی سیستم', icon: <SettingsIcon className="w-5 h-5" /> }
@@ -285,6 +287,7 @@ const App: React.FC = () => {
                 { view: 'meeting-minutes' as ActiveView, label: 'صورت‌جلسات اداری', icon: <CalendarIcon className="w-5 h-5" /> },
                 { view: 'leave-requests' as ActiveView, label: 'درخواست‌های مرخصی', icon: <UserMinusIcon className="w-5 h-5" /> },
                 { view: 'salary-advance' as ActiveView, label: 'درخواست‌های مساعده', icon: <Wallet className="w-5 h-5 text-sky-500" /> },
+                { view: 'overtime' as ActiveView, label: 'درخواست‌های اضافه کاری', icon: <Clock className="w-5 h-5 text-indigo-500" /> },
                 { view: 'anonymous-feedback' as ActiveView, label: 'صندوق انتقادات', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
             ]
         },
@@ -495,6 +498,7 @@ const App: React.FC = () => {
                 {activeView === 'meeting-minutes' && <MeetingMinutesPage />}
                 {activeView === 'leave-requests' && <LeaveRequestsPage />}
                 {activeView === 'salary-advance' && <SalaryAdvancePage />}
+                {activeView === 'overtime' && <OvertimePage />}
                 {activeView === 'anonymous-feedback' && <AnonymousFeedbackPage />}
                 {activeView === 'zero-car-delivery' && <ZeroCarDeliveryPage />}
                 {activeView === 'my-profile' && <MyProfilePage />}
