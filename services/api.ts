@@ -28,7 +28,8 @@ import type {
     AdCampaign,
     UsedCar,
     CarOrder,
-    CustomerJournal
+    CustomerJournal,
+    OvertimeRequest
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -860,6 +861,7 @@ const MEETING_MINUTES_URL = `${API_BASE_URL}/MeetingMinutes`;
 const AD_CAMPAIGNS_URL = `${API_BASE_URL}/AdCampaigns`;
 const USED_CARS_URL = `${API_BASE_URL}/UsedCars`;
 const CAR_ORDERS_URL = `${API_BASE_URL}/CarOrders`;
+const OVERTIME_URL = `${API_BASE_URL}/overtime`;
 
 // Generic CRUD helper
 const createCrudService = <T>(url: string) => ({
@@ -908,6 +910,95 @@ export const meetingMinutesService = createCrudService<MeetingMinute>(MEETING_MI
 export const adCampaignsService = createCrudService<AdCampaign>(AD_CAMPAIGNS_URL);
 export const usedCarsService = createCrudService<UsedCar>(USED_CARS_URL);
 export const carOrdersService = createCrudService<CarOrder>(CAR_ORDERS_URL);
+
+export const overtimeService = {
+    getAll: async (): Promise<OvertimeRequest[]> => {
+        try {
+            const response = await fetch(OVERTIME_URL, { headers: getAuthHeaders() });
+            const data = await handleResponse(response);
+            if (Array.isArray(data)) {
+                localStorage.setItem('overtime_backup', JSON.stringify(data));
+                return data;
+            }
+            if (data && typeof data === 'object') {
+                const arr = [data] as OvertimeRequest[];
+                localStorage.setItem('overtime_backup', JSON.stringify(arr));
+                return arr;
+            }
+        } catch (err) {
+            console.warn("Using local backup for overtime get:", err);
+        }
+        const bk = localStorage.getItem('overtime_backup');
+        return bk ? JSON.parse(bk) : [];
+    },
+    create: async (item: Partial<OvertimeRequest>): Promise<OvertimeRequest> => {
+        const newItem: OvertimeRequest = {
+            id: Date.now(),
+            requesterName: item.requesterName || 'کاربر سیستم',
+            date: item.date || '',
+            hours: item.hours || 0,
+            reason: item.reason || '',
+            status: item.status || 'PENDING',
+            createdAt: item.createdAt || new Date().toISOString(),
+            notes: item.notes || '',
+        };
+        try {
+            ensureOnline();
+            const response = await fetch(OVERTIME_URL, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(item),
+            });
+            const data = await handleResponse(response);
+            if (data && data.id) {
+                newItem.id = data.id;
+            }
+        } catch (err) {
+            console.warn("Error posting overtime, using local storage:", err);
+        }
+        // Save to local backup
+        const bk = localStorage.getItem('overtime_backup');
+        const list: OvertimeRequest[] = bk ? JSON.parse(bk) : [];
+        list.push(newItem);
+        localStorage.setItem('overtime_backup', JSON.stringify(list));
+        return newItem;
+    },
+    update: async (item: Partial<OvertimeRequest> & { id: number }): Promise<OvertimeRequest> => {
+        try {
+            ensureOnline();
+            const response = await fetch(OVERTIME_URL, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(item),
+            });
+            await handleResponse(response);
+        } catch (err) {
+            console.warn("Error updating overtime, using local storage:", err);
+        }
+        const bk = localStorage.getItem('overtime_backup');
+        let list: OvertimeRequest[] = bk ? JSON.parse(bk) : [];
+        list = list.map(x => x.id === item.id ? { ...x, ...item } : x);
+        localStorage.setItem('overtime_backup', JSON.stringify(list));
+        return item as OvertimeRequest;
+    },
+    delete: async (id: number): Promise<void> => {
+        try {
+            ensureOnline();
+            const response = await fetch(OVERTIME_URL, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ id }),
+            });
+            await handleResponse(response);
+        } catch (err) {
+            console.warn("Error deleting overtime, using local storage:", err);
+        }
+        const bk = localStorage.getItem('overtime_backup');
+        let list: OvertimeRequest[] = bk ? JSON.parse(bk) : [];
+        list = list.filter(x => x.id !== id);
+        localStorage.setItem('overtime_backup', JSON.stringify(list));
+    }
+};
 
 // New method for uploading Excel
 export const importZeroCarDeliveryExcel = async (file: File): Promise<any> => {

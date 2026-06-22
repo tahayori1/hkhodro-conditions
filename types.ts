@@ -410,6 +410,20 @@ export interface SalaryAdvanceRequest {
     notes?: string;
 }
 
+// --- Overtime Request Types ---
+export type OvertimeStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface OvertimeRequest {
+    id: number;
+    requesterName: string;
+    date: string; // "jYYYY/jMM/jDD" or "YYYY/MM/DD"
+    hours: number; // e.g., 2.5
+    reason: string;
+    status: OvertimeStatus;
+    createdAt: string;
+    notes?: string;
+}
+
 // --- Zero Car Delivery Types ---
 
 export interface ZeroCarDelivery {
