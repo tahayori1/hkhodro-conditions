@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { CarOrder, Car, CarSaleCondition, CarPriceStats } from '../types';
+import type { CarOrder, Car, CarSaleCondition, CarPriceStats, User } from '../types';
 import { OrderStatus, SaleType } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
-import { getCars, getConditions, getCarPriceStats } from '../services/api';
+import { getCars, getConditions, getCarPriceStats, getUsers } from '../services/api';
 import Spinner from './Spinner';
 
 interface CarOrderModalProps {
@@ -38,6 +38,9 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
     const [conditions, setConditions] = useState<CarSaleCondition[]>([]);
     const [priceStats, setPriceStats] = useState<CarPriceStats[]>([]);
     const [selectedConditionObj, setSelectedConditionObj] = useState<CarSaleCondition | null>(null);
+    const [crmUsers, setCrmUsers] = useState<User[]>([]);
+    const [crmSearchQuery, setCrmSearchQuery] = useState('');
+    const [crmResults, setCrmResults] = useState<User[]>([]);
 
     const [formData, setFormData] = useState({
         buyerName: '',
@@ -105,11 +108,12 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                 });
             }
 
-            Promise.all([getCars(), getConditions(), getCarPriceStats()])
-                .then(([carsData, conditionsData, statsData]) => {
+            Promise.all([getCars(), getConditions(), getCarPriceStats(), getUsers()])
+                .then(([carsData, conditionsData, statsData, usersData]) => {
                     setCars(carsData);
                     setConditions(conditionsData);
                     setPriceStats(statsData);
+                    setCrmUsers(usersData);
                     
                     // If editing, find and set the condition object
                     if (editOrder) {
@@ -138,6 +142,48 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
     };
     
     const handleBack = () => setStep(prev => prev - 1);
+
+    const handleCrmSearch = (query: string) => {
+        setCrmSearchQuery(query);
+        if (!query.trim()) {
+            setCrmResults([]);
+            return;
+        }
+        const filtered = crmUsers.filter(u => 
+            (u.FullName && u.FullName.toLowerCase().includes(query.toLowerCase())) ||
+            (u.Number && u.Number.includes(query))
+        );
+        setCrmResults(filtered);
+    };
+
+    const handleSelectCrmUser = (u: User) => {
+        setFormData(prev => ({
+            ...prev,
+            buyerName: u.FullName || prev.buyerName,
+            buyerPhone: u.Number || prev.buyerPhone,
+            buyerCity: u.City || prev.buyerCity,
+            buyerAddress: [u.Province, u.Decription].filter(Boolean).join(' - ') || prev.buyerAddress,
+        }));
+        setCrmSearchQuery('');
+        setCrmResults([]);
+    };
+
+    // Find if the currently typed info matches any CRM customer
+    const autoMatchCrmUser = useMemo(() => {
+        if (formData.buyerPhone && formData.buyerPhone.length >= 4) {
+            const foundByPhone = crmUsers.find(u => u.Number && u.Number.includes(formData.buyerPhone));
+            if (foundByPhone && (formData.buyerName !== foundByPhone.FullName || formData.buyerCity !== foundByPhone.City)) {
+                return foundByPhone;
+            }
+        }
+        if (formData.buyerName && formData.buyerName.length >= 3) {
+            const foundByName = crmUsers.find(u => u.FullName && u.FullName.toLowerCase().includes(formData.buyerName.toLowerCase()));
+            if (foundByName && (formData.buyerPhone !== foundByName.Number || formData.buyerCity !== foundByName.City)) {
+                return foundByName;
+            }
+        }
+        return null;
+    }, [formData.buyerPhone, formData.buyerName, crmUsers]);
 
     const handleSelectCondition = (c: CarSaleCondition) => {
         if (c.stock_quantity <= 0) return;
@@ -442,6 +488,59 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
                                 <div className="space-y-4 animate-fade-in">
                                     <h4 className="font-bold text-slate-700 dark:text-slate-300 border-r-4 border-sky-500 pr-3">۴. مشخصات و نشانی خریدار</h4>
                                     
+                                    {/* CRM Search & Auto-complete Section */}
+                                    <div className="bg-sky-50 dark:bg-sky-950/20 p-4 rounded-xl border border-sky-100 dark:border-sky-900/40 relative">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-sky-600 dark:text-sky-400" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                            </svg>
+                                            <span className="text-xs font-black text-slate-800 dark:text-slate-200">جستجو و تکمیل خودکار با مشتریان موجود در CRM</span>
+                                        </div>
+                                        <div className="relative">
+                                            <input 
+                                                type="text" 
+                                                placeholder="نام مشتری یا شماره تلفن را جستجو کنید..."
+                                                className="w-full px-4 py-2 text-sm border rounded-lg bg-white dark:bg-slate-800 border-sky-200 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 font-bold"
+                                                value={crmSearchQuery}
+                                                onChange={e => handleCrmSearch(e.target.value)}
+                                            />
+                                            {crmResults.length > 0 && (
+                                                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-xl max-h-48 overflow-y-auto z-50 text-xs font-bold divide-y divide-slate-100 dark:divide-slate-700">
+                                                    {crmResults.map(u => (
+                                                        <button 
+                                                            key={u.id}
+                                                            type="button" 
+                                                            onClick={() => handleSelectCrmUser(u)}
+                                                            className="w-full text-right px-4 py-2.5 hover:bg-sky-50 dark:hover:bg-sky-900/30 flex justify-between items-center transition-colors text-slate-700 dark:text-slate-300 user-select-item"
+                                                            id={`crm-user-match-${u.id}`}
+                                                        >
+                                                            <span>{u.FullName}</span>
+                                                            <span className="font-mono text-slate-400 font-normal">{u.Number}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Smart Suggestion banner if matching CRM contact has been found based on names/numbers entered */}
+                                    {autoMatchCrmUser && (
+                                        <div className="bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-xs flex justify-between items-center text-slate-700 dark:text-slate-300 animate-pulse" id="crm-auto-match-alert">
+                                            <div className="flex items-center gap-2 font-bold">
+                                                <span className="text-amber-500">💡</span>
+                                                <span>مشتری منطبق در CRM یافت شد: <span className="text-sky-600 dark:text-sky-400">{autoMatchCrmUser.FullName} ({autoMatchCrmUser.Number})</span></span>
+                                            </div>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleSelectCrmUser(autoMatchCrmUser)}
+                                                className="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg font-black transition-colors"
+                                                id="crm-autofill-btn"
+                                            >
+                                                تکمیل هوشمند اطلاعات
+                                            </button>
+                                        </div>
+                                    )}
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="sm:col-span-2">
                                             <label className="block text-xs font-bold text-slate-500 mb-1">نام کامل خریدار</label>
