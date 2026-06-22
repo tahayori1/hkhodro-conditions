@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
+import { getUsers, carOrdersService } from '../services/api';
+import type { User, CarOrder } from '../types';
 
 // --- Types & Constants ---
 
@@ -104,6 +106,165 @@ const VehicleExitPage: React.FC = () => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    // CRM & Orders Integration
+    const [crmUsers, setCrmUsers] = useState<User[]>([]);
+    const [orders, setOrders] = useState<CarOrder[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<{
+        type: 'ORDER' | 'CRM';
+        id: string;
+        title: string;
+        subtitle: string;
+        data: any;
+    }[]>([]);
+
+    useEffect(() => {
+        Promise.all([getUsers(), carOrdersService.getAll()])
+            .then(([usersData, ordersData]) => {
+                setCrmUsers(usersData || []);
+                setOrders(ordersData || []);
+            })
+            .catch(err => {
+                console.error("Error loading CRM or Orders data:", err);
+            });
+    }, []);
+
+    const handleSearch = (query: string) => {
+        setSearchQuery(query);
+        if (!query.trim()) {
+            setSearchResults([]);
+            return;
+        }
+
+        const normalizedQuery = query.toLowerCase();
+        const results: typeof searchResults = [];
+
+        // 1. Search in orders
+        const filteredOrders = orders.filter(o => 
+            (o.buyerName && o.buyerName.toLowerCase().includes(normalizedQuery)) ||
+            (o.buyerPhone && o.buyerPhone.includes(query)) ||
+            (o.carName && o.carName.toLowerCase().includes(normalizedQuery)) ||
+            (o.trackingCode && o.trackingCode.toLowerCase().includes(normalizedQuery))
+        );
+
+        filteredOrders.slice(0, 10).forEach(o => {
+            results.push({
+                type: 'ORDER',
+                id: `order-${o.id}`,
+                title: `📦 سفارش: ${o.buyerName} - ${o.carName}`,
+                subtitle: `کد رهگیری: ${o.trackingCode || o.id} | تماس: ${o.buyerPhone}`,
+                data: o
+            });
+        });
+
+        // 2. Search in CRM
+        const filteredCrm = crmUsers.filter(u => 
+            (u.FullName && u.FullName.toLowerCase().includes(normalizedQuery)) ||
+            (u.Number && u.Number.includes(query)) ||
+            (u.CarModel && u.CarModel.toLowerCase().includes(normalizedQuery))
+        );
+
+        filteredCrm.slice(0, 10).forEach(u => {
+            results.push({
+                type: 'CRM',
+                id: `crm-${u.id}`,
+                title: `👤 مشتری CRM: ${u.FullName}`,
+                subtitle: `خودرو درخواستی: ${u.CarModel || 'نامشخص'} | تماس: ${u.Number}`,
+                data: u
+            });
+        });
+
+        setSearchResults(results);
+    };
+
+    const handleSelectResult = (item: typeof searchResults[0]) => {
+        if (item.type === 'ORDER') {
+            const o = item.data as CarOrder;
+            setFormData(prev => ({
+                ...prev,
+                model: o.carName || prev.model,
+                color: o.selectedColor || prev.color,
+                customerName: o.buyerName || prev.customerName,
+                nationalId: o.buyerNationalId || prev.nationalId,
+                phone: o.buyerPhone || prev.phone,
+                invoiceNumber: o.trackingCode || String(o.id) || prev.invoiceNumber,
+                totalAmount: String(o.finalPrice || o.proposedPrice || ''),
+                paidAmount: String(o.finalPrice || o.proposedPrice || ''),
+                salesRepName: o.createdBy || prev.salesRepName,
+                customerSignName: o.buyerName || prev.customerSignName,
+            }));
+        } else if (item.type === 'CRM') {
+            const u = item.data as User;
+            setFormData(prev => ({
+                ...prev,
+                customerName: u.FullName || prev.customerName,
+                phone: u.Number || prev.phone,
+                model: u.CarModel || prev.model,
+                customerSignName: u.FullName || prev.customerSignName,
+            }));
+        }
+        setSearchQuery('');
+        setSearchResults([]);
+    };
+
+    // Auto-match based on typed data
+    const autoMatchInfo = useMemo(() => {
+        // Match by phone number
+        if (formData.phone && formData.phone.length >= 4) {
+            // First check orders
+            const matchedOrder = orders.find(o => o.buyerPhone && o.buyerPhone.includes(formData.phone));
+            if (matchedOrder && (formData.customerName !== matchedOrder.buyerName || formData.model !== matchedOrder.carName)) {
+                return { type: 'ORDER', data: matchedOrder, label: `سفارش جدید: ${matchedOrder.buyerName} (${matchedOrder.carName})` };
+            }
+            // Then check CRM
+            const matchedCrm = crmUsers.find(u => u.Number && u.Number.includes(formData.phone));
+            if (matchedCrm && formData.customerName !== matchedCrm.FullName) {
+                return { type: 'CRM', data: matchedCrm, label: `مشتری CRM: ${matchedCrm.FullName}` };
+            }
+        }
+        // Match by name
+        if (formData.customerName && formData.customerName.length >= 3) {
+            const matchedOrder = orders.find(o => o.buyerName && o.buyerName.toLowerCase().includes(formData.customerName.toLowerCase()));
+            if (matchedOrder && (formData.phone !== matchedOrder.buyerPhone || formData.model !== matchedOrder.carName)) {
+                return { type: 'ORDER', data: matchedOrder, label: `سفارش جدید: ${matchedOrder.buyerName} (${matchedOrder.carName})` };
+            }
+            const matchedCrm = crmUsers.find(u => u.FullName && u.FullName.toLowerCase().includes(formData.customerName.toLowerCase()));
+            if (matchedCrm && formData.phone !== matchedCrm.Number) {
+                return { type: 'CRM', data: matchedCrm, label: `مشتری CRM: ${matchedCrm.FullName}` };
+            }
+        }
+        return null;
+    }, [formData.phone, formData.customerName, orders, crmUsers]);
+
+    const handleApplyAutoMatch = () => {
+        if (!autoMatchInfo) return;
+        if (autoMatchInfo.type === 'ORDER') {
+            const o = autoMatchInfo.data as CarOrder;
+            setFormData(prev => ({
+                ...prev,
+                model: o.carName || prev.model,
+                color: o.selectedColor || prev.color,
+                customerName: o.buyerName || prev.customerName,
+                nationalId: o.buyerNationalId || prev.nationalId,
+                phone: o.buyerPhone || prev.phone,
+                invoiceNumber: o.trackingCode || String(o.id) || prev.invoiceNumber,
+                totalAmount: String(o.finalPrice || o.proposedPrice || ''),
+                paidAmount: String(o.finalPrice || o.proposedPrice || ''),
+                salesRepName: o.createdBy || prev.salesRepName,
+                customerSignName: o.buyerName || prev.customerSignName,
+            }));
+        } else {
+            const u = autoMatchInfo.data as User;
+            setFormData(prev => ({
+                ...prev,
+                customerName: u.FullName || prev.customerName,
+                phone: u.Number || prev.phone,
+                model: u.CarModel || prev.model,
+                customerSignName: u.FullName || prev.customerSignName,
+            }));
+        }
+    };
+
     const handleNext = () => {
         if (step < 8) setStep(step + 1);
         else setViewMode('PRINT');
@@ -122,7 +283,60 @@ const VehicleExitPage: React.FC = () => {
         switch (step) {
             case 1:
                 return (
-                    <div className="space-y-1">
+                    <div className="space-y-4">
+                        {/* CRM & Order Search Section */}
+                        <div className="bg-sky-50 dark:bg-sky-950/20 p-4 rounded-xl border border-sky-100 dark:border-sky-900/40 relative">
+                            <div className="flex items-center gap-2 mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-sky-600 dark:text-sky-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-xs font-black text-slate-800 dark:text-slate-200">جستجوی مشتری یا سفارش جهت تکمیل خودکار اطلاعات</span>
+                            </div>
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    placeholder="نام مشتری، تلفن، مدل خودرو، یا کد رهگیری..."
+                                    className="w-full px-4 py-2.5 text-xs border rounded-lg bg-white dark:bg-slate-800 border-sky-200 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 font-bold"
+                                    value={searchQuery}
+                                    onChange={e => handleSearch(e.target.value)}
+                                />
+                                {searchResults.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-xl max-h-48 overflow-y-auto z-50 text-[11px] font-bold divide-y divide-slate-100 dark:divide-slate-700">
+                                        {searchResults.map(res => (
+                                            <button 
+                                                key={res.id}
+                                                type="button" 
+                                                onClick={() => handleSelectResult(res)}
+                                                className="w-full text-right px-4 py-2.5 hover:bg-sky-50 dark:hover:bg-sky-900/30 flex justify-between items-center transition-colors text-slate-700 dark:text-slate-300"
+                                            >
+                                                <div className="flex flex-col items-start gap-0.5">
+                                                    <span className="font-extrabold">{res.title}</span>
+                                                    <span className="text-[10px] text-slate-400 font-normal font-mono">{res.subtitle}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Smart Suggestion banner if matching CRM contact has been found */}
+                        {autoMatchInfo && (
+                            <div className="bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-xs flex justify-between items-center text-slate-700 dark:text-slate-300 animate-pulse">
+                                <div className="flex items-center gap-2 font-bold font-sans">
+                                    <span className="text-amber-500">💡</span>
+                                    <span>پرونده منطبق یافت شد: <span className="text-sky-600 dark:text-sky-400 font-extrabold">{autoMatchInfo.label}</span></span>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    onClick={handleApplyAutoMatch}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-black transition-colors"
+                                >
+                                    تکمیل هوشمند اطلاعات
+                                </button>
+                            </div>
+                        )}
+
                         <WizardInput label="مدل خودرو" value={formData.model} onChange={(v) => handleChange('model', v)} placeholder="مثال: KMC T8" />
                         <WizardInput label="رنگ خودرو" value={formData.color} onChange={(v) => handleChange('color', v)} placeholder="مثال: سفید" />
                         <WizardInput label="شماره شاسی" value={formData.chassis} onChange={(v) => handleChange('chassis', v)} />
@@ -132,7 +346,60 @@ const VehicleExitPage: React.FC = () => {
                 );
             case 2:
                 return (
-                    <div className="space-y-1">
+                    <div className="space-y-4">
+                        {/* CRM & Order Search Section */}
+                        <div className="bg-sky-50 dark:bg-sky-950/20 p-4 rounded-xl border border-sky-100 dark:border-sky-900/40 relative">
+                            <div className="flex items-center gap-2 mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-sky-600 dark:text-sky-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-xs font-black text-slate-800 dark:text-slate-200">جستجوی مشتری یا سفارش جهت تکمیل خودکار اطلاعات مشتری</span>
+                            </div>
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    placeholder="نام مشتری، تلفن، مدل خودرو، یا کد رهگیری..."
+                                    className="w-full px-4 py-2.5 text-xs border rounded-lg bg-white dark:bg-slate-800 border-sky-200 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-sky-500 font-bold"
+                                    value={searchQuery}
+                                    onChange={e => handleSearch(e.target.value)}
+                                />
+                                {searchResults.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-xl max-h-48 overflow-y-auto z-50 text-[11px] font-bold divide-y divide-slate-100 dark:divide-slate-700">
+                                        {searchResults.map(res => (
+                                            <button 
+                                                key={res.id}
+                                                type="button" 
+                                                onClick={() => handleSelectResult(res)}
+                                                className="w-full text-right px-4 py-2.5 hover:bg-sky-50 dark:hover:bg-sky-900/30 flex justify-between items-center transition-colors text-slate-700 dark:text-slate-300"
+                                            >
+                                                <div className="flex flex-col items-start gap-0.5">
+                                                    <span className="font-extrabold">{res.title}</span>
+                                                    <span className="text-[10px] text-slate-400 font-normal font-mono">{res.subtitle}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Smart Suggestion banner if matching CRM contact has been found */}
+                        {autoMatchInfo && (
+                            <div className="bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-xs flex justify-between items-center text-slate-700 dark:text-slate-300 animate-pulse">
+                                <div className="flex items-center gap-2 font-bold font-sans">
+                                    <span className="text-amber-500">💡</span>
+                                    <span>پرونده منطبق یافت شد: <span className="text-sky-600 dark:text-sky-400 font-extrabold">{autoMatchInfo.label}</span></span>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    onClick={handleApplyAutoMatch}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-black transition-colors"
+                                >
+                                    تکمیل هوشمند اطلاعات
+                                </button>
+                            </div>
+                        )}
+
                         <WizardInput label="نام و نام خانوادگی مشتری" value={formData.customerName} onChange={(v) => handleChange('customerName', v)} />
                         <WizardInput label="کد ملی" value={formData.nationalId} onChange={(v) => handleChange('nationalId', v)} type="number" />
                         <WizardInput label="شماره تماس" value={formData.phone} onChange={(v) => handleChange('phone', v)} type="tel" />
