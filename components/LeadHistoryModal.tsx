@@ -55,7 +55,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
     const [quickSendCarModel, setQuickSendCarModel] = useState('');
     const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     // Journal State
     const [journals, setJournals] = useState<CustomerJournal[]>([]);
@@ -87,7 +86,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
             setNewMessage('');
             setNewJournalContent('');
             setValidationError(null);
-            setSuccessMessage(null);
         }
     }, [isOpen, lead, fullUserDetails]);
 
@@ -195,33 +193,29 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
         }
     };
 
-    const handleStatusQuickChange = async (status: LeadStatus) => {
+    const handleQuickStatusChange = async (newStatus: LeadStatus) => {
         const userId = fullUserDetails?.id || lead?.id;
-        if (!userId) return;
-
-        const actualLead = fullUserDetails || lead;
-        if (actualLead?.reservedByUserId && actualLead.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin) {
-            setValidationError('این مشتری توسط کاربر دیگری رزرو شده است.');
-            return;
-        }
+        if (!userId || isJournalSending) return;
 
         setIsJournalSending(true);
         try {
-            if (onStatusChange) {
-                await onStatusChange(userId, status);
-            }
-
+            const authorName = currentUser?.full_name || currentUser?.username || 'کاربر سیستم';
+            // 1. Submit the new journal report to record the status change
             await createCustomerJournal({
                 userId,
-                content: `تغییر وضعیت سرنخ به: ${status}`,
-                author: currentUser?.full_name || currentUser?.username || 'کاربر سیستم'
+                content: `تغییر وضعیت سرنخ به "${newStatus}"`,
+                author: authorName
             });
 
+            // 2. Trigger the callback to update the lead's status (PUT user)
+            if (onStatusChange) {
+                await onStatusChange(userId, newStatus);
+            }
+
+            // 3. Re-fetch journals so the list refreshes
             fetchJournals();
-            setSuccessMessage(`وضعیت سرنخ به "${status}" تغییر یافت و در گزارش ثبت شد.`);
         } catch (e) {
-            console.error("Failed to quickly change status and write journal", e);
-            setValidationError('خطا در تغییر وضعیت سرنخ.');
+            console.error("Failed to update status and register journal", e);
         } finally {
             setIsJournalSending(false);
         }
@@ -412,61 +406,30 @@ ${descriptionsText}`;
 
                         {activeTab === 'JOURNALS' && (
                             <div className="p-4 flex flex-col h-full">
-                                {/* Quick Status Selection */}
-                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-4 flex-shrink-0">
-                                    <h3 className="text-sm font-bold text-slate-700 mb-3">تغییر سریع وضعیت سرنخ:</h3>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {Object.values(LeadStatus).map((status) => {
+                                {/* Quick Status Assignment */}
+                                <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl mb-4 flex-shrink-0">
+                                    <p className="text-xs font-bold text-slate-500 mb-2">تعیین سریع وضعیت سرنخ (ثبت گزارش خودکار):</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        {[
+                                            { status: LeadStatus.NEW, label: 'جدید', activeClass: 'bg-slate-200 border-slate-300 text-slate-800 ring-2 ring-slate-400', normalClass: 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200' },
+                                            { status: LeadStatus.CONTACTED, label: 'تماس گرفته شده', activeClass: 'bg-sky-200 border-sky-300 text-sky-800 ring-2 ring-sky-400', normalClass: 'bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100' },
+                                            { status: LeadStatus.MEETING, label: 'جلسه حضوری', activeClass: 'bg-purple-200 border-purple-300 text-purple-800 ring-2 ring-purple-400', normalClass: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
+                                            { status: LeadStatus.NEGOTIATION, label: 'در حال مذاکره', activeClass: 'bg-amber-200 border-amber-300 text-amber-800 ring-2 ring-amber-400', normalClass: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
+                                            { status: LeadStatus.WON, label: 'موفق (خرید)', activeClass: 'bg-emerald-200 border-emerald-300 text-emerald-800 ring-2 ring-emerald-400', normalClass: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' },
+                                            { status: LeadStatus.LOST, label: 'ناموفق', activeClass: 'bg-rose-200 border-rose-300 text-rose-800 ring-2 ring-rose-400', normalClass: 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100' },
+                                        ].map((item) => {
                                             const currentStatus = fullUserDetails?.leadStatus || lead?.leadStatus || LeadStatus.NEW;
-                                            const isActive = currentStatus === status;
-                                            
-                                            // Determine styles based on status
-                                            let btnStyles = "";
-                                            if (status === LeadStatus.NEW) {
-                                                btnStyles = isActive 
-                                                    ? "bg-slate-600 border-slate-600 text-white shadow-md shadow-slate-200" 
-                                                    : "border-slate-300 text-slate-700 hover:bg-slate-50";
-                                            } else if (status === LeadStatus.CONTACTED) {
-                                                btnStyles = isActive 
-                                                    ? "bg-sky-600 border-sky-600 text-white shadow-md shadow-sky-250" 
-                                                    : "border-sky-300 text-sky-700 hover:bg-sky-50";
-                                            } else if (status === LeadStatus.MEETING) {
-                                                btnStyles = isActive 
-                                                    ? "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-200" 
-                                                    : "border-amber-300 text-amber-700 hover:bg-amber-50";
-                                            } else if (status === LeadStatus.NEGOTIATION) {
-                                                btnStyles = isActive 
-                                                    ? "bg-purple-600 border-purple-600 text-white shadow-md shadow-purple-200" 
-                                                    : "border-purple-300 text-purple-700 hover:bg-purple-50";
-                                            } else if (status === LeadStatus.WON) {
-                                                btnStyles = isActive 
-                                                    ? "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-250" 
-                                                    : "border-emerald-350 text-emerald-700 hover:bg-emerald-50";
-                                            } else if (status === LeadStatus.LOST) {
-                                                btnStyles = isActive 
-                                                    ? "bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-250" 
-                                                    : "border-rose-350 text-rose-750 hover:bg-rose-50";
-                                            }
-
+                                            const isActive = currentStatus === item.status;
                                             return (
                                                 <button
-                                                    key={status}
+                                                    key={item.status}
                                                     type="button"
                                                     disabled={isJournalSending || isActionDisabled}
-                                                    onClick={() => handleStatusQuickChange(status)}
-                                                    className={`border py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${btnStyles} ${
-                                                        isActionDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'
-                                                    }`}
+                                                    onClick={() => handleQuickStatusChange(item.status)}
+                                                    className={`border py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center flex justify-center items-center ${isActive ? item.activeClass : item.normalClass} disabled:opacity-50 disabled:cursor-not-allowed`}
                                                 >
-                                                    {status === LeadStatus.NEW && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-slate-400'}`}></span>}
-                                                    {status === LeadStatus.CONTACTED && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-sky-500'}`}></span>}
-                                                    {status === LeadStatus.MEETING && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-amber-400'}`}></span>}
-                                                    {status === LeadStatus.NEGOTIATION && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-purple-400'}`}></span>}
-                                                    {status === LeadStatus.WON && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-400'}`}></span>}
-                                                    {status === LeadStatus.LOST && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-rose-500'}`}></span>}
-                                                    
-                                                    <span>{status === LeadStatus.WON ? "موفق" : status === LeadStatus.LOST ? "ناموفق" : status}</span>
-                                                    {isActive && <svg className="w-3.5 h-3.5 text-white stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                                    {item.label}
+                                                    {isActive && <span className="mr-1 text-[9px] bg-slate-800 text-white px-1.5 py-0.5 rounded-full">فعال</span>}
                                                 </button>
                                             );
                                         })}
@@ -629,13 +592,6 @@ ${descriptionsText}`;
                     message={validationError} 
                     type="error" 
                     onClose={() => setValidationError(null)} 
-                />
-            )}
-            {successMessage && (
-                <Toast 
-                    message={successMessage} 
-                    type="success" 
-                    onClose={() => setSuccessMessage(null)} 
                 />
             )}
         </>

@@ -268,7 +268,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     };
     
     const handleStatusChange = async (userId: number, newStatus: LeadStatus) => {
-        const user = users.find(u => u.id === userId) || (selectedLead?.id === userId ? selectedLead : null) || (modalFullUser?.id === userId ? modalFullUser : null);
+        const user = users.find(u => u.id === userId);
         if (!user) return;
 
         // Check reservation
@@ -280,8 +280,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         // Optimistic Update
         const originalUsers = [...users];
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, leadStatus: newStatus } : u));
-        setSelectedLead(prev => prev && prev.id === userId ? { ...prev, leadStatus: newStatus } : prev);
-        setModalFullUser(prev => prev && prev.id === userId ? { ...prev, leadStatus: newStatus } : prev);
         
         try {
             // Update via API
@@ -289,10 +287,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         } catch (e) {
             // Revert on error
             setUsers(originalUsers);
-            setSelectedLead(prev => prev && prev.id === userId ? { ...prev, leadStatus: user.leadStatus } : prev);
-            setModalFullUser(prev => prev && prev.id === userId ? { ...prev, leadStatus: user.leadStatus } : prev);
             showToast('خطا در تغییر وضعیت سرنخ', 'error');
-            throw e;
         }
     };
 
@@ -723,7 +718,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                     cars={cars}
                     conditions={conditions}
                     loggedInUser={loggedInUser}
-                    onStatusChange={handleStatusChange}
+                    onStatusChange={async (userId, newStatus) => {
+                        await handleStatusChange(userId, newStatus);
+                        setModalFullUser(prev => prev && prev.id === userId ? { ...prev, leadStatus: newStatus } : prev);
+                        setSelectedLead(prev => prev && prev.id === userId ? { ...prev, leadStatus: newStatus } : prev);
+                    }}
                 />
             )}
             
