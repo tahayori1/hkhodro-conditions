@@ -14,8 +14,9 @@ interface CarPriceCopySettingsModalProps {
 const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ isOpen, onClose, stats, onCopySuccess }) => {
     const [headerText, setHeaderText] = useState('');
     const [footerText, setFooterText] = useState('https://t.me/kermanmotor2606');
-    const [includeHavaleh1, setIncludeHavaleh1] = useState(true);
-    const [includeHavaleh2, setIncludeHavaleh2] = useState(true);
+    const [includeHavaleh1, setIncludeHavaleh1] = useState(false);
+    const [includeHavaleh2, setIncludeHavaleh2] = useState(false);
+    const [includeMinLimit, setIncludeMinLimit] = useState(false);
     const [includeMaxLimit, setIncludeMaxLimit] = useState(false);
     
     // Model Selection State
@@ -29,9 +30,23 @@ const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ i
             const time = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
             setHeaderText(`📋 لیست قیمت محصولات کرمان موتور در تاریخ ${date} ساعت ${time} بر اساس استعلام از سایتهای خودرویی`);
             
-            // Select all models by default
-            const allModels = new Set(stats.map(s => s.model_name));
-            setSelectedModels(allModels);
+            // Set default models to be selected: kmc j7, kmc eagle, kmc x5, kmc t8, kmc t9, jac j4, kmc sr3, kmc sr6, bac x3pro
+            const defaultModelNames = [
+                'kmc j7', 'kmc eagle', 'kmc x5', 'kmc t8', 'kmc t9', 
+                'jac j4', 'kmc sr3', 'kmc sr6', 'bac x3pro'
+            ];
+            const defaultSet = new Set<string>();
+            stats.forEach(s => {
+                const normModel = s.model_name.toLowerCase().replace(/\s+/g, ' ').trim();
+                const matched = defaultModelNames.some(d => {
+                    const normD = d.toLowerCase().replace(/\s+/g, ' ').trim();
+                    return normModel === normD;
+                });
+                if (matched) {
+                    defaultSet.add(s.model_name);
+                }
+            });
+            setSelectedModels(defaultSet);
         }
     }, [isOpen, stats]);
 
@@ -57,29 +72,33 @@ const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ i
         
         const rows = selectedStats.map(stat => {
             const price = stat.maximum;
+            const minLimit = Math.round(stat.maximum * 0.98); // ۲ درصد کمتر از قیمت
+            const maxLimit = Math.round(stat.maximum * 1.02); // ۲ درصد بیشتر از قیمت
             const havaleh1Min = Math.round(stat.maximum * 0.95);
             const havaleh1Max = Math.round(stat.maximum * 0.97);
             const havaleh2Min = Math.round(stat.maximum * 0.90);
             const havaleh2Max = Math.round(stat.maximum * 0.94);
-            const maxLimit = Math.round(stat.maximum * 1.02);
 
             let line = `🚗 ${stat.model_name}\n💰 قیمت: ${price.toLocaleString('fa-IR')}`;
             
+            if (includeMinLimit) {
+                line += `\n📉 کف نرخ معامله: ${minLimit.toLocaleString('fa-IR')}`;
+            }
+            if (includeMaxLimit) {
+                line += `\n📈 سقف نرخ معامله: ${maxLimit.toLocaleString('fa-IR')}`;
+            }
             if (includeHavaleh1) {
                 line += `\n📄 حواله ۱ ماهه: ${havaleh1Min.toLocaleString('fa-IR')} تا ${havaleh1Max.toLocaleString('fa-IR')}`;
             }
             if (includeHavaleh2) {
                 line += `\n📄 حواله ۲ ماهه: ${havaleh2Min.toLocaleString('fa-IR')} تا ${havaleh2Max.toLocaleString('fa-IR')}`;
             }
-            if (includeMaxLimit) {
-                line += `\n📈 سقف معامله: ${maxLimit.toLocaleString('fa-IR')}`;
-            }
             
             return line;
         });
 
         return `${headerText}\n\n${rows.join('\n\n')}\n\n${footerText}`;
-    }, [stats, selectedModels, headerText, footerText, includeHavaleh1, includeHavaleh2, includeMaxLimit]);
+    }, [stats, selectedModels, headerText, footerText, includeHavaleh1, includeHavaleh2, includeMinLimit, includeMaxLimit]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(generatedText).then(() => {
@@ -122,6 +141,10 @@ const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ i
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={includeHavaleh2} onChange={e => setIncludeHavaleh2(e.target.checked)} className="rounded text-sky-600 focus:ring-sky-500" />
                                         <span className="text-sm dark:text-slate-300">حواله ۲ ماهه (۶٪ - ۱۰٪)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" checked={includeMinLimit} onChange={e => setIncludeMinLimit(e.target.checked)} className="rounded text-sky-600 focus:ring-sky-500" />
+                                        <span className="text-sm dark:text-slate-300">کف نرخ معامله (-۲٪)</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={includeMaxLimit} onChange={e => setIncludeMaxLimit(e.target.checked)} className="rounded text-sky-600 focus:ring-sky-500" />

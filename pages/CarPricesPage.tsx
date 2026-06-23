@@ -319,7 +319,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                  </div>
             </div>
              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                * بیشترین نرخ معامله برابر با قیمت + ۲٪ است. قیمت‌های دستی دارای بالاترین اولویت می‌باشند.
+                * کمترین نرخ معامله (کف) برابر باقیمت - ۲٪ و بیشترین نرخ معامله (سقف) برابر با قیمت + ۲٪ است.قیمت‌های دستی دارای بالاترین اولویت می‌باشند.
              </p>
             {loading ? (
                 <div className="flex justify-center items-center h-40 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
@@ -421,9 +421,15 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                     </div>
 
                                     {/* Limits */}
-                                    <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-3">
-                                        <span className="text-slate-500 dark:text-slate-400 font-bold text-xs">بیشترین نرخ معامله:</span>
-                                        <span className="font-mono font-bold text-slate-600 dark:text-slate-300">{Math.round(highestLimit).toLocaleString('fa-IR')}</span>
+                                    <div className="border-t border-slate-100 dark:border-slate-700 pt-3 space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500 dark:text-slate-400 font-bold text-xs">کمترین نرخ معامله (کف):</span>
+                                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">{Math.round(stat.maximum * 0.98).toLocaleString('fa-IR')}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500 dark:text-slate-400 font-bold text-xs">بیشترین نرخ معامله (سقف):</span>
+                                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{Math.round(highestLimit).toLocaleString('fa-IR')}</span>
+                                        </div>
                                     </div>
 
                                     {/* Collapsible Panel for other prices */}

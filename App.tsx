@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, Clock } from 'lucide-react';
+import { Wallet, Clock, Sparkles } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import ConditionsPage from './pages/ConditionsPage';
 import AnnouncementsHubPage from './pages/AnnouncementsHubPage';
@@ -27,6 +27,7 @@ import UsedCarPage from './pages/UsedCarPage';
 import CarOrderPage from './pages/CarOrderPage';
 import SalaryAdvancePage from './pages/SalaryAdvancePage';
 import OvertimePage from './pages/OvertimePage';
+import AdCaptionCreatorPage from './pages/AdCaptionCreatorPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -56,7 +57,7 @@ import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders' | 'salary-advance' | 'overtime';
+export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders' | 'salary-advance' | 'overtime' | 'ad-caption-creator';
 
 interface MenuItemProps {
     label: string;
@@ -202,6 +203,7 @@ const App: React.FC = () => {
         { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
         { view: 'notification-center' as ActiveView, label: 'پیام‌رسان هوشمند', icon: <ChatAltIcon className="w-5 h-5" /> },
         { view: 'advertising' as ActiveView, label: 'کمپین‌های تبلیغاتی', icon: <RocketIcon className="w-5 h-5" /> },
+        { view: 'ad-caption-creator' as ActiveView, label: 'آگهی‌ساز و کپشن‌ساز', icon: <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" /> },
         { view: 'cars' as ActiveView, label: 'کاتالوگ خودروها', icon: <CarIcon className="w-5 h-5" /> },
         { view: 'zero-car-delivery' as ActiveView, label: 'تحویل خودرو صفر', icon: <TruckIcon className="w-5 h-5" /> },
         { view: 'used-cars' as ActiveView, label: 'کارشناسی خودرو کارکرده', icon: <ClipboardListIcon className="w-5 h-5" /> },
@@ -252,6 +254,7 @@ const App: React.FC = () => {
                 { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
                 { view: 'notification-center' as ActiveView, label: 'پیام‌رسان هوشمند', icon: <ChatAltIcon className="w-5 h-5" /> },
                 { view: 'advertising' as ActiveView, label: 'کمپین‌های تبلیغاتی', icon: <RocketIcon className="w-5 h-5" /> },
+                { view: 'ad-caption-creator' as ActiveView, label: 'آگهی‌ساز و کپشن‌ساز', icon: <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse font-bold" /> },
             ]
         },
         {
@@ -498,6 +501,7 @@ const App: React.FC = () => {
                 {activeView === 'meeting-minutes' && <MeetingMinutesPage />}
                 {activeView === 'leave-requests' && <LeaveRequestsPage />}
                 {activeView === 'overtime' && <OvertimePage />}
+                {activeView === 'ad-caption-creator' && <AdCaptionCreatorPage />}
                 {activeView === 'salary-advance' && <SalaryAdvancePage />}
                 {activeView === 'anonymous-feedback' && <AnonymousFeedbackPage />}
                 {activeView === 'zero-car-delivery' && <ZeroCarDeliveryPage />}
