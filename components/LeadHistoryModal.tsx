@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { User, LeadMessage, Car, CarSaleCondition, CustomerJournal, MyProfile } from '../types';
+import { LeadStatus } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
 import Spinner from './Spinner';
 import { SendIcon } from './icons/SendIcon';
@@ -28,6 +29,7 @@ interface LeadDetailHistoryModalProps {
     cars: Car[];
     conditions: CarSaleCondition[];
     loggedInUser: MyProfile | null;
+    onStatusChange?: (userId: number, newStatus: LeadStatus) => Promise<void>;
 }
 
 const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ label, value }) => (
@@ -39,11 +41,15 @@ const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ labe
 
 const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ 
     isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, 
-    onSendMessage, onSendToCrm, onRegisterOrder, cars, conditions, loggedInUser
+    onSendMessage, onSendToCrm, onRegisterOrder, cars, conditions, loggedInUser,
+    onStatusChange
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [activeTab, setActiveTab] = useState<'MESSAGES' | 'JOURNALS'>('MESSAGES');
+    
+    // Status State
+    const [isStatusChanging, setIsStatusChanging] = useState(false);
     
     // Message State
     const [newMessage, setNewMessage] = useState('');
@@ -167,6 +173,30 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
     const handleQuickSend = (text: string) => {
         setNewMessage(prev => prev ? `${prev}\n\n${text}`.trim() : text);
         setTimeout(() => textareaRef.current?.focus(), 0);
+    };
+
+    const handleStatusUpdate = async (newStatus: LeadStatus) => {
+        const userId = fullUserDetails?.id || lead?.id;
+        if (!userId || isStatusChanging) return;
+        setIsStatusChanging(true);
+        try {
+            if (onStatusChange) {
+                await onStatusChange(userId, newStatus);
+            }
+            
+            const authorName = currentUser?.full_name || currentUser?.username || 'کاربر سیستم';
+            // Post an automatic message to CRM Journal!
+            await createCustomerJournal({
+                userId,
+                content: `تغییر وضعیت سرنخ به: ${newStatus}`,
+                author: authorName
+            });
+            fetchJournals();
+        } catch (err) {
+            console.error("Failed to update status in modal:", err);
+        } finally {
+            setIsStatusChanging(false);
+        }
     };
     
     const handleAddJournal = async () => {
@@ -375,6 +405,38 @@ ${descriptionsText}`;
 
                         {activeTab === 'JOURNALS' && (
                             <div className="p-4 flex flex-col h-full">
+                                {/* تعیین سریع وضعیت سرنخ */}
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-4 flex-shrink-0">
+                                    <span className="text-xs font-bold text-slate-500 block mb-3 px-1"> تعیین سریع وضعیت سرنخ این مشتری در CRM:</span>
+                                    <div className="flex flex-wrap gap-2 text-xs">
+                                        {[
+                                            { status: LeadStatus.NEW, label: 'جدید', bg: 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200', activeBg: 'bg-slate-600 text-white border-slate-600 shadow-sm' },
+                                            { status: LeadStatus.CONTACTED, label: 'تماس گرفته شده', bg: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200', activeBg: 'bg-blue-600 text-white border-blue-600 shadow-sm' },
+                                            { status: LeadStatus.MEETING, label: 'جلسه حضوری', bg: 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200', activeBg: 'bg-amber-500 text-white border-amber-500 shadow-sm' },
+                                            { status: LeadStatus.NEGOTIATION, label: 'در حال مذاکره', bg: 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200', activeBg: 'bg-purple-600 text-white border-purple-600 shadow-sm' },
+                                            { status: LeadStatus.WON, label: 'موفق (خرید)', bg: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200', activeBg: 'bg-emerald-650 bg-emerald-600 text-white border-emerald-600 shadow-sm' },
+                                            { status: LeadStatus.LOST, label: 'ناموفق', bg: 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200', activeBg: 'bg-rose-650 bg-rose-600 text-white border-rose-600 shadow-sm' },
+                                        ].map(item => {
+                                            const currentStatus = fullUserDetails?.leadStatus || lead?.leadStatus || LeadStatus.NEW;
+                                            const isActive = currentStatus === item.status;
+                                            return (
+                                                <button
+                                                    key={item.status}
+                                                    type="button"
+                                                    disabled={isStatusChanging || isActionDisabled}
+                                                    onClick={() => handleStatusUpdate(item.status)}
+                                                    className={`px-3 py-2 rounded-lg border font-bold transition-all flex items-center gap-1.5 ${
+                                                        isActive ? item.activeBg : `${item.bg} hover:scale-[1.02]`
+                                                    } disabled:opacity-50 disabled:pointer-events-none`}
+                                                >
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-current'}`}></span>
+                                                    {item.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
                                 {/* Journal Input */}
                                 <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 mb-4 flex-shrink-0">
                                     <textarea

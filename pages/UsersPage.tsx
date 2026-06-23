@@ -280,6 +280,12 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         // Optimistic Update
         const originalUsers = [...users];
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, leadStatus: newStatus } : u));
+        if (selectedLead && selectedLead.id === userId) {
+            setSelectedLead(prev => prev ? { ...prev, leadStatus: newStatus } : null);
+        }
+        if (modalFullUser && modalFullUser.id === userId) {
+            setModalFullUser(prev => prev ? { ...prev, leadStatus: newStatus } : null);
+        }
         
         try {
             // Update via API
@@ -287,6 +293,12 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         } catch (e) {
             // Revert on error
             setUsers(originalUsers);
+            if (selectedLead && selectedLead.id === userId) {
+                setSelectedLead(prev => prev ? { ...prev, leadStatus: user.leadStatus } : null);
+            }
+            if (modalFullUser && modalFullUser.id === userId) {
+                setModalFullUser(prev => prev ? { ...prev, leadStatus: user.leadStatus } : null);
+            }
             showToast('خطا در تغییر وضعیت سرنخ', 'error');
         }
     };
@@ -718,6 +730,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                     cars={cars}
                     conditions={conditions}
                     loggedInUser={loggedInUser}
+                    onStatusChange={handleStatusChange}
                 />
             )}
             

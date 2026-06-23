@@ -1,6 +1,7 @@
 
 import React from 'react';
 import type { User, MyProfile } from '../types';
+import { LeadStatus } from '../types';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { SortIcon } from './icons/SortIcon';
@@ -64,6 +65,46 @@ const UserTable: React.FC<UserTableProps> = ({
         }
     };
 
+    const getLeadStatusBadge = (status: LeadStatus = LeadStatus.NEW) => {
+        switch (status) {
+            case LeadStatus.NEW:
+                return {
+                    style: 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+                    label: 'جدید'
+                };
+            case LeadStatus.CONTACTED:
+                return {
+                    style: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+                    label: 'تماس گرفته شده'
+                };
+            case LeadStatus.MEETING:
+                return {
+                    style: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+                    label: 'جلسه حضوری'
+                };
+            case LeadStatus.NEGOTIATION:
+                return {
+                    style: 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+                    label: 'در حال مذاکره'
+                };
+            case LeadStatus.WON:
+                return {
+                    style: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-extrabold',
+                    label: 'موفق'
+                };
+            case LeadStatus.LOST:
+                return {
+                    style: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-700 font-extrabold',
+                    label: 'ناموفق'
+                };
+            default:
+                return {
+                    style: 'bg-slate-50 text-slate-600 border-slate-200',
+                    label: 'جدید'
+                };
+        }
+    };
+
     const SortableHeader: React.FC<{ title: string; sortKey: keyof User; }> = ({ title, sortKey }) => {
         const isSorted = sortConfig?.key === sortKey;
         const direction = isSorted ? sortConfig.direction : 'none';
@@ -107,7 +148,7 @@ const UserTable: React.FC<UserTableProps> = ({
                             <SortableHeader title="تماس" sortKey="Number" />
                             <SortableHeader title="خودرو" sortKey="CarModel" />
                             <SortableHeader title="رزرو" sortKey="reservedByUserId" />
-                            <SortableHeader title="وضعیت CRM" sortKey="crmIsSend" />
+                            <SortableHeader title="وضعیت سرنخ" sortKey="leadStatus" />
                             <SortableHeader title="موقعیت" sortKey="Province" />
                             <SortableHeader title="آخرین بروزرسانی" sortKey="updatedAt" />
                             <th scope="col" className="px-6 py-3"></th>
@@ -168,24 +209,10 @@ const UserTable: React.FC<UserTableProps> = ({
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
-                                    {user.crmIsSend ? (
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <CheckCircleIcon className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                                            <div>
-                                                <span className="font-semibold text-slate-700 dark:text-slate-300 block">{user.crmPerson}</span>
-                                                <span className="text-slate-500 dark:text-slate-400 font-mono">{formatDateForTooltip(user.crmDate)}</span>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <button 
-                                            disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
-                                            onClick={() => onSendToCrm(user)} 
-                                            className={`p-2 rounded-xl transition-colors ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
-                                            title="ارسال به CRM"
-                                        >
-                                            <SendToCrmIcon />
-                                        </button>
-                                    )}
+                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${getLeadStatusBadge(user.leadStatus).style}`}>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                        {getLeadStatusBadge(user.leadStatus).label}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{user.City || user.Province || '-'}</td>
                                 <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500">{formatDate(user.updatedAt)}</td>
@@ -269,14 +296,13 @@ const UserTable: React.FC<UserTableProps> = ({
                                         <span>رزرو شده توسط: <b>{user.reservedByUserName}</b></span>
                                     </div>
                                 )}
-                                {user.crmIsSend ? (
-                                    <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
-                                        <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
-                                        <div>
-                                            <span className="font-semibold text-[10px]">ارسال به CRM توسط {user.crmPerson}</span>
-                                        </div>
-                                    </div>
-                                ) : null}
+                                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                                    <span className="text-xs text-slate-500">وضعیت سرنخ:</span>
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${getLeadStatusBadge(user.leadStatus).style}`}>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                        {getLeadStatusBadge(user.leadStatus).label}
+                                    </span>
+                                </div>
                             </div>
                             
                             <div className="flex flex-col gap-2">
