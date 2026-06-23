@@ -417,6 +417,7 @@ ${descriptionsText}`;
                                             { status: LeadStatus.NEGOTIATION, label: 'در حال مذاکره', activeClass: 'bg-amber-200 border-amber-300 text-amber-800 ring-2 ring-amber-400', normalClass: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
                                             { status: LeadStatus.WON, label: 'موفق (خرید)', activeClass: 'bg-emerald-200 border-emerald-300 text-emerald-800 ring-2 ring-emerald-400', normalClass: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' },
                                             { status: LeadStatus.LOST, label: 'ناموفق', activeClass: 'bg-rose-200 border-rose-300 text-rose-800 ring-2 ring-rose-400', normalClass: 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100' },
+                                            { status: LeadStatus.NO_ANSWER, label: 'پاسخ نداد', activeClass: 'bg-orange-200 border-orange-300 text-orange-800 ring-2 ring-orange-400', normalClass: 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100' },
                                         ].map((item) => {
                                             const currentStatus = fullUserDetails?.leadStatus || lead?.leadStatus || LeadStatus.NEW;
                                             const isActive = currentStatus === item.status;

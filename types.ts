@@ -41,6 +41,7 @@ export enum LeadStatus {
     NEGOTIATION = 'در حال مذاکره',
     WON = 'موفق (خرید)',
     LOST = 'ناموفق',
+    NO_ANSWER = 'پاسخ نداد',
 }
 
 export interface Announcement {

@@ -74,6 +74,12 @@ const UserTable: React.FC<UserTableProps> = ({
                         ناموفق
                     </span>
                 );
+            case LeadStatus.NO_ANSWER:
+                return (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-slate-800">
+                        پاسخ نداد
+                    </span>
+                );
             default:
                 return (
                     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
