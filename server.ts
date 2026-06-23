@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
@@ -13,22 +12,9 @@ async function startServer() {
   // API endpoint for Gemini generation
   app.post("/api/generate-ad", async (req, res) => {
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "کلید دسترسی Gemini در سرور یافت نشد. لطفا در پنل تنظیمات آن را وارد کنید." });
-      }
-
+      const apiKey = process.env.LIARA_API_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXkiOiI2YTNhMTM0ZTIxMzAxMmJlMTIwMmRiZjMiLCJ0eXBlIjoiYWlfa2V5IiwiaWF0IjoxNzgyMTkwOTI2fQ.aWbFXlkFn1eI9DC-aMRFSvuClET6tWmphhaVrS92q5c";
+      
       const { type, model_name, targetType, customKeywords, companyDetails } = req.body;
-
-      // Initialize Gemini Client
-      const ai = new GoogleGenAI({
-        apiKey: apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
-      });
 
       let systemInstruction = "شما یک کارشناس ارشد بازاریابی دیجیتال، نویسنده تبلیغات خلاق و متخصص فروش خودرو (به‌ویژه برندهای کرمان موتور، مدیران خودرو، بهمن موتور، فردا موتور و غیره) هستید که به بازار ایران، اصطلاحات خودرویی و نحوه نگارش جذاب مسلط است. زبان پاسخ حتما روان، جذاب و فارسی باشد.";
       
@@ -44,19 +30,32 @@ ${companyDetails ? `اطلاعات تماس یا شرکت: ${companyDetails}` : 
 
 تمامی پاسخ‌ها کاملا خلاقانه، حرفه‌ای، دارای فضابندی مناسب و به شکل تمیز و خوانا مرتب شده باشند.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          systemInstruction: systemInstruction,
-          temperature: 0.85,
-        }
+      // Call Liara AI Gateway
+      const response = await fetch("https://ai.liara.ir/api/683580a8fe913a5ae3e52a34/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-lite-001",
+          messages: [
+            { role: "system", content: systemInstruction },
+            { role: "user", content: prompt }
+          ]
+        })
       });
 
-      const text = response.text || "";
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`خطای سرور لیارا آرتیفیشال: ${errText}`);
+      }
+
+      const responseData = await response.json();
+      const text = responseData.choices?.[0]?.message?.content || "";
       res.json({ result: text });
     } catch (error: any) {
-      console.error("Gemini API Error:", error);
+      console.error("Liara API Error:", error);
       res.status(500).json({ error: error.message || "خطایی در پردازش درخواست توسط هوش مصنوعی رخ داد." });
     }
   });
