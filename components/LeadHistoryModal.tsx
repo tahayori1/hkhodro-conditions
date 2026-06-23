@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import type { User, LeadMessage, Car, CarSaleCondition, CustomerJournal, MyProfile } from '../types';
 import { LeadStatus } from '../types';
+import type { User, LeadMessage, Car, CarSaleCondition, CustomerJournal, MyProfile } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
 import Spinner from './Spinner';
 import { SendIcon } from './icons/SendIcon';
@@ -48,9 +48,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [activeTab, setActiveTab] = useState<'MESSAGES' | 'JOURNALS'>('MESSAGES');
     
-    // Status State
-    const [isStatusChanging, setIsStatusChanging] = useState(false);
-    
     // Message State
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -58,6 +55,7 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
     const [quickSendCarModel, setQuickSendCarModel] = useState('');
     const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     // Journal State
     const [journals, setJournals] = useState<CustomerJournal[]>([]);
@@ -89,6 +87,7 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
             setNewMessage('');
             setNewJournalContent('');
             setValidationError(null);
+            setSuccessMessage(null);
         }
     }, [isOpen, lead, fullUserDetails]);
 
@@ -174,30 +173,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
         setNewMessage(prev => prev ? `${prev}\n\n${text}`.trim() : text);
         setTimeout(() => textareaRef.current?.focus(), 0);
     };
-
-    const handleStatusUpdate = async (newStatus: LeadStatus) => {
-        const userId = fullUserDetails?.id || lead?.id;
-        if (!userId || isStatusChanging) return;
-        setIsStatusChanging(true);
-        try {
-            if (onStatusChange) {
-                await onStatusChange(userId, newStatus);
-            }
-            
-            const authorName = currentUser?.full_name || currentUser?.username || 'کاربر سیستم';
-            // Post an automatic message to CRM Journal!
-            await createCustomerJournal({
-                userId,
-                content: `تغییر وضعیت سرنخ به: ${newStatus}`,
-                author: authorName
-            });
-            fetchJournals();
-        } catch (err) {
-            console.error("Failed to update status in modal:", err);
-        } finally {
-            setIsStatusChanging(false);
-        }
-    };
     
     const handleAddJournal = async () => {
         if (!newJournalContent.trim() || isJournalSending) return;
@@ -215,6 +190,38 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
             fetchJournals();
         } catch (e) {
             console.error("Failed to add journal", e);
+        } finally {
+            setIsJournalSending(false);
+        }
+    };
+
+    const handleStatusQuickChange = async (status: LeadStatus) => {
+        const userId = fullUserDetails?.id || lead?.id;
+        if (!userId) return;
+
+        const actualLead = fullUserDetails || lead;
+        if (actualLead?.reservedByUserId && actualLead.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin) {
+            setValidationError('این مشتری توسط کاربر دیگری رزرو شده است.');
+            return;
+        }
+
+        setIsJournalSending(true);
+        try {
+            if (onStatusChange) {
+                await onStatusChange(userId, status);
+            }
+
+            await createCustomerJournal({
+                userId,
+                content: `تغییر وضعیت سرنخ به: ${status}`,
+                author: currentUser?.full_name || currentUser?.username || 'کاربر سیستم'
+            });
+
+            fetchJournals();
+            setSuccessMessage(`وضعیت سرنخ به "${status}" تغییر یافت و در گزارش ثبت شد.`);
+        } catch (e) {
+            console.error("Failed to quickly change status and write journal", e);
+            setValidationError('خطا در تغییر وضعیت سرنخ.');
         } finally {
             setIsJournalSending(false);
         }
@@ -405,32 +412,61 @@ ${descriptionsText}`;
 
                         {activeTab === 'JOURNALS' && (
                             <div className="p-4 flex flex-col h-full">
-                                {/* تعیین سریع وضعیت سرنخ */}
+                                {/* Quick Status Selection */}
                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-4 flex-shrink-0">
-                                    <span className="text-xs font-bold text-slate-500 block mb-3 px-1"> تعیین سریع وضعیت سرنخ این مشتری در CRM:</span>
-                                    <div className="flex flex-wrap gap-2 text-xs">
-                                        {[
-                                            { status: LeadStatus.NEW, label: 'جدید', bg: 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200', activeBg: 'bg-slate-600 text-white border-slate-600 shadow-sm' },
-                                            { status: LeadStatus.CONTACTED, label: 'تماس گرفته شده', bg: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200', activeBg: 'bg-blue-600 text-white border-blue-600 shadow-sm' },
-                                            { status: LeadStatus.MEETING, label: 'جلسه حضوری', bg: 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200', activeBg: 'bg-amber-500 text-white border-amber-500 shadow-sm' },
-                                            { status: LeadStatus.NEGOTIATION, label: 'در حال مذاکره', bg: 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200', activeBg: 'bg-purple-600 text-white border-purple-600 shadow-sm' },
-                                            { status: LeadStatus.WON, label: 'موفق (خرید)', bg: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200', activeBg: 'bg-emerald-650 bg-emerald-600 text-white border-emerald-600 shadow-sm' },
-                                            { status: LeadStatus.LOST, label: 'ناموفق', bg: 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200', activeBg: 'bg-rose-650 bg-rose-600 text-white border-rose-600 shadow-sm' },
-                                        ].map(item => {
+                                    <h3 className="text-sm font-bold text-slate-700 mb-3">تغییر سریع وضعیت سرنخ:</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {Object.values(LeadStatus).map((status) => {
                                             const currentStatus = fullUserDetails?.leadStatus || lead?.leadStatus || LeadStatus.NEW;
-                                            const isActive = currentStatus === item.status;
+                                            const isActive = currentStatus === status;
+                                            
+                                            // Determine styles based on status
+                                            let btnStyles = "";
+                                            if (status === LeadStatus.NEW) {
+                                                btnStyles = isActive 
+                                                    ? "bg-slate-600 border-slate-600 text-white shadow-md shadow-slate-200" 
+                                                    : "border-slate-300 text-slate-700 hover:bg-slate-50";
+                                            } else if (status === LeadStatus.CONTACTED) {
+                                                btnStyles = isActive 
+                                                    ? "bg-sky-600 border-sky-600 text-white shadow-md shadow-sky-250" 
+                                                    : "border-sky-300 text-sky-700 hover:bg-sky-50";
+                                            } else if (status === LeadStatus.MEETING) {
+                                                btnStyles = isActive 
+                                                    ? "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-200" 
+                                                    : "border-amber-300 text-amber-700 hover:bg-amber-50";
+                                            } else if (status === LeadStatus.NEGOTIATION) {
+                                                btnStyles = isActive 
+                                                    ? "bg-purple-600 border-purple-600 text-white shadow-md shadow-purple-200" 
+                                                    : "border-purple-300 text-purple-700 hover:bg-purple-50";
+                                            } else if (status === LeadStatus.WON) {
+                                                btnStyles = isActive 
+                                                    ? "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-250" 
+                                                    : "border-emerald-350 text-emerald-700 hover:bg-emerald-50";
+                                            } else if (status === LeadStatus.LOST) {
+                                                btnStyles = isActive 
+                                                    ? "bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-250" 
+                                                    : "border-rose-350 text-rose-750 hover:bg-rose-50";
+                                            }
+
                                             return (
                                                 <button
-                                                    key={item.status}
+                                                    key={status}
                                                     type="button"
-                                                    disabled={isStatusChanging || isActionDisabled}
-                                                    onClick={() => handleStatusUpdate(item.status)}
-                                                    className={`px-3 py-2 rounded-lg border font-bold transition-all flex items-center gap-1.5 ${
-                                                        isActive ? item.activeBg : `${item.bg} hover:scale-[1.02]`
-                                                    } disabled:opacity-50 disabled:pointer-events-none`}
+                                                    disabled={isJournalSending || isActionDisabled}
+                                                    onClick={() => handleStatusQuickChange(status)}
+                                                    className={`border py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${btnStyles} ${
+                                                        isActionDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'
+                                                    }`}
                                                 >
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-current'}`}></span>
-                                                    {item.label}
+                                                    {status === LeadStatus.NEW && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-slate-400'}`}></span>}
+                                                    {status === LeadStatus.CONTACTED && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-sky-500'}`}></span>}
+                                                    {status === LeadStatus.MEETING && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-amber-400'}`}></span>}
+                                                    {status === LeadStatus.NEGOTIATION && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-purple-400'}`}></span>}
+                                                    {status === LeadStatus.WON && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-400'}`}></span>}
+                                                    {status === LeadStatus.LOST && <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-rose-500'}`}></span>}
+                                                    
+                                                    <span>{status === LeadStatus.WON ? "موفق" : status === LeadStatus.LOST ? "ناموفق" : status}</span>
+                                                    {isActive && <svg className="w-3.5 h-3.5 text-white stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                                                 </button>
                                             );
                                         })}
@@ -593,6 +629,13 @@ ${descriptionsText}`;
                     message={validationError} 
                     type="error" 
                     onClose={() => setValidationError(null)} 
+                />
+            )}
+            {successMessage && (
+                <Toast 
+                    message={successMessage} 
+                    type="success" 
+                    onClose={() => setSuccessMessage(null)} 
                 />
             )}
         </>

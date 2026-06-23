@@ -1,7 +1,7 @@
 
 import React from 'react';
-import type { User, MyProfile } from '../types';
 import { LeadStatus } from '../types';
+import type { User, MyProfile } from '../types';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { SortIcon } from './icons/SortIcon';
@@ -62,46 +62,6 @@ const UserTable: React.FC<UserTableProps> = ({
             return new Date(dateString.replace(' ', 'T')).toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' });
         } catch {
             return dateString;
-        }
-    };
-
-    const getLeadStatusBadge = (status: LeadStatus = LeadStatus.NEW) => {
-        switch (status) {
-            case LeadStatus.NEW:
-                return {
-                    style: 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
-                    label: 'جدید'
-                };
-            case LeadStatus.CONTACTED:
-                return {
-                    style: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-                    label: 'تماس گرفته شده'
-                };
-            case LeadStatus.MEETING:
-                return {
-                    style: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800',
-                    label: 'جلسه حضوری'
-                };
-            case LeadStatus.NEGOTIATION:
-                return {
-                    style: 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-                    label: 'در حال مذاکره'
-                };
-            case LeadStatus.WON:
-                return {
-                    style: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-extrabold',
-                    label: 'موفق'
-                };
-            case LeadStatus.LOST:
-                return {
-                    style: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-700 font-extrabold',
-                    label: 'ناموفق'
-                };
-            default:
-                return {
-                    style: 'bg-slate-50 text-slate-600 border-slate-200',
-                    label: 'جدید'
-                };
         }
     };
 
@@ -208,16 +168,53 @@ const UserTable: React.FC<UserTableProps> = ({
                                         </button>
                                     )}
                                 </td>
-                                <td className="px-6 py-4">
-                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${getLeadStatusBadge(user.leadStatus).style}`}>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                                        {getLeadStatusBadge(user.leadStatus).label}
-                                    </span>
+                                <td className="px-6 py-4 text-right">
+                                    {(() => {
+                                        const status = user.leadStatus || LeadStatus.NEW;
+                                        let badgeColor = "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-700/50 dark:text-slate-300 dark:border-slate-600";
+                                        let displayLabel = status as string;
+
+                                        if (status === LeadStatus.NEW) {
+                                            badgeColor = "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-700/30 dark:text-slate-300 dark:border-slate-600";
+                                        } else if (status === LeadStatus.CONTACTED) {
+                                            badgeColor = "bg-sky-50 text-sky-700 border-sky-250 dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900";
+                                        } else if (status === LeadStatus.MEETING) {
+                                            badgeColor = "bg-amber-50 text-amber-700 border-amber-250 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900";
+                                        } else if (status === LeadStatus.NEGOTIATION) {
+                                            badgeColor = "bg-purple-50 text-purple-700 border-purple-250 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-900";
+                                        } else if (status === LeadStatus.WON) {
+                                            badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-250 dark:bg-emerald-950/30 dark:text-emerald-400 font-extrabold";
+                                            displayLabel = "موفق";
+                                        } else if (status === LeadStatus.LOST) {
+                                            badgeColor = "bg-rose-50 text-rose-750 border-rose-250 dark:bg-rose-950/30 dark:text-rose-400 font-extrabold";
+                                            displayLabel = "ناموفق";
+                                        }
+
+                                        return (
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${badgeColor}`}>
+                                                {displayLabel}
+                                            </span>
+                                        );
+                                    })()}
                                 </td>
                                 <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{user.City || user.Province || '-'}</td>
                                 <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500">{formatDate(user.updatedAt)}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-1">
+                                        {user.crmIsSend ? (
+                                            <div className="p-2 text-emerald-500" title={`ارسال شده به CRM توسط ${user.crmPerson} در تاریخ ${formatDateForTooltip(user.crmDate)}`}>
+                                                <CheckCircleIcon className="w-5 h-5" />
+                                            </div>
+                                        ) : (
+                                            <button 
+                                                disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
+                                                onClick={() => onSendToCrm(user)} 
+                                                className={`p-2 rounded-xl transition-colors ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
+                                                title="ارسال به CRM"
+                                            >
+                                                <SendToCrmIcon />
+                                            </button>
+                                        )}
                                         <button 
                                             disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
                                             onClick={() => onRegisterOrder(user)} 
@@ -281,10 +278,37 @@ const UserTable: React.FC<UserTableProps> = ({
                                     <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded-full flex-shrink-0 font-mono">{formatDate(user.updatedAt)}</span>
                                 </div>
                                 
-                                <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] font-bold truncate max-w-[100px]">
                                         {user.CarModel || 'بدون خودرو'}
                                     </span>
+                                    {(() => {
+                                        const status = user.leadStatus || LeadStatus.NEW;
+                                        let badgeColor = "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-700/50 dark:text-slate-300 dark:border-slate-600";
+                                        let displayLabel = status as string;
+
+                                        if (status === LeadStatus.NEW) {
+                                            badgeColor = "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-700/30 dark:text-slate-300 dark:border-slate-600";
+                                        } else if (status === LeadStatus.CONTACTED) {
+                                            badgeColor = "bg-sky-50 text-sky-750 border-sky-250 dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900";
+                                        } else if (status === LeadStatus.MEETING) {
+                                            badgeColor = "bg-yellow-50 text-yellow-850 border-yellow-250 dark:bg-yellow-950/30 dark:text-yellow-300 dark:border-yellow-900";
+                                        } else if (status === LeadStatus.NEGOTIATION) {
+                                            badgeColor = "bg-purple-50 text-purple-750 border-purple-250 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-900";
+                                        } else if (status === LeadStatus.WON) {
+                                            badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-250 dark:bg-emerald-950/30 dark:text-emerald-400 font-extrabold";
+                                            displayLabel = "موفق";
+                                        } else if (status === LeadStatus.LOST) {
+                                            badgeColor = "bg-rose-50 text-rose-750 border-rose-250 dark:bg-rose-950/30 dark:text-rose-400 font-extrabold";
+                                            displayLabel = "ناموفق";
+                                        }
+
+                                        return (
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${badgeColor}`}>
+                                                {displayLabel}
+                                            </span>
+                                        );
+                                    })()}
                                     <div className="flex items-center text-xs text-slate-400 dark:text-slate-500 font-mono" dir="ltr">
                                         <PhoneIcon className="w-3 h-3 mr-1" />
                                         {user.Number}
@@ -296,13 +320,14 @@ const UserTable: React.FC<UserTableProps> = ({
                                         <span>رزرو شده توسط: <b>{user.reservedByUserName}</b></span>
                                     </div>
                                 )}
-                                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                                    <span className="text-xs text-slate-500">وضعیت سرنخ:</span>
-                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${getLeadStatusBadge(user.leadStatus).style}`}>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                                        {getLeadStatusBadge(user.leadStatus).label}
-                                    </span>
-                                </div>
+                                {user.crmIsSend ? (
+                                    <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                                        <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
+                                        <div>
+                                            <span className="font-semibold text-[10px]">ارسال به CRM توسط {user.crmPerson}</span>
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
                             
                             <div className="flex flex-col gap-2">
@@ -321,6 +346,16 @@ const UserTable: React.FC<UserTableProps> = ({
                                 >
                                     <ChatIcon className="w-5 h-5" />
                                 </button>
+                                {!user.crmIsSend && (
+                                    <button 
+                                        disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
+                                        onClick={(e) => { e.stopPropagation(); onSendToCrm(user); }} 
+                                        className={`p-2 rounded-xl ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 bg-slate-50 dark:bg-slate-800' : 'text-blue-600 bg-blue-50 dark:bg-blue-900/30'}`}
+                                        title="ارسال به CRM"
+                                    >
+                                        <SendToCrmIcon className="w-5 h-5" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
