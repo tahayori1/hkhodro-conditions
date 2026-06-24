@@ -12,10 +12,20 @@ interface ChangelogItem {
 }
 
 const AboutPage: React.FC = () => {
-    const appVersion = "v2.5.0";
-    const releaseDate = "۸ تیر ۱۴۰۵";
+    const appVersion = "v2.5.1";
+    const releaseDate = "۹ تیر ۱۴۰۵";
 
     const changelog: ChangelogItem[] = [
+        {
+            version: "v2.5.1",
+            date: "۱۴۰۵/۰۴/۰۹",
+            title: "یکپارچه‌سازی عمیق مرکز تماس VOIP و گزارش‌های تماس با CRM",
+            changes: [
+                { type: 'new', text: "امکان پردازش موازی و درون‌ریزی همزمان گزارشات تماس‌های VOIP به بخش تماس‌های CRM به همراه ثبت خودکار شماره‌های ورودی جدید به عنوان سرنخ‌های مستعد." },
+                { type: 'improvement', text: "تشخیص هوشمند جهت تماس (ورودی/خروجی)، طول زمان مکالمه (ثانیه)، و دسته‌بندی خودکار بر اساس علت قطع ارتباط (مشغول، عدم پاسخ، لغو شده یا موفق)." },
+                { type: 'improvement', text: "سیستم به‌روزرسانی آنی و سینک سراسری تب‌های باز شده مرورگر به وسیله Event-Emitters اختصاصی در CRM." }
+            ]
+        },
         {
             version: "v2.5.0",
             date: "۱۴۰۵/۰۴/۰۸",

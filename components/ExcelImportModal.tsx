@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import type { User } from '../types';
 import { LeadStatus } from '../types';
 import { createUser } from '../services/api';
+import type { CrmCallLog } from './CrmCallLogs';
 import { 
     X, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, 
     Instagram, Phone, MessageSquare, ArrowLeft, ArrowRight, Play, Check, AlertTriangle, Loader2 
@@ -66,6 +67,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
 
     // Parsing state & feedback
     const [parsedRecords, setParsedRecords] = useState<Partial<User>[]>([]);
+    const [parsedCallLogs, setParsedCallLogs] = useState<CrmCallLog[]>([]);
     const [validRecords, setValidRecords] = useState<Partial<User>[]>([]);
     const [duplicateCount, setDuplicateCount] = useState(0);
     const [invalidCount, setInvalidCount] = useState(0);
@@ -243,7 +245,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
 
         // VOIP specific columns
         const vNumIdx = findColByCleanName(['#']);
-        const vSourceIdx = findColByCleanName(['مبدا', 'source', 'caller']);
+        const vSourceIdx = findColByCleanName(['مبدا', 'source', 'caller', 'شمارهتلفنمبدا']);
         const vDestIdx = findColByCleanName(['مقصد', 'destination', 'callee']);
         const vDateIdx = findColByCleanName(['تاریخ تماس', 'تاریخ', 'calldate', 'date']);
         const vWaitIdx = findColByCleanName(['زمان انتظار', 'wait', 'waittime']);
@@ -260,6 +262,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
         const iDateIdx = findColByCleanName(['تاریخ', 'date']);
 
         const parsed: Partial<User>[] = [];
+        const parsedLogs: CrmCallLog[] = [];
         let duplicates = 0;
         let invalids = 0;
 
@@ -268,8 +271,17 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
         rawRows.forEach(row => {
             // Priority to VOIP/Instagram specific phone columns if selected
             let rawPhone = '';
-            if (importType === 'VOIP' && vSourceIdx > -1) {
-                rawPhone = row[vSourceIdx];
+            let isOutbound = false;
+
+            if (importType === 'VOIP') {
+                const rawType = vTypeIdx > -1 ? String(row[vTypeIdx] || '').trim() : '';
+                isOutbound = rawType.includes('خروجی') || rawType.toLowerCase().includes('out');
+                
+                if (isOutbound) {
+                    rawPhone = vDestIdx > -1 ? String(row[vDestIdx] || '').trim() : (vSourceIdx > -1 ? String(row[vSourceIdx] || '').trim() : '');
+                } else {
+                    rawPhone = vSourceIdx > -1 ? String(row[vSourceIdx] || '').trim() : (vDestIdx > -1 ? String(row[vDestIdx] || '').trim() : '');
+                }
             } else if (importType === 'INSTAGRAM' && iNumIdx > -1) {
                 rawPhone = row[iNumIdx];
             } else {
@@ -283,10 +295,9 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
                 return;
             }
 
-            if (cleanExistingNumbers.has(normalizedPhone)) {
-                duplicates++;
-                return;
-            }
+            // Determine if user exists
+            const matchedUser = existingUsers.find(u => u.Number.replace(/[\s\-\+]/g, '').endsWith(normalizedPhone.substring(1)));
+            const userExists = !!matchedUser;
 
             // Map and prepare default records
             let rawName = nameIdx > -1 ? String(row[nameIdx] || '').trim() : '';
@@ -321,7 +332,73 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
                     parts.push(`توضیحات تکمیلی: ${rawDesc}`);
                 }
                 detailedDesc = parts.join(' | ');
-                if (!finalName) finalName = 'مشتری مرکز تماس (VOIP)';
+
+                if (matchedUser) {
+                    finalName = matchedUser.FullName;
+                } else if (!finalName) {
+                    finalName = 'مشتری مرکز تماس (VOIP)';
+                }
+
+                // Call duration calculation
+                let durationSeconds = 0;
+                if (vDurationSecIdx > -1 && row[vDurationSecIdx] !== undefined && row[vDurationSecIdx] !== '') {
+                    durationSeconds = parseInt(row[vDurationSecIdx], 10) || 0;
+                } else if (vDurationIdx > -1 && row[vDurationIdx]) {
+                    const val = String(row[vDurationIdx]).trim();
+                    if (val.includes(':')) {
+                        const pts = val.split(':').map(Number);
+                        if (pts.length === 2) durationSeconds = pts[0] * 60 + pts[1];
+                        else if (pts.length === 3) durationSeconds = pts[0] * 3600 + pts[1] * 60 + pts[2];
+                    } else {
+                        durationSeconds = parseInt(val, 10) || 0;
+                    }
+                }
+
+                // Call status calculation
+                let callStatus: 'SUCCESSFUL' | 'MISSED' | 'NO_ANSWER' | 'BUSY' | 'REJECTED' = 'SUCCESSFUL';
+                const reasonStr = vReasonIdx > -1 ? String(row[vReasonIdx] || '').trim() : '';
+                if (durationSeconds === 0) {
+                    if (reasonStr.includes('مشغول') || reasonStr.includes('busy')) {
+                        callStatus = 'BUSY';
+                    } else if (reasonStr.includes('رد') || reasonStr.includes('rejected') || reasonStr.includes('decline')) {
+                        callStatus = 'REJECTED';
+                    } else if (reasonStr.includes('پاسخ') || reasonStr.includes('no answer') || reasonStr.includes('timeout')) {
+                        callStatus = 'NO_ANSWER';
+                    } else {
+                        callStatus = 'MISSED';
+                    }
+                }
+
+                // Timestamp
+                let callTimestamp = '';
+                if (vDateIdx > -1 && row[vDateIdx]) {
+                    callTimestamp = String(row[vDateIdx]).trim();
+                } else {
+                    const now = new Date();
+                    callTimestamp = now.toLocaleDateString('fa-IR') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+                }
+
+                // Notes
+                const notesParts: string[] = [];
+                if (vQueueIdx > -1 && row[vQueueIdx]) notesParts.push(`صف: ${row[vQueueIdx]}`);
+                if (vWaitIdx > -1 && row[vWaitIdx]) notesParts.push(`انتظار: ${row[vWaitIdx]} ثانیه`);
+                if (reasonStr) notesParts.push(`علت قطع: ${reasonStr}`);
+                if (vDestIdx > -1 && row[vDestIdx] && isOutbound === false) notesParts.push(`داخلی مقصد: ${row[vDestIdx]}`);
+                const callNotes = notesParts.join(' | ') || 'ثبت شده از طریق ایمپورت فایل VOIP';
+
+                parsedLogs.push({
+                    id: `voip-import-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                    userId: matchedUser?.id,
+                    customerName: finalName,
+                    customerNumber: normalizedPhone,
+                    callType: isOutbound ? 'OUTBOUND' : 'INBOUND',
+                    callStatus,
+                    duration: durationSeconds,
+                    agentName: 'مرکز تماس VOIP',
+                    notes: callNotes,
+                    timestamp: callTimestamp
+                });
+
             } else if (importType === 'INSTAGRAM') {
                 const parts: string[] = ['📸 اینستاگرام'];
                 const igIdVal = iIgIdIdx > -1 ? String(row[iIgIdIdx] || '').trim() : '';
@@ -333,12 +410,24 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
                 }
                 detailedDesc = parts.join(' | ');
 
-                if (!finalName) {
+                if (matchedUser) {
+                    finalName = matchedUser.FullName;
+                } else if (!finalName) {
                     finalName = igIdVal ? `@${igIdVal.replace(/^@/, '')}` : 'کاربر اینستاگرام';
                 }
             } else {
                 detailedDesc = `💬 [درون‌ریزی پنل پیامکی] ${rawDesc ? `کمپین/متن پیام: ${rawDesc}` : ''}`;
-                if (!finalName) finalName = 'مشتری پنل پیامکی';
+                if (matchedUser) {
+                    finalName = matchedUser.FullName;
+                } else if (!finalName) {
+                    finalName = 'مشتری پنل پیامکی';
+                }
+            }
+
+            // If user already exists in CRM, we don't recreate them as a new customer lead
+            if (userExists) {
+                duplicates++;
+                return;
             }
 
             parsed.push({
@@ -360,14 +449,18 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
         });
 
         setParsedRecords(parsed);
+        setParsedCallLogs(parsedLogs);
         setDuplicateCount(duplicates);
         setInvalidCount(invalids);
     }, [mappings, batchRef, defaultCar, defaultStatus, step, rawRows, rawHeaders, importType, existingUsers]);
 
     // Handle Start Import
     const handleStartImport = async () => {
-        if (parsedRecords.length === 0) {
-            alert('هیچ شماره معتبر جدیدی برای درون‌ریزی وجود ندارد.');
+        const hasCallLogs = importType === 'VOIP' && parsedCallLogs.length > 0;
+        const hasCustomers = parsedRecords.length > 0;
+
+        if (!hasCustomers && !hasCallLogs) {
+            alert('هیچ اطلاعات معتبری برای درون‌ریزی یافت نشد.');
             return;
         }
 
@@ -375,24 +468,53 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
         setImporting(true);
         setProgress({ current: 0, total: parsedRecords.length, success: 0, error: 0 });
 
+        // 1. If we have VOIP call logs, import them to localStorage immediately
+        if (importType === 'VOIP' && parsedCallLogs.length > 0) {
+            try {
+                const saved = localStorage.getItem('crm_call_logs');
+                let existingLogs: any[] = [];
+                if (saved) {
+                    try {
+                        existingLogs = JSON.parse(saved);
+                    } catch (e) {}
+                }
+                const updatedLogs = [...parsedCallLogs, ...existingLogs];
+                localStorage.setItem('crm_call_logs', JSON.stringify(updatedLogs));
+                window.dispatchEvent(new Event('crm_call_logs_updated'));
+            } catch (err) {
+                console.error('Failed to import call logs to localStorage', err);
+            }
+        }
+
+        // 2. If we have new customers to register, create them
         let success = 0;
         let errors = 0;
 
-        for (let i = 0; i < parsedRecords.length; i++) {
-            const record = parsedRecords[i];
-            try {
-                await createUser(record as Omit<User, 'id'>);
-                success++;
-            } catch (err) {
-                console.error('Import Row error:', err);
-                errors++;
+        if (hasCustomers) {
+            for (let i = 0; i < parsedRecords.length; i++) {
+                const record = parsedRecords[i];
+                try {
+                    await createUser(record as Omit<User, 'id'>);
+                    success++;
+                } catch (err) {
+                    console.error('Import Row error:', err);
+                    errors++;
+                }
+                setProgress(p => ({
+                    ...p,
+                    current: i + 1,
+                    success,
+                    error: errors
+                }));
             }
-            setProgress(p => ({
-                ...p,
-                current: i + 1,
-                success,
-                error: errors
-            }));
+        } else {
+            // No new customers to create, just successful call logs import
+            setProgress({
+                current: parsedCallLogs.length,
+                total: parsedCallLogs.length,
+                success: parsedCallLogs.length,
+                error: 0
+            });
         }
 
         setImporting(false);
@@ -647,16 +769,30 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
                                 <div className="p-3 rounded-xl border border-sky-100 dark:border-sky-900 bg-sky-50/45 dark:bg-sky-950/25 flex items-center gap-3">
                                     <CheckCircle2 className="w-8 h-8 text-sky-600" />
                                     <div>
-                                        <h5 className="text-[10px] text-slate-400">شماره‌های معتبر جدید</h5>
-                                        <p className="text-sm font-black text-slate-800 dark:text-white">{parsedRecords.length.toLocaleString('fa-IR')} مورد</p>
+                                        <h5 className="text-[10px] text-slate-400">
+                                            {importType === 'VOIP' ? 'کل تماس‌های شناسایی شده' : 'شماره‌های معتبر جدید'}
+                                        </h5>
+                                        <p className="text-sm font-black text-slate-800 dark:text-white font-mono">
+                                            {importType === 'VOIP' 
+                                                ? `${parsedCallLogs.length.toLocaleString('fa-IR')} تماس`
+                                                : `${parsedRecords.length.toLocaleString('fa-IR')} مورد`
+                                            }
+                                        </p>
                                     </div>
                                 </div>
 
                                 <div className="p-3 rounded-xl border border-amber-100 dark:border-amber-900 bg-amber-50/30 dark:bg-amber-950/15 flex items-center gap-3">
                                     <AlertTriangle className="w-8 h-8 text-amber-500" />
                                     <div>
-                                        <h5 className="text-[10px] text-slate-400">تکراری (رد خواهند شد)</h5>
-                                        <p className="text-sm font-black text-slate-800 dark:text-white">{duplicateCount.toLocaleString('fa-IR')} مورد</p>
+                                        <h5 className="text-[10px] text-slate-400">
+                                            {importType === 'VOIP' ? 'مشتریان جدید برای ثبت در CRM' : 'تکراری (رد خواهند شد)'}
+                                        </h5>
+                                        <p className="text-sm font-black text-slate-800 dark:text-white font-mono">
+                                            {importType === 'VOIP'
+                                                ? `${parsedRecords.length.toLocaleString('fa-IR')} مشتری جدید`
+                                                : `${duplicateCount.toLocaleString('fa-IR')} مورد`
+                                            }
+                                        </p>
                                     </div>
                                 </div>
 
@@ -664,13 +800,60 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
                                     <AlertCircle className="w-8 h-8 text-slate-400" />
                                     <div>
                                         <h5 className="text-[10px] text-slate-400">بدون تلفن یا نامعتبر</h5>
-                                        <p className="text-sm font-black text-slate-800 dark:text-white">{invalidCount.toLocaleString('fa-IR')} مورد</p>
+                                        <p className="text-sm font-black text-slate-800 dark:text-white font-mono">{invalidCount.toLocaleString('fa-IR')} مورد</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Live Preview Table */}
-                            {parsedRecords.length > 0 && (
+                            {importType === 'VOIP' && parsedCallLogs.length > 0 && (
+                                <div className="space-y-2">
+                                    <h4 className="text-xs font-black text-slate-700 dark:text-slate-300">۳. پیش‌نمایش ۵ تماس اول:</h4>
+                                    <div className="border border-slate-150 dark:border-slate-700 rounded-xl overflow-hidden max-w-full">
+                                        <table className="w-full text-xs text-right border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-300 font-bold border-b border-slate-150 dark:border-slate-700">
+                                                    <th className="p-2 text-[11px]">مخاطب</th>
+                                                    <th className="p-2 text-[11px]">نوع</th>
+                                                    <th className="p-2 text-[11px]">وضعیت</th>
+                                                    <th className="p-2 text-[11px]">مدت</th>
+                                                    <th className="p-2 text-[11px]">تاریخ</th>
+                                                    <th className="p-2 text-[11px]">جزییات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-150 dark:divide-slate-700">
+                                                {parsedCallLogs.slice(0, 5).map((rec, i) => (
+                                                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/40">
+                                                        <td className="p-2">
+                                                            <div className="font-bold text-slate-800 dark:text-white">{rec.customerName}</div>
+                                                            <div className="text-[10px] text-slate-400 font-mono">{rec.customerNumber}</div>
+                                                        </td>
+                                                        <td className="p-2 text-slate-700 dark:text-slate-300">
+                                                            {rec.callType === 'INBOUND' ? 'ورودی' : 'خروجی'}
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                                                rec.callStatus === 'SUCCESSFUL' 
+                                                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                                                                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600'
+                                                            }`}>
+                                                                {rec.callStatus === 'SUCCESSFUL' ? 'موفق' : 'ناموفق'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-2 font-mono text-slate-700 dark:text-slate-300">
+                                                            {rec.duration ? `${rec.duration} ثانیه` : '---'}
+                                                        </td>
+                                                        <td className="p-2 text-slate-500 font-mono">{rec.timestamp}</td>
+                                                        <td className="p-2 text-slate-500 truncate max-w-[150px]">{rec.notes}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {importType !== 'VOIP' && parsedRecords.length > 0 && (
                                 <div className="space-y-2">
                                     <h4 className="text-xs font-black text-slate-700 dark:text-slate-300">۳. پیش‌نمایش ۵ ردیف اول:</h4>
                                     <div className="border border-slate-150 dark:border-slate-700 rounded-xl overflow-hidden max-w-full">

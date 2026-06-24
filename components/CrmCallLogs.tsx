@@ -132,6 +132,23 @@ const CrmCallLogs: React.FC<CrmCallLogsProps> = ({ users, staffUsers, loggedInUs
         localStorage.setItem('crm_call_logs', JSON.stringify(callLogs));
     }, [callLogs]);
 
+    useEffect(() => {
+        const handleUpdate = () => {
+            const saved = localStorage.getItem('crm_call_logs');
+            if (saved) {
+                try {
+                    setCallLogs(JSON.parse(saved));
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        };
+        window.addEventListener('crm_call_logs_updated', handleUpdate);
+        return () => {
+            window.removeEventListener('crm_call_logs_updated', handleUpdate);
+        };
+    }, []);
+
     // Filtering and Searching
     const [searchQuery, setSearchQuery] = useState('');
     const [subTab, setSubTab] = useState<'ALL' | 'INBOUND' | 'OUTBOUND' | 'SUCCESSFUL' | 'MISSED'>('ALL');
