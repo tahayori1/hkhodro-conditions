@@ -60,14 +60,14 @@ import Spinner from '../components/Spinner';
 
 interface AdvertisingPageProps {
     loggedInUser: MyProfile | null;
-    initialTab?: 'writer' | 'campaigns';
+    initialTab?: 'writer' | 'campaigns' | 'titles' | 'hooks' | 'ctas' | 'contact';
 }
 
 export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, initialTab = 'writer' }) => {
     const isAdmin = loggedInUser?.isAdmin === 1;
     
-    // Page tabs: campaigns (Admin only), writer (All), titles (All), hooks (All), ctas (All)
-    const [activeTab, setActiveTab] = useState<'writer' | 'campaigns' | 'titles' | 'hooks' | 'ctas'>(initialTab);
+    // Page tabs: campaigns (Admin only), writer (All), titles (All), hooks (All), ctas (All), contact (All)
+    const [activeTab, setActiveTab] = useState<'writer' | 'campaigns' | 'titles' | 'hooks' | 'ctas' | 'contact'>(initialTab);
 
     // Sync tab when initialTab prop shifts
     useEffect(() => {
@@ -112,6 +112,21 @@ export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, 
     const [templatesSearch, setTemplatesSearch] = useState('');
     const [templatePage, setTemplatePage] = useState(1);
     const itemsPerPage = 12;
+
+    // Seller Contact Builder State
+    const [contactForm, setContactForm] = useState({
+        dealershipName: 'اتولید برتر (نمایندگی مجاز فروش خودرو)',
+        advisorName: 'مهندس حسینی (مشاور ارشد فروش)',
+        phone1: '۰۹۱۲۳۴۵۶۷۸۹',
+        phone2: '۰۲۱-۸۸۸۸۹۹۹۹',
+        telegram: 'AutoLead_Support',
+        instagram: 'autolead_cars',
+        website: 'www.autolead.ir',
+        slogan: 'اطمینان در خرید، سرعت در تحویل؛ تجربه متمایز خرید خودرو صفر و کارکرده',
+        address: 'تهران، خیابان شریعتی، بالاتر از پل سیدخندان، پلاک ۱۲۴',
+        workingHours: 'همه روزه از ساعت ۹ صبح الی ۲۱ شب (حتی روزهای تعطیل)',
+        cardTheme: 'dark' as 'dark' | 'gold' | 'minimal'
+    });
 
     // Campaign CRUD states
     const [campaignModalOpen, setCampaignModalOpen] = useState(false);
@@ -757,6 +772,18 @@ export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, 
                 >
                     <Rocket className="w-4 h-4" />
                     CTAساز و ترغیب به عمل (۹۰ اقدام)
+                </button>
+
+                <button
+                    onClick={() => setActiveTab('contact')}
+                    className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
+                        activeTab === 'contact'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                    }`}
+                >
+                    <Phone className="w-4 h-4" />
+                    مشخصات تماس فروشنده ساز
                 </button>
             </div>
 
@@ -1432,6 +1459,418 @@ export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, 
                             </div>
                         );
                     })()}
+                </div>
+            )}
+
+            {/* 6. SELLER CONTACT BUILDER & DIGITAL BUSINESS CARD GENERATOR */}
+            {activeTab === 'contact' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Right column: Form Inputs */}
+                    <div className="lg:col-span-5 bg-white dark:bg-slate-850 p-6 rounded-2xl border dark:border-slate-800 shadow-sm space-y-5">
+                        <div>
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                <Phone className="w-5 h-5 text-indigo-500" />
+                                سازنده مشخصات تماس فروشنده
+                            </h3>
+                            <p className="text-xs text-slate-500 mt-1">مشخصات کاری خود را وارد کنید تا کارت ویزیت دیجیتال و پاورقی‌های آماده برای شما ساخته شود.</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">نام گالری / مجموعه یا نمایندگی</label>
+                                <input
+                                    type="text"
+                                    value={contactForm.dealershipName}
+                                    onChange={e => setContactForm(prev => ({ ...prev, dealershipName: e.target.value }))}
+                                    className="w-full text-xs px-4 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none"
+                                    placeholder="مثلا: گالری خودرو ممتاز"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">نام کارشناس فروش / مشاور</label>
+                                <input
+                                    type="text"
+                                    value={contactForm.advisorName}
+                                    onChange={e => setContactForm(prev => ({ ...prev, advisorName: e.target.value }))}
+                                    className="w-full text-xs px-4 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none"
+                                    placeholder="مثلا: مهندس کریمی"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">شماره همراه کارشناس</label>
+                                    <input
+                                        type="text"
+                                        value={contactForm.phone1}
+                                        onChange={e => setContactForm(prev => ({ ...prev, phone1: e.target.value }))}
+                                        className="w-full text-xs px-4 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none text-left"
+                                        dir="ltr"
+                                        placeholder="۰۹۱۲..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">تلفن دفتر فروش / ثابت</label>
+                                    <input
+                                        type="text"
+                                        value={contactForm.phone2}
+                                        onChange={e => setContactForm(prev => ({ ...prev, phone2: e.target.value }))}
+                                        className="w-full text-xs px-4 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none text-left"
+                                        dir="ltr"
+                                        placeholder="۰۲۱-..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">آیدی تلگرام</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-mono" dir="ltr">@</span>
+                                        <input
+                                            type="text"
+                                            value={contactForm.telegram}
+                                            onChange={e => setContactForm(prev => ({ ...prev, telegram: e.target.value }))}
+                                            className="w-full text-xs pl-4 pr-7 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none text-left"
+                                            dir="ltr"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">آیدی اینستاگرام</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-mono" dir="ltr">@</span>
+                                        <input
+                                            type="text"
+                                            value={contactForm.instagram}
+                                            onChange={e => setContactForm(prev => ({ ...prev, instagram: e.target.value }))}
+                                            className="w-full text-xs pl-4 pr-7 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none text-left"
+                                            dir="ltr"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">آدرس وب‌سایت</label>
+                                    <input
+                                        type="text"
+                                        value={contactForm.website}
+                                        onChange={e => setContactForm(prev => ({ ...prev, website: e.target.value }))}
+                                        className="w-full text-xs px-4 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none text-left"
+                                        dir="ltr"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">شعار گالری یا توضیحات خدمات</label>
+                                <textarea
+                                    rows={2}
+                                    value={contactForm.slogan}
+                                    onChange={e => setContactForm(prev => ({ ...prev, slogan: e.target.value }))}
+                                    className="w-full text-xs px-4 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none"
+                                    placeholder="شعار تبلیغاتی یا معرفی کوتاه فعالیت‌های شما..."
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">آدرس حضوری گالری / دفتر فروش</label>
+                                <input
+                                    type="text"
+                                    value={contactForm.address}
+                                    onChange={e => setContactForm(prev => ({ ...prev, address: e.target.value }))}
+                                    className="w-full text-xs px-4 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none"
+                                    placeholder="آدرس دقیق جهت مراجعه حضوری خریداران"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">ساعات کاری و پاسخگویی</label>
+                                <input
+                                    type="text"
+                                    value={contactForm.workingHours}
+                                    onChange={e => setContactForm(prev => ({ ...prev, workingHours: e.target.value }))}
+                                    className="w-full text-xs px-4 py-2.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none"
+                                    placeholder="ساعات پاسخگویی یا بازدید خودروها"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Left Column: Visual Card Preview & Generated Formats */}
+                    <div className="lg:col-span-7 space-y-6">
+                        {/* Interactive Digital Business Card */}
+                        <div className="bg-white dark:bg-slate-850 p-6 rounded-2xl border dark:border-slate-800 shadow-sm space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-amber-500" />
+                                    پیش‌نمایش کارت ویزیت دیجیتال شما
+                                </h4>
+                                
+                                {/* Theme Picker */}
+                                <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg gap-1 text-[10px] font-bold">
+                                    <button
+                                        onClick={() => setContactForm(prev => ({ ...prev, cardTheme: 'dark' }))}
+                                        className={`px-3 py-1.5 rounded-md transition-all ${
+                                            contactForm.cardTheme === 'dark'
+                                                ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-sm'
+                                                : 'text-slate-500 dark:text-slate-400'
+                                        }`}
+                                    >
+                                        کهکشانی تیره
+                                    </button>
+                                    <button
+                                        onClick={() => setContactForm(prev => ({ ...prev, cardTheme: 'gold' }))}
+                                        className={`px-3 py-1.5 rounded-md transition-all ${
+                                            contactForm.cardTheme === 'gold'
+                                                ? 'bg-amber-600 text-white shadow-sm'
+                                                : 'text-slate-500 dark:text-slate-400'
+                                        }`}
+                                    >
+                                        طلایی مجلل
+                                    </button>
+                                    <button
+                                        onClick={() => setContactForm(prev => ({ ...prev, cardTheme: 'minimal' }))}
+                                        className={`px-3 py-1.5 rounded-md transition-all ${
+                                            contactForm.cardTheme === 'minimal'
+                                                ? 'bg-indigo-600 text-white shadow-sm'
+                                                : 'text-slate-500 dark:text-slate-400'
+                                        }`}
+                                    >
+                                        مینیمال مدرن
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Digital Card render */}
+                            <div className="relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl group">
+                                {contactForm.cardTheme === 'dark' && (
+                                    <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-8 border border-indigo-500/20 shadow-2xl relative text-white">
+                                        {/* Background accent glow */}
+                                        <div className="absolute right-0 bottom-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500"></div>
+                                        <div className="absolute left-0 top-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl"></div>
+
+                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-stretch gap-6 relative z-10">
+                                            <div className="flex flex-col justify-between flex-1 space-y-4">
+                                                <div>
+                                                    <span className="text-[10px] tracking-widest text-indigo-400 font-bold uppercase block mb-1">کارت ویزیت الکترونیک</span>
+                                                    <h2 className="text-xl font-black tracking-tight text-white">{contactForm.dealershipName}</h2>
+                                                    <p className="text-xs text-slate-400 mt-1 font-medium">{contactForm.slogan}</p>
+                                                </div>
+
+                                                <div className="space-y-2 text-xs border-t border-slate-800/80 pt-4">
+                                                    <div className="flex items-center gap-2 text-slate-300">
+                                                        <Phone className="w-4 h-4 text-indigo-400" />
+                                                        <span className="font-bold">مستقیم: {contactForm.phone1}</span>
+                                                        {contactForm.phone2 && <span className="text-slate-500">|</span>}
+                                                        {contactForm.phone2 && <span>ثابت: {contactForm.phone2}</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-slate-300">
+                                                        <MapPin className="w-4 h-4 text-cyan-400" />
+                                                        <span className="line-clamp-1">{contactForm.address}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col justify-between items-start md:items-end text-right md:border-r md:border-slate-800 pr-0 md:pr-6 md:min-w-[180px]">
+                                                <div className="space-y-1">
+                                                    <div className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full inline-block">
+                                                        کارشناس مجرب
+                                                    </div>
+                                                    <h3 className="text-md font-bold text-slate-200 mt-1">{contactForm.advisorName}</h3>
+                                                </div>
+
+                                                <div className="mt-4 md:mt-0 space-y-1.5 text-right font-mono text-[10px] text-slate-400">
+                                                    <div>📸 {contactForm.instagram}</div>
+                                                    <div>🆔 t.me/{contactForm.telegram}</div>
+                                                    <div>🌐 {contactForm.website}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {contactForm.cardTheme === 'gold' && (
+                                    <div className="bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-50 p-8 border border-amber-200 shadow-xl relative text-amber-950">
+                                        {/* Golden design accent frames */}
+                                        <div className="absolute top-4 right-4 left-4 bottom-4 border border-amber-400/20 rounded-xl pointer-events-none"></div>
+                                        <div className="absolute top-6 right-6 left-6 bottom-6 border border-amber-400/10 rounded-lg pointer-events-none"></div>
+
+                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-stretch gap-6 relative z-10">
+                                            <div className="flex flex-col justify-between flex-1 space-y-4">
+                                                <div>
+                                                    <span className="text-[10px] tracking-widest text-amber-700 font-black uppercase block mb-1">VIP DIGITAL CARD</span>
+                                                    <h2 className="text-xl font-black text-amber-900">{contactForm.dealershipName}</h2>
+                                                    <p className="text-xs text-amber-800/80 mt-1 font-bold italic">{contactForm.slogan}</p>
+                                                </div>
+
+                                                <div className="space-y-2 text-xs border-t border-amber-300/30 pt-4">
+                                                    <div className="flex items-center gap-2 text-amber-900">
+                                                        <Phone className="w-4 h-4 text-amber-600" />
+                                                        <span className="font-bold">مستقیم: {contactForm.phone1}</span>
+                                                        {contactForm.phone2 && <span className="text-amber-400">|</span>}
+                                                        {contactForm.phone2 && <span>ثابت: {contactForm.phone2}</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-amber-900">
+                                                        <MapPin className="w-4 h-4 text-amber-600" />
+                                                        <span className="line-clamp-1">{contactForm.address}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col justify-between items-start md:items-end text-right md:border-r md:border-amber-300/40 pr-0 md:pr-6 md:min-w-[180px]">
+                                                <div className="space-y-1">
+                                                    <div className="bg-amber-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full inline-block shadow-sm">
+                                                        نماینده برتر VIP
+                                                    </div>
+                                                    <h3 className="text-md font-bold text-amber-900 mt-1">{contactForm.advisorName}</h3>
+                                                </div>
+
+                                                <div className="mt-4 md:mt-0 space-y-1.5 text-right font-mono text-[10px] text-amber-800/80 font-bold">
+                                                    <div>📸 Instagram: {contactForm.instagram}</div>
+                                                    <div>🆔 Telegram: {contactForm.telegram}</div>
+                                                    <div>🌐 Web: {contactForm.website}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {contactForm.cardTheme === 'minimal' && (
+                                    <div className="bg-white dark:bg-slate-900 p-8 border dark:border-slate-800 shadow-lg relative text-slate-800 dark:text-slate-100">
+                                        {/* Minimal sleek border highlight */}
+                                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600"></div>
+
+                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-stretch gap-6 relative z-10">
+                                            <div className="flex flex-col justify-between flex-1 space-y-4">
+                                                <div>
+                                                    <span className="text-[9px] tracking-wider text-slate-400 dark:text-slate-500 font-bold uppercase block mb-1">مشخصات رسمی فروش</span>
+                                                    <h2 className="text-xl font-black text-slate-900 dark:text-white">{contactForm.dealershipName}</h2>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{contactForm.slogan}</p>
+                                                </div>
+
+                                                <div className="space-y-2 text-xs pt-4">
+                                                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                                                        <Phone className="w-4 h-4 text-indigo-500" />
+                                                        <span className="font-bold">همراه: {contactForm.phone1}</span>
+                                                        {contactForm.phone2 && <span className="text-slate-300 dark:text-slate-700">|</span>}
+                                                        {contactForm.phone2 && <span>ثابت: {contactForm.phone2}</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                                                        <MapPin className="w-4 h-4 text-indigo-500" />
+                                                        <span className="line-clamp-1">{contactForm.address}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col justify-between items-start md:items-end text-right md:border-r dark:border-slate-800 pr-0 md:pr-6 md:min-w-[180px]">
+                                                <div className="space-y-1">
+                                                    <span className="text-xs text-indigo-600 dark:text-indigo-400 font-black block">کارشناس رسمی فروش خودرو</span>
+                                                    <h3 className="text-md font-bold text-slate-900 dark:text-white">{contactForm.advisorName}</h3>
+                                                </div>
+
+                                                <div className="mt-4 md:mt-0 space-y-1 text-right text-[10px] text-slate-500 dark:text-slate-400">
+                                                    <div>اینستاگرام: {contactForm.instagram}</div>
+                                                    <div>تلگرام: @{contactForm.telegram}</div>
+                                                    <div>سایت: {contactForm.website}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => {
+                                        const cardTxt = `🏢 نمایندگی: ${contactForm.dealershipName}\n👤 کارشناس فروش: ${contactForm.advisorName}\n📞 همراه: ${contactForm.phone1}\n☎️ دفتر: ${contactForm.phone2}\n📸 اینستاگرام: ${contactForm.instagram}\n🆔 تلگرام: @${contactForm.telegram}\n🌐 وبسایت: ${contactForm.website}\n📍 آدرس: ${contactForm.address}\n🕒 ساعت پاسخگویی: ${contactForm.workingHours}`;
+                                        navigator.clipboard.writeText(cardTxt);
+                                        showToast('مشخصات کارت ویزیت در حافظه کپی شد!');
+                                    }}
+                                    className="px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-indigo-600 dark:text-indigo-400 font-bold text-xs rounded-xl flex items-center gap-2 transition-all"
+                                >
+                                    <Copy className="w-4 h-4" />
+                                    کپی تمام اطلاعات کارت ویزیت
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Text Formats & Ready Text Templates */}
+                        <div className="bg-white dark:bg-slate-850 p-6 rounded-2xl border dark:border-slate-800 shadow-sm space-y-5">
+                            <div>
+                                <h4 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                    <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+                                    متون آماده و پاورقی‌های تولید شده برای آگهی
+                                </h4>
+                                <p className="text-xs text-slate-500 mt-1">از فرمت‌های زیر در انتهای پست‌ها، آگهی‌های دیوار و پیامک‌ها استفاده کنید.</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* 1. Classic Divar Footer */}
+                                <div className="border dark:border-slate-800 rounded-xl p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/30">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black text-slate-600 dark:text-slate-300">فرمت ۱: پاورقی استاندارد شیپور و دیوار</span>
+                                        <button
+                                            onClick={() => {
+                                                const txt = `🏢 نمایندگی: ${contactForm.dealershipName}\n👤 کارشناس فروش: ${contactForm.advisorName}\n📞 تلفن همراه: ${contactForm.phone1}\n☎️ تلفن دفتر: ${contactForm.phone2}\n📍 آدرس حضوری: ${contactForm.address}\n🕒 ساعت کاری: ${contactForm.workingHours}\n✨ جهت هماهنگی و بازدید تماس بگیرید.`;
+                                                navigator.clipboard.writeText(txt);
+                                                showToast('پاورقی دیوار کپی شد!');
+                                            }}
+                                            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all"
+                                            title="کپی کردن"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border dark:border-slate-800 text-[11px] leading-relaxed font-sans space-y-1 text-slate-700 dark:text-slate-300 whitespace-pre-line">
+                                        {`🏢 نمایندگی: ${contactForm.dealershipName}\n👤 کارشناس فروش: ${contactForm.advisorName}\n📞 تلفن همراه: ${contactForm.phone1}\n☎️ تلفن دفتر: ${contactForm.phone2}\n📍 آدرس حضوری: ${contactForm.address}\n🕒 ساعت کاری: ${contactForm.workingHours}\n✨ جهت هماهنگی و بازدید تماس بگیرید.`}
+                                    </div>
+                                </div>
+
+                                {/* 2. Telegram VIP Card */}
+                                <div className="border dark:border-slate-800 rounded-xl p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/30">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black text-slate-600 dark:text-slate-300">فرمت ۲: شناسنامه ارتباطی VIP (تلگرام و ایتا)</span>
+                                        <button
+                                            onClick={() => {
+                                                const txt = `🌟 ${contactForm.slogan}\n━━━━━━━━━━━━━━━━━━━━\n🏢 مجموعه: ${contactForm.dealershipName}\n🤝 مشاور شما: ${contactForm.advisorName}\n📞 تماس مستقیم: ${contactForm.phone1}\n☎️ تلفن دفتر: ${contactForm.phone2}\n🆔 تلگرام: @${contactForm.telegram}\n📸 اینستاگرام: ${contactForm.instagram}\n📍 آدرس مراجعه: ${contactForm.address}\n🕒 ساعت پاسخگویی: ${contactForm.workingHours}`;
+                                                navigator.clipboard.writeText(txt);
+                                                showToast('فرمت تلگرام کپی شد!');
+                                            }}
+                                            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all"
+                                            title="کپی کردن"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border dark:border-slate-800 text-[11px] leading-relaxed font-sans space-y-1 text-slate-700 dark:text-slate-300 whitespace-pre-line">
+                                        {`🌟 ${contactForm.slogan}\n━━━━━━━━━━━━━━━━━━━━\n🏢 مجموعه: ${contactForm.dealershipName}\n🤝 مشاور شما: ${contactForm.advisorName}\n📞 تماس مستقیم: ${contactForm.phone1}\n☎️ تلفن دفتر: ${contactForm.phone2}\n🆔 تلگرام: @${contactForm.telegram}\n📸 اینستاگرام: ${contactForm.instagram}\n📍 آدرس مراجعه: ${contactForm.address}\n🕒 ساعت پاسخگویی: ${contactForm.workingHours}`}
+                                    </div>
+                                </div>
+
+                                {/* 3. Minimal SMS Style */}
+                                <div className="border dark:border-slate-800 rounded-xl p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/30">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black text-slate-600 dark:text-slate-300">فرمت ۳: امضای پیامکی (کوتاه و ارزان)</span>
+                                        <button
+                                            onClick={() => {
+                                                const txt = `${contactForm.dealershipName}\nمشاور: ${contactForm.advisorName}\nتلفن: ${contactForm.phone1}\nآدرس: ${contactForm.address}\nساعت بازدید: ${contactForm.workingHours}`;
+                                                navigator.clipboard.writeText(txt);
+                                                showToast('امضای پیامک کپی شد!');
+                                            }}
+                                            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all"
+                                            title="کپی کردن"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border dark:border-slate-800 text-[11px] leading-relaxed font-sans space-y-1 text-slate-700 dark:text-slate-300 whitespace-pre-line">
+                                        {`${contactForm.dealershipName}\nمشاور: ${contactForm.advisorName}\nتلفن: ${contactForm.phone1}\nآدرس: ${contactForm.address}\nساعت بازدید: ${contactForm.workingHours}`}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
