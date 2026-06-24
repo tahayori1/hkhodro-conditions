@@ -9,12 +9,14 @@ import ConditionModal from '../components/ConditionModal';
 import ConditionViewModal from '../components/ConditionViewModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import BulkEditConditionsModal from '../components/BulkEditConditionsModal';
+import ConditionCopySettingsModal from '../components/ConditionCopySettingsModal';
 import Toast from '../components/Toast';
 import Spinner from '../components/Spinner';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { ExportIcon } from '../components/icons/ExportIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 import { EditIcon } from '../components/icons/EditIcon';
+import { CopyIcon } from '../components/icons/CopyIcon';
 
 type SortConfig = { key: keyof CarSaleCondition; direction: 'ascending' | 'descending' } | null;
 
@@ -39,6 +41,8 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ isSubPage = false }) =>
 
     const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+    const [isCopyModalOpen, setIsCopyModalOpen] = useState<boolean>(false);
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
@@ -272,6 +276,14 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ isSubPage = false }) =>
                     {!isSubPage && <h2 className="text-xl font-bold text-slate-700 dark:text-white">شرایط فروش</h2>}
                     <div className={`flex items-center gap-2 flex-wrap ${isSubPage ? 'w-full justify-end' : ''}`}>
                         <button
+                            onClick={() => setIsCopyModalOpen(true)}
+                            disabled={sortedAndFilteredConditions.length === 0 || loading}
+                            className={`bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-300 shadow-sm flex items-center gap-2 disabled:opacity-50 ${isSubPage ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
+                        >
+                            <CopyIcon className="w-4 h-4" />
+                            کپی شرایط
+                        </button>
+                        <button
                             onClick={handleExportCSV}
                             disabled={sortedAndFilteredConditions.length === 0 || loading}
                             className={`bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-sm flex items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed ${isSubPage ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
@@ -312,6 +324,7 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ isSubPage = false }) =>
                 </div>
 
                 <FilterPanel
+                    filters={filters}
                     onFilterChange={setFilters}
                     resultCount={sortedAndFilteredConditions.length}
                     totalCount={conditions.length}
@@ -413,6 +426,15 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ isSubPage = false }) =>
                     onClose={() => setIsBulkEditModalOpen(false)}
                     onSave={handleBulkSave}
                     count={selectedIds.size}
+                />
+            )}
+
+            {isCopyModalOpen && (
+                <ConditionCopySettingsModal
+                    isOpen={isCopyModalOpen}
+                    onClose={() => setIsCopyModalOpen(false)}
+                    conditions={sortedAndFilteredConditions}
+                    onCopySuccess={() => showToast('شرایط فروش با موفقیت در حافظه کپی شد', 'success')}
                 />
             )}
             

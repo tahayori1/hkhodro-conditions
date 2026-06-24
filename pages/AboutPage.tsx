@@ -12,10 +12,20 @@ interface ChangelogItem {
 }
 
 const AboutPage: React.FC = () => {
-    const appVersion = "v2.5.2";
-    const releaseDate = "۱۰ تیر ۱۴۰۵";
+    const appVersion = "v2.5.3";
+    const releaseDate = "۱۱ تیر ۱۴۰۵";
 
     const changelog: ChangelogItem[] = [
+        {
+            version: "v2.5.3",
+            date: "۱۴۰۵/۰۴/۱۱",
+            title: "اضافه شدن قابلیت کپی شرایط بخشنامه‌ها و هماهنگی کامل فیلتر نوع فروش",
+            changes: [
+                { type: 'new', text: "طراحی و پیاده‌سازی پنجره تنظیمات کپی شرایط بخشنامه های فروش با قابلیت انتخاب دستی فیلدهای دلخواه برای کپی منظم در کلیپ‌بورد." },
+                { type: 'improvement', text: "هماهنگ‌سازی کامل و هوشمند فیلتر نوع فروش در بالای جدول بخشنامه‌ها بین تب‌های ناوبری سریع و کنترل‌های فیلتر پیشرفته." },
+                { type: 'improvement', text: "یکپارچه‌سازی کامل کامپوننت فیلتر پیشرفته به عنوان یک کامپوننت کنترل‌شده (Controlled Component) در React." }
+            ]
+        },
         {
             version: "v2.5.2",
             date: "۱۴۰۵/۰۴/۱۰",
