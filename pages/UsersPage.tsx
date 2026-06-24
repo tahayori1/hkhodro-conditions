@@ -28,7 +28,8 @@ import CrmKanbanBoard from '../components/CrmKanbanBoard';
 import { ChartBarIcon } from '../components/icons/ChartBarIcon';
 import { ClipboardListIcon } from '../components/icons/ClipboardListIcon'; // Reused for list icon
 import CrmCallLogs from '../components/CrmCallLogs';
-import { Phone } from 'lucide-react';
+import { Phone, FileSpreadsheet } from 'lucide-react';
+import { ExcelImportModal } from '../components/ExcelImportModal';
 
 // Declare moment from global scope (loaded via CDN in index.html)
 declare const moment: any;
@@ -54,6 +55,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
     const [error, setError] = useState<string | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     
     const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
@@ -617,13 +619,22 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                         </div>
 
                         {viewMode !== 'CALLS' && (
-                            <button
-                                onClick={handleAddNew}
-                                className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2"
-                            >
-                                <PlusIcon />
-                                افزودن مشتری جدید
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsImportModalOpen(true)}
+                                    className="bg-emerald-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-300 shadow-sm flex items-center gap-2 text-sm"
+                                >
+                                    <FileSpreadsheet className="w-4 h-4" />
+                                    درون‌ریزی از اکسل
+                                </button>
+                                <button
+                                    onClick={handleAddNew}
+                                    className="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors duration-300 shadow-sm flex items-center gap-2 text-sm"
+                                >
+                                    <PlusIcon />
+                                    افزودن مشتری جدید
+                                </button>
+                            </div>
                         )}
                     </div>
                     {viewMode !== 'CALLS' && (
@@ -700,6 +711,17 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                     onClose={() => setIsModalOpen(false)}
                     onSave={handleSave}
                     user={currentUser}
+                />
+            )}
+
+            {isImportModalOpen && (
+                <ExcelImportModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    existingUsers={users}
+                    onImportSuccess={() => {
+                        fetchAllData();
+                    }}
                 />
             )}
 

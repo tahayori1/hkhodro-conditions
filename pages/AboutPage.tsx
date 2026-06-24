@@ -12,10 +12,21 @@ interface ChangelogItem {
 }
 
 const AboutPage: React.FC = () => {
-    const appVersion = "v2.4.2";
-    const releaseDate = "۷ تیر ۱۴۰۵";
+    const appVersion = "v2.5.0";
+    const releaseDate = "۸ تیر ۱۴۰۵";
 
     const changelog: ChangelogItem[] = [
+        {
+            version: "v2.5.0",
+            date: "۱۴۰۵/۰۴/۰۸",
+            title: "پیاده‌سازی سیستم درون‌ریزی هوشمند اکسل در CRM",
+            changes: [
+                { type: 'new', text: "افزودن قابلیت آپلود مستقیم فایل‌های Excel (.xlsx, .xls) و CSV در بخش مدیریت ارتباط با مشتری." },
+                { type: 'new', text: "پشتیبانی کامل از ۳ سناریوی متمایز: شماره‌های اینستاگرام، تاریخچه تماس‌های مرکز تلفن VOIP، و شماره‌های پنل پیامکی." },
+                { type: 'improvement', text: "پیاده‌سازی موتور تطبیق هوشمند ستون‌ها (Smart Column Mapping) با قابلیت تشخیص خودکار و ویرایش دستی فیلدها." },
+                { type: 'improvement', text: "جلوگیری هوشمند از ورود شماره‌های تکراری با بررسی بلادرنگ نسبت به کل بانک اطلاعاتی CRM و نمایش تفکیک آماری پیش از درون‌ریزی نهایی." }
+            ]
+        },
         {
             version: "v2.4.2",
             date: "۱۴۰۵/۰۴/۰۷",
