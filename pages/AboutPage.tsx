@@ -12,10 +12,19 @@ interface ChangelogItem {
 }
 
 const AboutPage: React.FC = () => {
-    const appVersion = "v2.4.0";
-    const releaseDate = "۴ تیر ۱۴۰۵";
+    const appVersion = "v2.4.2";
+    const releaseDate = "۷ تیر ۱۴۰۵";
 
     const changelog: ChangelogItem[] = [
+        {
+            version: "v2.4.2",
+            date: "۱۴۰۵/۰۴/۰۷",
+            title: "اعمال محدودیت زمانی انقضای قیمت‌های روز خودروها",
+            changes: [
+                { type: 'improvement', text: "افزودن قابلیت فیلتر خودکار و عدم نمایش قیمت‌های مرجع روز خودرو در صورتی که بیش از ۳ روز از آخرین بروزرسانی آن‌ها گذشته باشد." },
+                { type: 'fix', text: "بروزرسانی کارت‌های آماری خلاصه‌ قیمت‌ها جهت عدم نمایش آمارهای منقضی شده، به استثنای خودروهای دارای قیمت دستی مصوب جدید." }
+            ]
+        },
         {
             version: "v2.4.1",
             date: "۱۴۰۵/۰۴/۰۶",

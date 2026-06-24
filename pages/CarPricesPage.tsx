@@ -62,6 +62,24 @@ const isOlderThan24Hours = (dateString: string): boolean => {
     }
 };
 
+const isOlderThan3Days = (dateString: string): boolean => {
+    try {
+        const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})/);
+        if (!parts) return false;
+
+        const [_, year, month, day, hour, minute, second] = parts.map(Number);
+        const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+
+        if (isNaN(date.getTime())) return false;
+        
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        return diffMs > 3 * 24 * 60 * 60 * 1000;
+    } catch(e) {
+        return false;
+    }
+};
+
 type TableRow = { 
     model_name: string;
     minPrice: number;
@@ -132,7 +150,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 if (price.source_name === 'custom') {
                     return !isOlderThan24Hours(price.captured_at);
                 }
-                return true;
+                return !isOlderThan3Days(price.captured_at);
             });
 
             const latestPrices = new Map<string, ScrapedCarPrice>();
@@ -154,7 +172,13 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                 sourceNamesList.push('custom');
             }
             setSources(sourceNamesList.sort());
-            setPriceStats(statsData.sort((a, b) => b.maximum - a.maximum));
+            
+            const filteredStats = statsData.filter(stat => {
+                const hasActiveCustom = uniquePrices.some(p => p.model_name === stat.model_name && p.source_name === 'custom');
+                if (hasActiveCustom) return true;
+                return !isOlderThan3Days(stat.computed_at);
+            });
+            setPriceStats(filteredStats.sort((a, b) => b.maximum - a.maximum));
 
             if (uniquePrices.length > 0) {
                  const mostRecentDateString = uniquePrices.reduce((latest, current) => {
