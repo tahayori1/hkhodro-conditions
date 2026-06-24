@@ -90,7 +90,7 @@ const ConditionSelectionModal: React.FC<ConditionSelectionModalProps> = ({ isOpe
                                                 <p><strong>رنگ‌ها:</strong> {condition.colors.join('، ')}</p>
                                             </div>
                                             <p className="font-semibold text-slate-700 mt-2">
-                                                پیش پرداخت: <span className="font-mono text-sky-700">{condition.initial_deposit.toLocaleString('fa-IR')} تومان</span>
+                                                {condition.pay_type === 'نقدی' ? 'قیمت خودرو:' : 'پیش پرداخت:'} <span className="font-mono text-sky-700">{condition.initial_deposit.toLocaleString('fa-IR')} تومان</span>
                                             </p>
                                             {condition.descriptions && (
                                                 <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200 whitespace-pre-wrap">{condition.descriptions}</p>

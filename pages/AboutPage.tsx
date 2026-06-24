@@ -12,10 +12,18 @@ interface ChangelogItem {
 }
 
 const AboutPage: React.FC = () => {
-    const appVersion = "v2.5.3";
-    const releaseDate = "۱۱ تیر ۱۴۰۵";
+    const appVersion = "v2.5.4";
+    const releaseDate = "۱۲ تیر ۱۴۰۵";
 
     const changelog: ChangelogItem[] = [
+        {
+            version: "v2.5.4",
+            date: "۱۴۰۵/۰۴/۱۲",
+            title: "بهبود اصطلاحات بخشنامه متناسب با نحوه پرداخت نقدی",
+            changes: [
+                { type: 'improvement', text: "تغییر هوشمند واژه «پیش‌پرداخت» به «قیمت خودرو» در تمامی بخش‌های برنامه (مشاهده، ایجاد، سفارش، کپی، خروجی و تبلیغات) در صورتی که نحوه پرداخت نقدی باشد." }
+            ]
+        },
         {
             version: "v2.5.3",
             date: "۱۴۰۵/۰۴/۱۱",

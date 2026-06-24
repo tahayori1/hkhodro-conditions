@@ -91,7 +91,7 @@ const BroadcastModal: React.FC<BroadcastModalProps> = ({ isOpen, onClose, onSend
 - *وضعیت سند:* ${c.document_status}
 - *زمان تحویل:* ${c.delivery_time}
 - *رنگ‌ها:* ${c.colors.join('، ')}
-- *پیش پرداخت:* *${c.initial_deposit.toLocaleString('fa-IR')} تومان*
+- *${c.pay_type === 'نقدی' ? 'قیمت' : 'پیش پرداخت'}:* *${c.initial_deposit.toLocaleString('fa-IR')} تومان*
 
 *توضیحات:*
 ${descriptionsText}`;

@@ -187,7 +187,11 @@ const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave
         const newErrors: Record<string, string> = {};
         if (!formState.car_model.trim()) newErrors.car_model = 'مدل خودرو الزامی است.';
         if (!formState.delivery_time.trim()) newErrors.delivery_time = 'زمان تحویل الزامی است.';
-        if (formState.initial_deposit <= 0) newErrors.initial_deposit = 'مبلغ پیش‌پرداخت باید بزرگتر از صفر باشد.';
+        if (formState.initial_deposit <= 0) {
+            newErrors.initial_deposit = formState.pay_type === 'نقدی' 
+                ? 'قیمت خودرو باید بزرگتر از صفر باشد.' 
+                : 'مبلغ پیش‌پرداخت باید بزرگتر از صفر باشد.';
+        }
         if (formState.colors.length === 0) newErrors.colors = 'حداقل یک رنگ باید انتخاب شود.';
         
         // Owner validation for Market/Used
@@ -604,7 +608,9 @@ const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave
 
                         {/* Initial Deposit / Price */}
                         <div className="md:col-span-2">
-                            <label htmlFor="initial_deposit" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">مبلغ پیش‌پرداخت / قیمت خودرو (تومان)</label>
+                            <label htmlFor="initial_deposit" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                {formState.pay_type === 'نقدی' ? 'قیمت خودرو (تومان)' : 'مبلغ پیش‌پرداخت (تومان)'}
+                            </label>
                             <input 
                                 type="number" 
                                 id="initial_deposit" 

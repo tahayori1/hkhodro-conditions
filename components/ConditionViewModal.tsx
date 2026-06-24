@@ -91,7 +91,7 @@ const ConditionViewModal: React.FC<ConditionViewModalProps> = ({ isOpen, onClose
                     <DetailItem label="رنگ‌های مجاز" value={condition.colors.join('، ')} className="bg-sky-50/50 dark:bg-sky-950/10" />
 
                     <DetailItem 
-                        label="مبلغ پیش‌پرداخت"
+                        label={condition.pay_type === 'نقدی' ? 'قیمت خودرو' : 'مبلغ پیش‌پرداخت'}
                         value={<><span className="font-mono text-xl text-emerald-700 dark:text-emerald-400">{condition.initial_deposit.toLocaleString('fa-IR')}</span> تومان</>}
                         className="text-center bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/30"
                     />

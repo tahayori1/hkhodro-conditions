@@ -192,7 +192,7 @@ const CarOrderModal: React.FC<CarOrderModalProps> = ({ isOpen, onClose, onSave, 
         setFormData({
             ...formData, 
             conditionId: c.id, 
-            conditionSummary: `بخشنامه ${c.id}: ${c.sale_type} - ${c.pay_type} | مدل ${c.model} | تحویل ${c.delivery_time} | پیش‌پرداخت ${c.initial_deposit.toLocaleString('fa-IR')}`,
+            conditionSummary: `بخشنامه ${c.id}: ${c.sale_type} - ${c.pay_type} | مدل ${c.model} | تحویل ${c.delivery_time} | ${c.pay_type === 'نقدی' ? 'قیمت' : 'پیش‌پرداخت'} ${c.initial_deposit.toLocaleString('fa-IR')}`,
             selectedColor: c.colors.length > 0 ? c.colors[0] : '',
             proposedPrice: c.initial_deposit // Automatically pre-fill proposedPrice with initial_deposit
         });

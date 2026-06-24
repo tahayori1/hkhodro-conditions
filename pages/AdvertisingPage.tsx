@@ -391,10 +391,12 @@ export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, 
                 ? `${(condition.initial_deposit / 1000000).toLocaleString('fa-IR')} میلیون تومان` 
                 : 'توافقی';
                 
+            const depositLabel = condition.pay_type === 'نقدی' ? 'قیمت خودرو' : 'پیش‌پرداخت اولیه';
+                
             conditionSection = `📊 شرایط و جزئیات فروش:\n` +
                 `▫ نوع فروش: ${condition.sale_type}\n` +
                 `▫ نحوه پرداخت: ${condition.pay_type}\n` +
-                `▫ پیش‌پرداخت اولیه: ${depositStr}\n` +
+                `▫ ${depositLabel}: ${depositStr}\n` +
                 `▫ زمان تحویل خودرو: ${condition.delivery_time}\n` +
                 `▫ تنوع رنگ موجود: ${condition.colors.join('، ') || 'رنگ‌های مجاز ثبت‌نام'}\n` +
                 `▫ وضعیت سند: ${condition.document_status || 'آزاد'}`;

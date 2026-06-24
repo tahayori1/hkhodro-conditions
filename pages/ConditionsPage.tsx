@@ -217,7 +217,7 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ isSubPage = false }) =>
         const headers = [
             "شناسه", "وضعیت", "مدل خودرو", "سال مدل", "نوع فروش",
             "نحوه پرداخت", "وضعیت سند", "رنگ‌ها", "زمان تحویل",
-            "پیش‌پرداخت", "توضیحات"
+            "پیش‌پرداخت / قیمت", "توضیحات"
         ];
 
         const escapeCSV = (value: any): string => {

@@ -255,7 +255,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                                             {cond.status}
                                         </span>
                                         <p className="text-xs font-mono font-black text-slate-700 dark:text-slate-300 mt-1 sm:mt-0">
-                                            پیش‌پرداخت: <span className="text-sm font-sans font-black text-indigo-600 dark:text-indigo-400">
+                                            {cond.pay_type === 'نقدی' ? 'قیمت:' : 'پیش‌پرداخت:'} <span className="text-sm font-sans font-black text-indigo-600 dark:text-indigo-400">
                                                 {cond.initial_deposit ? cond.initial_deposit.toLocaleString('fa-IR') : '—'}
                                             </span> <span className="text-[9px] font-sans font-bold text-slate-400">ریال</span>
                                         </p>

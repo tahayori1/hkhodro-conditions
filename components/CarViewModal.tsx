@@ -58,7 +58,7 @@ const CarViewModal: React.FC<CarViewModalProps> = ({ isOpen, onClose, car, condi
                         </div>
                         <div className="text-xs text-slate-500 flex justify-between">
                             <span>{cond.pay_type}</span>
-                            <span>پیش پرداخت: <span className="font-mono">{cond.initial_deposit.toLocaleString('fa-IR')}</span></span>
+                            <span>{cond.pay_type === 'نقدی' ? 'قیمت:' : 'پیش پرداخت:'} <span className="font-mono">{cond.initial_deposit.toLocaleString('fa-IR')}</span></span>
                         </div>
                     </li>
                 ))}

@@ -182,7 +182,7 @@ const ChatView: React.FC<{
 - *نوع فروش:* ${c.sale_type} (${c.pay_type})
 - *وضعیت:* ${c.status}
 - *زمان تحویل:* ${c.delivery_time}
-- *پیش پرداخت:* *${c.initial_deposit.toLocaleString('fa-IR')} تومان*
+- *${c.pay_type === 'نقدی' ? 'قیمت' : 'پیش پرداخت'}:* *${c.initial_deposit.toLocaleString('fa-IR')} تومان*
 
 *توضیحات:*
 ${descriptionsText}`;

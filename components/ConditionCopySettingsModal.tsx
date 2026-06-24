@@ -84,7 +84,8 @@ const ConditionCopySettingsModal: React.FC<ConditionCopySettingsModalProps> = ({
                 lines.push(`⏱ زمان تحویل: ${c.delivery_time}`);
             }
             if (includeInitialDeposit && c.initial_deposit !== undefined) {
-                lines.push(`💰 پیش‌پرداخت: ${c.initial_deposit.toLocaleString('fa-IR')} تومان`);
+                const label = c.pay_type === 'نقدی' ? 'قیمت' : 'پیش‌پرداخت';
+                lines.push(`💰 ${label}: ${c.initial_deposit.toLocaleString('fa-IR')} تومان`);
             }
             if (includeDescriptions && c.descriptions) {
                 lines.push(`📝 توضیحات: ${c.descriptions}`);

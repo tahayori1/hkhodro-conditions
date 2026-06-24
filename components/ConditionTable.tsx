@@ -151,7 +151,7 @@ const ConditionTable: React.FC<ConditionTableProps> = ({
                         </div>
                         <div className="p-4 flex-grow">
                             <div className="text-center mb-4">
-                                <p className="text-xs text-slate-500 dark:text-slate-400">مبلغ پیش‌پرداخت</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{condition.pay_type === 'نقدی' ? 'قیمت خودرو' : 'مبلغ پیش‌پرداخت'}</p>
                                 <p className="text-xl font-bold font-mono text-sky-700 dark:text-sky-400">{formatPrice(condition.initial_deposit)} <span className="text-sm font-sans">تومان</span></p>
                             </div>
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-600 dark:text-slate-300">
