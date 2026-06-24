@@ -710,82 +710,7 @@ export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, 
                 )}
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex overflow-x-auto gap-2 bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-800 scrollbar-none">
-                <button
-                    onClick={() => setActiveTab('writer')}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                        activeTab === 'writer'
-                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-                    }`}
-                >
-                    <FileText className="w-4 h-4" />
-                    دستگاه تبلیغ‌نویس هوشمند
-                </button>
 
-                {isAdmin && (
-                    <button
-                        onClick={() => setActiveTab('campaigns')}
-                        className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                            activeTab === 'campaigns'
-                                ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-                        }`}
-                    >
-                        <Megaphone className="w-4 h-4" />
-                        آنالیز کمپین‌های تبلیغاتی (ادمین)
-                    </button>
-                )}
-
-                <button
-                    onClick={() => setActiveTab('titles')}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                        activeTab === 'titles'
-                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-                    }`}
-                >
-                    <Layers className="w-4 h-4" />
-                    عنوان‌های تبلیغاتی آماده (۹۰ عنوان)
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('hooks')}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                        activeTab === 'hooks'
-                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-                    }`}
-                >
-                    <Sparkles className="w-4 h-4" />
-                    قلاب‌های فروش متمایز (۹۰ قلاب)
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('ctas')}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                        activeTab === 'ctas'
-                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-                    }`}
-                >
-                    <Rocket className="w-4 h-4" />
-                    CTAساز و ترغیب به عمل (۹۰ اقدام)
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('contact')}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                        activeTab === 'contact'
-                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-                    }`}
-                >
-                    <Phone className="w-4 h-4" />
-                    مشخصات تماس فروشنده ساز
-                </button>
-            </div>
 
             {/* ERROR STATS DISPLAY */}
             {error && (
@@ -1345,8 +1270,8 @@ export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, 
                                 {activeTab === 'titles' ? <Layers className="w-5 h-5 text-indigo-500" /> :
                                  activeTab === 'hooks' ? <Sparkles className="w-5 h-5 text-amber-500" /> :
                                  <Rocket className="w-5 h-5 text-emerald-500" />}
-                                {activeTab === 'titles' ? 'کتابخانه عنوان‌های تبلیغاتی جذاب' :
-                                 activeTab === 'hooks' ? 'کتابخانه قلاب‌های فروش جلب توجه' :
+                                {activeTab === 'titles' ? 'title ساز' :
+                                 activeTab === 'hooks' ? 'hook ساز' :
                                  'کتابخانه اختصاصی کال تو اکشن (CTA)'}
                             </h3>
                             <p className="text-xs text-slate-500 mt-1">تعداد ۹۰ عنوان آماده. جهت تست زنده، متغیرهای خودرو و بخشنامه را در هدر بالای صفحه تغییر دهید.</p>
@@ -1470,7 +1395,7 @@ export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, 
                         <div>
                             <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
                                 <Phone className="w-5 h-5 text-indigo-500" />
-                                سازنده مشخصات تماس فروشنده
+                                contact ساز
                             </h3>
                             <p className="text-xs text-slate-500 mt-1">مشخصات کاری خود را وارد کنید تا کارت ویزیت دیجیتال و پاورقی‌های آماده برای شما ساخته شود.</p>
                         </div>

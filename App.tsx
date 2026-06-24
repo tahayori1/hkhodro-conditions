@@ -203,10 +203,10 @@ const App: React.FC = () => {
         { view: 'notification-center' as ActiveView, label: 'پیام‌رسان هوشمند', icon: <ChatAltIcon className="w-5 h-5" /> },
         { view: 'advertising-campaigns' as ActiveView, label: 'آنالیز کمپین‌ها', icon: <RocketIcon className="w-5 h-5 text-emerald-500" /> },
         { view: 'advertising-writer' as ActiveView, label: 'تبلیغ نویس', icon: <Sparkles className="w-5 h-5 text-indigo-500" /> },
-        { view: 'advertising-titles' as ActiveView, label: 'عنوان‌های تبلیغاتی آماده', icon: <Layers className="w-5 h-5 text-purple-500" /> },
-        { view: 'advertising-hooks' as ActiveView, label: 'قلاب‌های فروش متمایز', icon: <Sparkles className="w-5 h-5 text-amber-500" /> },
+        { view: 'advertising-titles' as ActiveView, label: 'title ساز', icon: <Layers className="w-5 h-5 text-purple-500" /> },
+        { view: 'advertising-hooks' as ActiveView, label: 'hook ساز', icon: <Sparkles className="w-5 h-5 text-amber-500" /> },
         { view: 'advertising-ctas' as ActiveView, label: 'CTA ساز', icon: <RocketIcon className="w-5 h-5 text-pink-500" /> },
-        { view: 'advertising-contact' as ActiveView, label: 'مشخصات تماس فروشنده ساز', icon: <Phone className="w-5 h-5 text-cyan-500" /> },
+        { view: 'advertising-contact' as ActiveView, label: 'contact ساز', icon: <Phone className="w-5 h-5 text-cyan-500" /> },
         { view: 'cars' as ActiveView, label: 'کاتالوگ خودروها', icon: <CarIcon className="w-5 h-5" /> },
         { view: 'zero-car-delivery' as ActiveView, label: 'تحویل خودرو صفر', icon: <TruckIcon className="w-5 h-5" /> },
         { view: 'used-cars' as ActiveView, label: 'کارشناسی خودرو کارکرده', icon: <ClipboardListIcon className="w-5 h-5" /> },
@@ -268,10 +268,10 @@ const App: React.FC = () => {
                     { view: 'advertising-campaigns' as ActiveView, label: 'آنالیز کمپین‌ها', icon: <RocketIcon className="w-5 h-5 text-emerald-500" /> }
                 ] : []),
                 { view: 'advertising-writer' as ActiveView, label: 'تبلیغ نویس', icon: <Sparkles className="w-5 h-5 text-indigo-500" /> },
-                { view: 'advertising-titles' as ActiveView, label: 'عنوان‌های تبلیغاتی آماده', icon: <Layers className="w-5 h-5 text-purple-500" /> },
-                { view: 'advertising-hooks' as ActiveView, label: 'قلاب‌های فروش متمایز', icon: <Sparkles className="w-5 h-5 text-amber-500" /> },
+                { view: 'advertising-titles' as ActiveView, label: 'title ساز', icon: <Layers className="w-5 h-5 text-purple-500" /> },
+                { view: 'advertising-hooks' as ActiveView, label: 'hook ساز', icon: <Sparkles className="w-5 h-5 text-amber-500" /> },
                 { view: 'advertising-ctas' as ActiveView, label: 'CTA ساز', icon: <RocketIcon className="w-5 h-5 text-pink-500" /> },
-                { view: 'advertising-contact' as ActiveView, label: 'مشخصات تماس فروشنده ساز', icon: <Phone className="w-5 h-5 text-cyan-500" /> }
+                { view: 'advertising-contact' as ActiveView, label: 'contact ساز', icon: <Phone className="w-5 h-5 text-cyan-500" /> }
             ]
         },
         {
