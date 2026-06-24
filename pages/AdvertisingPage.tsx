@@ -28,7 +28,8 @@ import {
     Layers,
     X,
     Filter,
-    ArrowRight
+    ArrowRight,
+    RotateCw
 } from 'lucide-react';
 import { 
     ResponsiveContainer, 
@@ -153,12 +154,82 @@ export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, 
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [isContactFetching, setIsContactFetching] = useState(false);
+
+    const fetchContactFromWebhook = async (silent = false) => {
+        if (!silent) setIsContactFetching(true);
+        try {
+            const resp = await fetch('https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1/settings');
+            if (resp.ok) {
+                const data = await resp.json();
+                const settings = Array.isArray(data) ? (data[0] || {}) : (data || {});
+                
+                const getVal = (keys: string[], fallback: string) => {
+                    for (const k of keys) {
+                        if (settings[k] !== undefined && settings[k] !== null && settings[k] !== '') {
+                            return String(settings[k]);
+                        }
+                    }
+                    return fallback;
+                };
+
+                const extractHandle = (url: string, defaultValue: string) => {
+                    if (!url) return defaultValue;
+                    try {
+                        const cleaned = url.replace(/\/$/, "");
+                        const parts = cleaned.split("/");
+                        const lastPart = parts[parts.length - 1];
+                        if (lastPart && !lastPart.includes("http") && !lastPart.includes("www")) {
+                            return lastPart;
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                    return url;
+                };
+
+                const rawPhones = getVal(['contact_phones', 'contactPhones', 'phones', 'phone'], '');
+                const rawMobiles = getVal(['mobile_numbers', 'mobileNumbers', 'mobiles', 'mobile'], '');
+                
+                const phone1 = rawMobiles ? rawMobiles.split(',')[0].trim() : (rawPhones ? rawPhones.split(',')[0].trim() : '');
+                const phone2 = rawPhones ? rawPhones.split(',')[0].trim() : '';
+
+                setContactForm(prev => ({
+                    ...prev,
+                    dealershipName: getVal(['dealership_name', 'dealershipName', 'company_name', 'companyName', 'name', 'title'], prev.dealershipName),
+                    advisorName: getVal(['advisor_name', 'advisorName', 'manager', 'sales_manager', 'advisor'], prev.advisorName),
+                    phone1: phone1 || prev.phone1,
+                    phone2: phone2 || prev.phone2,
+                    address: getVal(['address', 'location'], prev.address),
+                    instagram: extractHandle(getVal(['instagram_url', 'instagramUrl', 'instagram'], ''), prev.instagram),
+                    telegram: extractHandle(getVal(['telegram_channel_url', 'telegramChannelUrl', 'telegram_url', 'telegramUrl', 'telegram'], ''), prev.telegram),
+                    website: getVal(['website', 'website_url', 'websiteUrl', 'url'], prev.website),
+                    slogan: getVal(['description', 'competitive_advantages', 'slogan'], prev.slogan),
+                    workingHours: getVal(['working_hours', 'workingHours', 'hours', 'working_time'], prev.workingHours)
+                }));
+                if (!silent) {
+                    showToast("اطلاعات کاربری با موفقیت از API کسب‌وکار به‌روزرسانی شد.", "success");
+                }
+            } else {
+                if (!silent) showToast("خطا در دریافت اطلاعات از سرور جانبی", "error");
+            }
+        } catch (error) {
+            console.error("Error fetching contact settings:", error);
+            if (!silent) showToast("خطا در برقراری ارتباط با وب‌هوک تنظیمات", "error");
+        } finally {
+            if (!silent) setIsContactFetching(false);
+        }
+    };
+
     // Initial load
     useEffect(() => {
         const fetchInitialData = async () => {
             setIsLoading(true);
             setError(null);
             try {
+                // Fetch contact builder settings dynamically on mount
+                fetchContactFromWebhook(true);
+
                 const [carsData, conditionsData, settingsData] = await Promise.all([
                     getCars().catch(() => []),
                     getConditions().catch(() => []),
@@ -1392,12 +1463,23 @@ export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Right column: Form Inputs */}
                     <div className="lg:col-span-5 bg-white dark:bg-slate-850 p-6 rounded-2xl border dark:border-slate-800 shadow-sm space-y-5">
-                        <div>
-                            <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
-                                <Phone className="w-5 h-5 text-indigo-500" />
-                                contact ساز
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-1">مشخصات کاری خود را وارد کنید تا کارت ویزیت دیجیتال و پاورقی‌های آماده برای شما ساخته شود.</p>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                    <Phone className="w-5 h-5 text-indigo-500" />
+                                    contact ساز
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">مشخصات کاری خود را وارد کنید تا کارت ویزیت دیجیتال و پاورقی‌های آماده برای شما ساخته شود.</p>
+                            </div>
+                            <button
+                                onClick={() => fetchContactFromWebhook(false)}
+                                disabled={isContactFetching}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/80 transition-all disabled:opacity-50"
+                                title="دریافت اطلاعات مجدد از وب‌هوک تنظیمات کسب‌وکار"
+                            >
+                                <RotateCw className={`w-3.5 h-3.5 ${isContactFetching ? 'animate-spin' : ''}`} />
+                                {isContactFetching ? 'دریافت...' : 'به‌روزرسانی از API'}
+                            </button>
                         </div>
 
                         <div className="space-y-4">
