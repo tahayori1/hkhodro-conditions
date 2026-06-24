@@ -128,7 +128,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
                 setRawRows(rows);
 
                 // Smart auto mapping
-                autoDetectColumns(headers);
+                autoDetectColumns(headers, importType);
                 setStep(2);
             } catch (err) {
                 console.error(err);
@@ -153,9 +153,9 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
         }
     };
 
-    // Match column names intelligently
-    const autoDetectColumns = (headers: string[]) => {
-        const clean = (s: string) => s.toLowerCase().replace(/[\s_\-]/g, '');
+    // Match column names intelligently based on selected import type and specific fields
+    const autoDetectColumns = (headers: string[], type: ImportType) => {
+        const clean = (s: string) => s.toLowerCase().replace(/[\s_\-()（）]/g, '');
         
         let phone = '';
         let name = '';
@@ -164,32 +164,50 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
         let prov = '';
         let city = '';
 
+        if (type === 'VOIP') {
+            // VOIP Specific Auto Match: مبدا is caller/phone, مقصد can be mapped, or default
+            headers.forEach(h => {
+                const hClean = clean(h);
+                if (hClean === 'مبدا' || hClean === 'source' || hClean === 'caller' || hClean === 'شمارهتلفنمبدا') {
+                    phone = h;
+                } else if (hClean === 'دلیلقطعارتباط' || hClean === 'قطع' || hClean.includes('reason') || hClean.includes('disconnect')) {
+                    desc = h;
+                }
+            });
+        } else if (type === 'INSTAGRAM') {
+            // Instagram Specific Auto Match: شماره is phone, نام is name, ایدی اینستاگرام is instagram ID
+            headers.forEach(h => {
+                const hClean = clean(h);
+                if (hClean === 'شماره' || hClean === 'number' || hClean === 'phone' || hClean === 'mobile') {
+                    phone = h;
+                } else if (hClean === 'نام' || hClean === 'name' || hClean === 'fullname') {
+                    name = h;
+                } else if (hClean === 'ایدیایینستاگرام' || hClean === 'ایدیایسنتاگرام' || hClean === 'ایدیانستاگرام' || hClean === 'آیدیاینستاگرام' || hClean === 'ایدی' || hClean === 'آیدی' || hClean === 'instagram' || hClean === 'igid') {
+                    desc = h; // Mapping to description
+                }
+            });
+        }
+
+        // Generic fallback auto detection if not set yet
         headers.forEach(h => {
             const hClean = clean(h);
-            
-            // Phone matches
-            if (hClean.includes('شماره') || hClean.includes('تلفن') || hClean.includes('موبایل') || hClean.includes('همراه') || hClean.includes('phone') || hClean.includes('mobile') || hClean.includes('number') || hClean.includes('tel')) {
-                if (!phone) phone = h;
+            if (!phone && (hClean.includes('شماره') || hClean.includes('تلفن') || hClean.includes('موبایل') || hClean.includes('همراه') || hClean.includes('phone') || hClean.includes('mobile') || hClean.includes('number') || hClean.includes('tel'))) {
+                phone = h;
             }
-            // Name matches
-            else if (hClean.includes('نام') || hClean.includes('مشتری') || hClean.includes('کاربر') || hClean.includes('name') || hClean.includes('username') || hClean.includes('آیدی') || hClean.includes('id') || hClean.includes('پیج')) {
-                if (!name) name = h;
+            if (!name && (hClean.includes('نام') || hClean.includes('مشتری') || hClean.includes('کاربر') || hClean.includes('name') || hClean.includes('username') || hClean.includes('پیج'))) {
+                name = h;
             }
-            // Car matches
-            else if (hClean.includes('خودرو') || hClean.includes('ماشین') || hClean.includes('مدل') || hClean.includes('car') || hClean.includes('model') || hClean.includes('vehicle')) {
-                if (!car) car = h;
+            if (!car && (hClean.includes('خودرو') || hClean.includes('ماشین') || hClean.includes('مدل') || hClean.includes('car') || hClean.includes('model') || hClean.includes('vehicle'))) {
+                car = h;
             }
-            // Description matches
-            else if (hClean.includes('توضیح') || hClean.includes('کامنت') || hClean.includes('پیام') || hClean.includes('desc') || hClean.includes('comment') || hClean.includes('message') || hClean.includes('متن')) {
-                if (!desc) desc = h;
+            if (!desc && (hClean.includes('توضیح') || hClean.includes('کامنت') || hClean.includes('پیام') || hClean.includes('desc') || hClean.includes('comment') || hClean.includes('message') || hClean.includes('متن'))) {
+                desc = h;
             }
-            // Province matches
-            else if (hClean.includes('استان') || hClean.includes('province') || hClean.includes('state')) {
-                if (!prov) prov = h;
+            if (!prov && (hClean.includes('استان') || hClean.includes('province') || hClean.includes('state'))) {
+                prov = h;
             }
-            // City matches
-            else if (hClean.includes('شهر') || hClean.includes('city')) {
-                if (!city) city = h;
+            if (!city && (hClean.includes('شهر') || hClean.includes('city'))) {
+                city = h;
             }
         });
 
@@ -214,6 +232,33 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
         const provIdx = rawHeaders.indexOf(mappings.provinceCol);
         const cityIdx = rawHeaders.indexOf(mappings.cityCol);
 
+        // Specific match helper for exact headers
+        const findColByCleanName = (names: string[]) => {
+            const cleanNames = names.map(n => n.toLowerCase().replace(/[\s_\-()（）]/g, ''));
+            return rawHeaders.findIndex(h => {
+                const hClean = h.toLowerCase().replace(/[\s_\-()（）]/g, '');
+                return cleanNames.includes(hClean);
+            });
+        };
+
+        // VOIP specific columns
+        const vNumIdx = findColByCleanName(['#']);
+        const vSourceIdx = findColByCleanName(['مبدا', 'source', 'caller']);
+        const vDestIdx = findColByCleanName(['مقصد', 'destination', 'callee']);
+        const vDateIdx = findColByCleanName(['تاریخ تماس', 'تاریخ', 'calldate', 'date']);
+        const vWaitIdx = findColByCleanName(['زمان انتظار', 'wait', 'waittime']);
+        const vDurationIdx = findColByCleanName(['طول تماس', 'duration']);
+        const vDurationSecIdx = findColByCleanName(['طول تماس (ثانیه)', 'طول تماس ثانیه', 'durationsec', 'seconds']);
+        const vTypeIdx = findColByCleanName(['نوع تماس', 'calltype', 'type']);
+        const vQueueIdx = findColByCleanName(['صف', 'queue']);
+        const vReasonIdx = findColByCleanName(['دلیل قطع ارتباط', 'دلیل قطع', 'reason', 'disconnectreason']);
+
+        // Instagram specific columns
+        const iNumIdx = findColByCleanName(['شماره', 'تلفن', 'موبایل', 'phone', 'mobile']);
+        const iNameIdx = findColByCleanName(['نام', 'name']);
+        const iIgIdIdx = findColByCleanName(['ایدی اینستاگرام', 'آیدی اینستاگرام', 'ایدی', 'آیدی', 'instagramid', 'instagram', 'username', 'پیج']);
+        const iDateIdx = findColByCleanName(['تاریخ', 'date']);
+
         const parsed: Partial<User>[] = [];
         let duplicates = 0;
         let invalids = 0;
@@ -221,7 +266,16 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
         const cleanExistingNumbers = new Set(existingUsers.map(u => u.Number.trim()));
 
         rawRows.forEach(row => {
-            const rawPhone = phoneIdx > -1 ? row[phoneIdx] : '';
+            // Priority to VOIP/Instagram specific phone columns if selected
+            let rawPhone = '';
+            if (importType === 'VOIP' && vSourceIdx > -1) {
+                rawPhone = row[vSourceIdx];
+            } else if (importType === 'INSTAGRAM' && iNumIdx > -1) {
+                rawPhone = row[iNumIdx];
+            } else {
+                rawPhone = phoneIdx > -1 ? row[phoneIdx] : '';
+            }
+
             const normalizedPhone = normalizePhoneNumber(rawPhone);
 
             if (!normalizedPhone || normalizedPhone.length < 10) {
@@ -235,30 +289,66 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
             }
 
             // Map and prepare default records
-            const rawName = nameIdx > -1 ? String(row[nameIdx] || '').trim() : '';
+            let rawName = nameIdx > -1 ? String(row[nameIdx] || '').trim() : '';
+            if (!rawName) {
+                if (importType === 'INSTAGRAM' && iNameIdx > -1) {
+                    rawName = String(row[iNameIdx] || '').trim();
+                }
+            }
+
             const rawCar = carIdx > -1 ? String(row[carIdx] || '').trim() : '';
             const rawDesc = descIdx > -1 ? String(row[descIdx] || '').trim() : '';
             const rawProv = provIdx > -1 ? String(row[provIdx] || '').trim() : '';
             const rawCity = cityIdx > -1 ? String(row[cityIdx] || '').trim() : '';
 
-            // Construct description with source info
+            // Construct description with comprehensive source info
             let detailedDesc = '';
-            if (importType === 'INSTAGRAM') {
-                detailedDesc = `[درون‌ریزی اکسل اینستاگرام] ${rawDesc ? `توضیحات پست/پیام: ${rawDesc}` : ''}`;
-            } else if (importType === 'VOIP') {
-                detailedDesc = `[درون‌ریزی تاریخچه VOIP] ${rawDesc ? `جزئیات تماس: ${rawDesc}` : ''}`;
+            let finalName = rawName;
+
+            if (importType === 'VOIP') {
+                const parts: string[] = ['📞 تماس VOIP'];
+                if (vSourceIdx > -1 && row[vSourceIdx]) parts.push(`مبدا: ${row[vSourceIdx]}`);
+                if (vDestIdx > -1 && row[vDestIdx]) parts.push(`مقصد: ${row[vDestIdx]}`);
+                if (vDateIdx > -1 && row[vDateIdx]) parts.push(`تاریخ تماس: ${row[vDateIdx]}`);
+                if (vWaitIdx > -1 && row[vWaitIdx]) parts.push(`زمان انتظار: ${row[vWaitIdx]}`);
+                if (vDurationIdx > -1 && row[vDurationIdx]) parts.push(`طول تماس: ${row[vDurationIdx]}`);
+                if (vDurationSecIdx > -1 && row[vDurationSecIdx]) parts.push(`طول تماس (ثانیه): ${row[vDurationSecIdx]}`);
+                if (vTypeIdx > -1 && row[vTypeIdx]) parts.push(`نوع تماس: ${row[vTypeIdx]}`);
+                if (vQueueIdx > -1 && row[vQueueIdx]) parts.push(`صف: ${row[vQueueIdx]}`);
+                if (vReasonIdx > -1 && row[vReasonIdx]) parts.push(`دلیل قطع: ${row[vReasonIdx]}`);
+                
+                if (rawDesc && descIdx !== vReasonIdx && descIdx !== vSourceIdx && descIdx !== vDestIdx) {
+                    parts.push(`توضیحات تکمیلی: ${rawDesc}`);
+                }
+                detailedDesc = parts.join(' | ');
+                if (!finalName) finalName = 'مشتری مرکز تماس (VOIP)';
+            } else if (importType === 'INSTAGRAM') {
+                const parts: string[] = ['📸 اینستاگرام'];
+                const igIdVal = iIgIdIdx > -1 ? String(row[iIgIdIdx] || '').trim() : '';
+                if (igIdVal) parts.push(`آیدی: @${igIdVal.replace(/^@/, '')}`);
+                if (iDateIdx > -1 && row[iDateIdx]) parts.push(`تاریخ تعامل: ${row[iDateIdx]}`);
+                
+                if (rawDesc && descIdx !== iIgIdIdx && descIdx !== iNumIdx) {
+                    parts.push(`توضیحات: ${rawDesc}`);
+                }
+                detailedDesc = parts.join(' | ');
+
+                if (!finalName) {
+                    finalName = igIdVal ? `@${igIdVal.replace(/^@/, '')}` : 'کاربر اینستاگرام';
+                }
             } else {
-                detailedDesc = `[درون‌ریزی پنل پیامکی] ${rawDesc ? `کمپین: ${rawDesc}` : ''}`;
+                detailedDesc = `💬 [درون‌ریزی پنل پیامکی] ${rawDesc ? `کمپین/متن پیام: ${rawDesc}` : ''}`;
+                if (!finalName) finalName = 'مشتری پنل پیامکی';
             }
 
             parsed.push({
-                FullName: rawName || (importType === 'INSTAGRAM' ? 'کاربر اینستاگرام' : importType === 'VOIP' ? 'مشتری VOIP' : 'مشتری پنل پیامکی'),
+                FullName: finalName,
                 Number: normalizedPhone,
                 CarModel: rawCar || defaultCar || 'نامشخص',
                 Province: rawProv || '',
                 City: rawCity || '',
                 Decription: detailedDesc,
-                reference: batchRef || 'اکسل',
+                reference: batchRef || (importType === 'INSTAGRAM' ? 'اینستاگرام' : importType === 'VOIP' ? 'تماس VOIP' : 'پنل پیامکی'),
                 leadStatus: defaultStatus,
                 RegisterTime: new Date().toLocaleDateString('fa-IR'),
                 LastAction: 'ثبت از فایل اکسل',
