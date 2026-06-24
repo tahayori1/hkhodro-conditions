@@ -56,7 +56,7 @@ import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'used-cars' | 'car-orders' | 'salary-advance' | 'overtime' | 'advertising';
+export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'used-cars' | 'car-orders' | 'salary-advance' | 'overtime' | 'advertising-writer' | 'advertising-campaigns';
 
 interface MenuItemProps {
     label: string;
@@ -201,7 +201,8 @@ const App: React.FC = () => {
         { view: 'users' as ActiveView, label: 'مدیریت مشتریان (CRM)', icon: <UsersIcon className="w-5 h-5" /> },
         { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
         { view: 'notification-center' as ActiveView, label: 'پیام‌رسان هوشمند', icon: <ChatAltIcon className="w-5 h-5" /> },
-        { view: 'advertising' as ActiveView, label: 'تبلیغات و بازاریابی', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
+        { view: 'advertising-writer' as ActiveView, label: 'تبلیغ نویس', icon: <Sparkles className="w-5 h-5 text-indigo-500" /> },
+        { view: 'advertising-campaigns' as ActiveView, label: 'آنالیز کمپین‌ها', icon: <RocketIcon className="w-5 h-5 text-emerald-500" /> },
         { view: 'cars' as ActiveView, label: 'کاتالوگ خودروها', icon: <CarIcon className="w-5 h-5" /> },
         { view: 'zero-car-delivery' as ActiveView, label: 'تحویل خودرو صفر', icon: <TruckIcon className="w-5 h-5" /> },
         { view: 'used-cars' as ActiveView, label: 'کارشناسی خودرو کارکرده', icon: <ClipboardListIcon className="w-5 h-5" /> },
@@ -251,7 +252,18 @@ const App: React.FC = () => {
                 { view: 'users' as ActiveView, label: 'مدیریت مشتریان (CRM)', icon: <UsersIcon className="w-5 h-5" /> },
                 { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
                 { view: 'notification-center' as ActiveView, label: 'پیام‌رسان هوشمند', icon: <ChatAltIcon className="w-5 h-5" /> },
-                { view: 'advertising' as ActiveView, label: 'تبلیغات و بازاریابی', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
+            ]
+        },
+        {
+            id: 'advertising-group',
+            label: 'تبلیغات و بازاریابی',
+            isCollapsible: true,
+            icon: <SpeakerphoneIcon className="w-5 h-5" />,
+            items: [
+                { view: 'advertising-writer' as ActiveView, label: 'تبلیغ نویس', icon: <Sparkles className="w-5 h-5 text-indigo-500" /> },
+                ...(currentUser?.isAdmin === 1 ? [
+                    { view: 'advertising-campaigns' as ActiveView, label: 'آنالیز کمپین‌ها', icon: <RocketIcon className="w-5 h-5 text-emerald-500" /> }
+                ] : [])
             ]
         },
         {
@@ -418,8 +430,8 @@ const App: React.FC = () => {
                         <div className="grid grid-cols-3 gap-4">
                             {flatMenuItems
                                 .filter(item => {
-                                    // Hide access-control and settings for non-admins
-                                    if (['access-control', 'settings'].includes(item.view) && currentUser?.isAdmin !== 1) {
+                                    // Hide access-control, settings and advertising-campaigns for non-admins
+                                    if (['access-control', 'settings', 'advertising-campaigns'].includes(item.view) && currentUser?.isAdmin !== 1) {
                                         return false;
                                     }
                                     // Exclude home, car-orders, users since they are in the persistent bottom nav
@@ -505,7 +517,8 @@ const App: React.FC = () => {
                 {activeView === 'customer-club' && <CustomerClubPage />}
                 {activeView === 'notification-center' && <NotificationCenterPage />}
                 {activeView === 'used-cars' && <UsedCarPage />}
-                {activeView === 'advertising' && <AdvertisingPage loggedInUser={currentUser} />}
+                {activeView === 'advertising-writer' && <AdvertisingPage loggedInUser={currentUser} initialTab="writer" />}
+                {activeView === 'advertising-campaigns' && <AdvertisingPage loggedInUser={currentUser} initialTab="campaigns" />}
                 {activeView === 'car-orders' && <CarOrderPage isAdmin={currentUser?.isAdmin === 1} />}
             </main>
         </div>

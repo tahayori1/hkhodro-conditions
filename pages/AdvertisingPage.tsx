@@ -60,13 +60,21 @@ import Spinner from '../components/Spinner';
 
 interface AdvertisingPageProps {
     loggedInUser: MyProfile | null;
+    initialTab?: 'writer' | 'campaigns';
 }
 
-export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser }) => {
+export const AdvertisingPage: React.FC<AdvertisingPageProps> = ({ loggedInUser, initialTab = 'writer' }) => {
     const isAdmin = loggedInUser?.isAdmin === 1;
     
     // Page tabs: campaigns (Admin only), writer (All), titles (All), hooks (All), ctas (All)
-    const [activeTab, setActiveTab] = useState<'writer' | 'campaigns' | 'titles' | 'hooks' | 'ctas'>('writer');
+    const [activeTab, setActiveTab] = useState<'writer' | 'campaigns' | 'titles' | 'hooks' | 'ctas'>(initialTab);
+
+    // Sync tab when initialTab prop shifts
+    useEffect(() => {
+        if (initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [initialTab]);
     
     // Data lists
     const [cars, setCars] = useState<Car[]>([]);
