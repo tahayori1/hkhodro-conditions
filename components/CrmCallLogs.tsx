@@ -16,24 +16,14 @@ import {
     XCircle,
     FileText,
     TrendingUp,
-    Hash
+    Hash,
+    Edit2,
+    Loader2
 } from 'lucide-react';
-import type { User, StaffUser } from '../types';
+import type { User, StaffUser, CrmCallLog } from '../types';
+import { getCallLogs, createCallLog, updateCallLog } from '../services/api';
 
 declare const moment: any;
-
-export interface CrmCallLog {
-    id: string;
-    userId?: number;
-    customerName: string;
-    customerNumber: string;
-    callType: 'INBOUND' | 'OUTBOUND';
-    callStatus: 'SUCCESSFUL' | 'MISSED' | 'NO_ANSWER' | 'BUSY' | 'REJECTED';
-    duration: number; // in seconds
-    agentName: string;
-    notes: string;
-    timestamp: string; // "jYYYY/jMM/jDD HH:mm"
-}
 
 interface CrmCallLogsProps {
     users: User[];
@@ -41,107 +31,31 @@ interface CrmCallLogsProps {
     loggedInUser: { username: string; FullName?: string } | null;
 }
 
-const INITIAL_CALL_LOGS: CrmCallLog[] = [
-    {
-        id: 'call-1',
-        userId: 1,
-        customerName: 'امیررضا محمودی',
-        customerNumber: '09123456789',
-        callType: 'INBOUND',
-        callStatus: 'SUCCESSFUL',
-        duration: 245,
-        agentName: 'مدیر سیستم',
-        notes: 'مشتری در مورد شرایط پیش‌فروش خودروی تارا اتوماتیک سوال داشت. قیمت روز و نحوه پرداخت اقساطی توضیح داده شد. علاقه زیادی نشان داد.',
-        timestamp: '1405/03/28 10:15'
-    },
-    {
-        id: 'call-2',
-        customerName: 'فاطمه حسینی',
-        customerNumber: '09198765432',
-        callType: 'OUTBOUND',
-        callStatus: 'NO_ANSWER',
-        duration: 0,
-        agentName: 'کارشناس فروش ۱',
-        notes: 'تماس خروجی جهت پیگیری پیامک ارسال شده برای کارشناسی خودرو کارکرده. پاسخگو نبود.',
-        timestamp: '1405/03/28 11:30'
-    },
-    {
-        id: 'call-3',
-        userId: 2,
-        customerName: 'سید رضا علوی',
-        customerNumber: '09151112233',
-        callType: 'INBOUND',
-        callStatus: 'MISSED',
-        duration: 0,
-        agentName: 'نامشخص',
-        notes: 'تماس ورودی از دست رفته در خارج از ساعات اداری.',
-        timestamp: '1405/03/27 19:40'
-    },
-    {
-        id: 'call-4',
-        userId: 3,
-        customerName: 'مریم اکبری',
-        customerNumber: '09353334455',
-        callType: 'OUTBOUND',
-        callStatus: 'SUCCESSFUL',
-        duration: 182,
-        agentName: 'مدیر سیستم',
-        notes: 'پیگیری خرید جک S5. اعلام کردند که چک‌های بانکی لود شده و ثبت‌نام نهایی فردا انجام خواهد شد.',
-        timestamp: '1405/03/27 15:10'
-    },
-    {
-        id: 'call-5',
-        customerName: 'علیرضا زارعی',
-        customerNumber: '09015556677',
-        callType: 'INBOUND',
-        callStatus: 'BUSY',
-        duration: 0,
-        agentName: 'کارشناس فروش ۲',
-        notes: 'تماس ورودی ناموفق - خط مشغول بود.',
-        timestamp: '1405/03/27 09:25'
-    },
-    {
-        id: 'call-6',
-        userId: 4,
-        customerName: 'کامران سهرابی',
-        customerNumber: '09127778899',
-        callType: 'OUTBOUND',
-        callStatus: 'SUCCESSFUL',
-        duration: 320,
-        agentName: 'مدیر سیستم',
-        notes: 'مذاکره نهایی درباره تخفیف پورسانت و شرایط حواله پژو ۲۰۷. پس از تایید مدیریت، قرار حضوری برای عصر امروز هماهنگ شد.',
-        timestamp: '1405/03/26 14:05'
-    }
-];
-
 const CrmCallLogs: React.FC<CrmCallLogsProps> = ({ users, staffUsers, loggedInUser }) => {
     // State of call logs
-    const [callLogs, setCallLogs] = useState<CrmCallLog[]>(() => {
-        const saved = localStorage.getItem('crm_call_logs');
-        if (saved) {
-            try {
-                return JSON.parse(saved);
-            } catch (e) {
-                return INITIAL_CALL_LOGS;
-            }
+    const [callLogs, setCallLogs] = useState<CrmCallLog[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [editingLog, setEditingLog] = useState<CrmCallLog | null>(null);
+
+    const refreshLogs = async () => {
+        setIsLoading(true);
+        try {
+            const logs = await getCallLogs();
+            setCallLogs(logs || []);
+        } catch (err) {
+            console.error("Failed to load call logs:", err);
+        } finally {
+            setIsLoading(false);
         }
-        return INITIAL_CALL_LOGS;
-    });
+    };
 
     useEffect(() => {
-        localStorage.setItem('crm_call_logs', JSON.stringify(callLogs));
-    }, [callLogs]);
+        refreshLogs();
+    }, []);
 
     useEffect(() => {
         const handleUpdate = () => {
-            const saved = localStorage.getItem('crm_call_logs');
-            if (saved) {
-                try {
-                    setCallLogs(JSON.parse(saved));
-                } catch (e) {
-                    console.error(e);
-                }
-            }
+            refreshLogs();
         };
         window.addEventListener('crm_call_logs_updated', handleUpdate);
         return () => {
@@ -169,36 +83,57 @@ const CrmCallLogs: React.FC<CrmCallLogsProps> = ({ users, staffUsers, loggedInUs
     const [notes, setNotes] = useState('');
     const [timestamp, setTimestamp] = useState('');
 
-    // Pre-populate time in log call form
+    // Pre-populate time / edit log in log call form
     useEffect(() => {
         if (isLogModalOpen) {
-            // Default time to now in Persian format
-            let pTime = '1405/03/28 12:00';
-            try {
-                if (typeof moment !== 'undefined') {
-                    pTime = moment().locale('fa').format('jYYYY/jMM/jDD HH:mm');
+            if (editingLog) {
+                // Pre-populate with existing log details
+                if (editingLog.userId) {
+                    setSelectedUserOption('EXISTING');
+                    setSelectedUserId(editingLog.userId.toString());
                 } else {
-                    const d = new Date();
-                    pTime = `1405/jMM/jDD ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    setSelectedUserOption('NEW');
+                    setManualName(editingLog.customerName);
+                    setManualPhone(editingLog.customerNumber);
                 }
-            } catch (e) {}
-            setTimestamp(pTime);
-            
-            // Reset fields
-            setSelectedUserId('');
-            setManualName('');
-            setManualPhone('');
-            setNotes('');
-            setDurationMin(0);
-            setDurationSec(0);
-            setCallType('INBOUND');
-            setCallStatus('SUCCESSFUL');
-            setAgentName(loggedInUser?.username || 'مدیر سیستم');
+                setCallType(editingLog.callType);
+                setCallStatus(editingLog.callStatus);
+                setDurationMin(Math.floor(editingLog.duration / 60));
+                setDurationSec(editingLog.duration % 60);
+                setAgentName(editingLog.agentName);
+                setNotes(editingLog.notes);
+                setTimestamp(editingLog.timestamp);
+            } else {
+                // Default time to now in Persian format
+                let pTime = '1405/03/28 12:00';
+                try {
+                    if (typeof moment !== 'undefined') {
+                        pTime = moment().locale('fa').format('jYYYY/jMM/jDD HH:mm');
+                    } else {
+                        const d = new Date();
+                        pTime = `1405/03/28 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    }
+                } catch (e) {}
+                setTimestamp(pTime);
+                
+                // Reset fields
+                setSelectedUserId('');
+                setManualName('');
+                setManualPhone('');
+                setNotes('');
+                setDurationMin(0);
+                setDurationSec(0);
+                setCallType('INBOUND');
+                setCallStatus('SUCCESSFUL');
+                setAgentName(loggedInUser?.username || 'مدیر سیستم');
+            }
+        } else {
+            setEditingLog(null);
         }
-    }, [isLogModalOpen, loggedInUser]);
+    }, [isLogModalOpen, editingLog, loggedInUser]);
 
     // Handle form submission
-    const handleLogCallSubmit = (e: React.FormEvent) => {
+    const handleLogCallSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         let customerName = '';
@@ -225,24 +160,53 @@ const CrmCallLogs: React.FC<CrmCallLogsProps> = ({ users, staffUsers, loggedInUs
 
         const durationTotal = callStatus === 'SUCCESSFUL' ? (durationMin * 60 + durationSec) : 0;
 
-        const newLog: CrmCallLog = {
-            id: `call-${Date.now()}`,
-            userId: refUserId,
-            customerName,
-            customerNumber,
-            callType,
-            callStatus,
-            duration: durationTotal,
-            agentName,
-            notes,
-            timestamp
-        };
-
-        setCallLogs(prev => [newLog, ...prev]);
-        setIsLogModalOpen(false);
+        try {
+            if (editingLog) {
+                // Update via API (PUT)
+                const updatedLog: CrmCallLog = {
+                    ...editingLog,
+                    userId: refUserId,
+                    customerName,
+                    customerNumber,
+                    callType,
+                    callStatus,
+                    duration: durationTotal,
+                    agentName,
+                    notes,
+                    timestamp
+                };
+                await updateCallLog(updatedLog);
+            } else {
+                // Create via API (POST)
+                const newLog = {
+                    userId: refUserId,
+                    customerName,
+                    customerNumber,
+                    callType,
+                    callStatus,
+                    duration: durationTotal,
+                    agentName,
+                    notes,
+                    timestamp
+                };
+                await createCallLog(newLog);
+            }
+            setIsLogModalOpen(false);
+            setEditingLog(null);
+            refreshLogs();
+        } catch (err) {
+            console.error("Failed to save call log:", err);
+            alert("خطایی در ذخیره اطلاعات تماس رخ داد.");
+        }
     };
 
-    // Delete call log
+    // Edit call log
+    const handleEditCallLog = (log: CrmCallLog) => {
+        setEditingLog(log);
+        setIsLogModalOpen(true);
+    };
+
+    // Delete call log (local fallback only, as API is get/post/put)
     const handleDeleteCallLog = (id: string) => {
         if (confirm('آیا از حذف این گزارش تماس مطمئن هستید؟')) {
             setCallLogs(prev => prev.filter(log => log.id !== id));
@@ -461,7 +425,12 @@ const CrmCallLogs: React.FC<CrmCallLogsProps> = ({ users, staffUsers, loggedInUs
 
                 {/* Call logs list / table */}
                 <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
-                    {filteredLogs.length === 0 ? (
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-slate-400 bg-slate-50/50 dark:bg-slate-900/10">
+                            <Loader2 className="w-8 h-8 animate-spin text-sky-500 mb-2" />
+                            <p className="text-sm font-bold">در حال دریافت اطلاعات از سرور...</p>
+                        </div>
+                    ) : filteredLogs.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-slate-400 bg-slate-50/50 dark:bg-slate-900/10">
                             <Phone className="w-12 h-12 stroke-1 mb-3 text-slate-300" />
                             <p className="text-sm font-bold">هیچ گزارش تماسی یافت نشد.</p>
@@ -526,13 +495,22 @@ const CrmCallLogs: React.FC<CrmCallLogsProps> = ({ users, staffUsers, loggedInUs
                                             {log.timestamp}
                                         </td>
                                         <td className="p-4 text-center">
-                                            <button
-                                                onClick={() => handleDeleteCallLog(log.id)}
-                                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-900 transition-all"
-                                                title="حذف لاگ تماس"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button
+                                                    onClick={() => handleEditCallLog(log)}
+                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-sky-500 hover:bg-slate-100 dark:hover:bg-slate-900 transition-all"
+                                                    title="ویرایش لاگ تماس"
+                                                >
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteCallLog(log.id)}
+                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-900 transition-all"
+                                                    title="حذف لاگ تماس"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

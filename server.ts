@@ -60,6 +60,76 @@ ${companyDetails ? `اطلاعات تماس یا شرکت: ${companyDetails}` : 
     }
   });
 
+  // Call Logs Memory Storage
+  interface ServerCallLog {
+    id: string;
+    userId?: number;
+    customerName: string;
+    customerNumber: string;
+    callType: 'INBOUND' | 'OUTBOUND';
+    callStatus: 'SUCCESSFUL' | 'MISSED' | 'NO_ANSWER' | 'BUSY' | 'REJECTED';
+    duration: number;
+    agentName: string;
+    notes: string;
+    timestamp: string;
+  }
+
+  let inMemoryCallLogs: ServerCallLog[] = [];
+
+  // GET /calllog
+  app.get("/calllog", (req, res) => {
+    res.json(inMemoryCallLogs);
+  });
+
+  // POST /calllog
+  app.post("/calllog", (req, res) => {
+    const log = req.body;
+    if (!log.id) {
+      log.id = `call-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    }
+    inMemoryCallLogs.unshift(log);
+    res.status(201).json(log);
+  });
+
+  // PUT /calllog
+  app.put("/calllog", (req, res) => {
+    const log = req.body;
+    const index = inMemoryCallLogs.findIndex(item => item.id === log.id);
+    if (index !== -1) {
+      inMemoryCallLogs[index] = { ...inMemoryCallLogs[index], ...log };
+      res.json(inMemoryCallLogs[index]);
+    } else {
+      res.status(404).json({ error: "گزارش تماس یافت نشد" });
+    }
+  });
+
+  // GET /api/calllog
+  app.get("/api/calllog", (req, res) => {
+    res.json(inMemoryCallLogs);
+  });
+
+  // POST /api/calllog
+  app.post("/api/calllog", (req, res) => {
+    const log = req.body;
+    if (!log.id) {
+      log.id = `call-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    }
+    inMemoryCallLogs.unshift(log);
+    res.status(201).json(log);
+  });
+
+  // PUT /api/calllog
+  app.put("/api/calllog", (req, res) => {
+    const log = req.body;
+    const index = inMemoryCallLogs.findIndex(item => item.id === log.id);
+    if (index !== -1) {
+      inMemoryCallLogs[index] = { ...inMemoryCallLogs[index], ...log };
+      res.json(inMemoryCallLogs[index]);
+    } else {
+      res.status(404).json({ error: "گزارش تماس یافت نشد" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

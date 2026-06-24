@@ -575,3 +575,17 @@ export interface UsedCar {
     status: UsedCarStatus;
     createdAt: string;
 }
+
+export interface CrmCallLog {
+    id: string;
+    userId?: number;
+    customerName: string;
+    customerNumber: string;
+    callType: 'INBOUND' | 'OUTBOUND';
+    callStatus: 'SUCCESSFUL' | 'MISSED' | 'NO_ANSWER' | 'BUSY' | 'REJECTED';
+    duration: number; // in seconds
+    agentName: string;
+    notes: string;
+    timestamp: string; // "jYYYY/jMM/jDD HH:mm"
+}
+

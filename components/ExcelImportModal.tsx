@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import type { User } from '../types';
+import type { User, CrmCallLog } from '../types';
 import { LeadStatus } from '../types';
-import { createUser } from '../services/api';
-import type { CrmCallLog } from './CrmCallLogs';
+import { createUser, createCallLog } from '../services/api';
 import { 
     X, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, 
     Instagram, Phone, MessageSquare, ArrowLeft, ArrowRight, Play, Check, AlertTriangle, Loader2 
@@ -468,21 +467,14 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
         setImporting(true);
         setProgress({ current: 0, total: parsedRecords.length, success: 0, error: 0 });
 
-        // 1. If we have VOIP call logs, import them to localStorage immediately
+        // 1. If we have VOIP call logs, import them to server via API
         if (importType === 'VOIP' && parsedCallLogs.length > 0) {
-            try {
-                const saved = localStorage.getItem('crm_call_logs');
-                let existingLogs: any[] = [];
-                if (saved) {
-                    try {
-                        existingLogs = JSON.parse(saved);
-                    } catch (e) {}
+            for (const log of parsedCallLogs) {
+                try {
+                    await createCallLog(log);
+                } catch (err) {
+                    console.error('Failed to import call log via API', err);
                 }
-                const updatedLogs = [...parsedCallLogs, ...existingLogs];
-                localStorage.setItem('crm_call_logs', JSON.stringify(updatedLogs));
-                window.dispatchEvent(new Event('crm_call_logs_updated'));
-            } catch (err) {
-                console.error('Failed to import call logs to localStorage', err);
             }
         }
 

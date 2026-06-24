@@ -12,10 +12,20 @@ interface ChangelogItem {
 }
 
 const AboutPage: React.FC = () => {
-    const appVersion = "v2.5.1";
-    const releaseDate = "۹ تیر ۱۴۰۵";
+    const appVersion = "v2.5.2";
+    const releaseDate = "۱۰ تیر ۱۴۰۵";
 
     const changelog: ChangelogItem[] = [
+        {
+            version: "v2.5.2",
+            date: "۱۴۰۵/۰۴/۱۰",
+            title: "پیاده‌سازی فرم ثبت و گزارش تماس‌های مشتری با API اختصاصی",
+            changes: [
+                { type: 'new', text: "توسعه اندپوینت‌های واقعی سرور /calllog با پشتیبانی کامل از متدهای GET، POST و PUT جهت مدیریت بلادرنگ گزارش تماس‌ها." },
+                { type: 'new', text: "بازطراحی ماژول گزارش تماس‌های مشتری برای ثبت، مشاهده و ویرایش لحظه‌ای داده‌ها با اتصال مستقیم به بک‌اند بجای استفاده از حافظه محلی (localStorage)." },
+                { type: 'improvement', text: "یکپارچه‌سازی فرآیند درون‌ریزی فایل‌های VOIP با وب‌سرویس بک‌اند و بارگذاری داینامیک آمار نرخ موفقیت مکالمات در پیشخوان." }
+            ]
+        },
         {
             version: "v2.5.1",
             date: "۱۴۰۵/۰۴/۰۹",

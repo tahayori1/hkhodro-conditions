@@ -29,7 +29,8 @@ import type {
     UsedCar,
     CarOrder,
     CustomerJournal,
-    OvertimeRequest
+    OvertimeRequest,
+    CrmCallLog
 } from '../types';
 
 const API_BASE_URL = 'https://api.hoseinikhodro.com/webhook/54f76090-189b-47d7-964e-f871c4d6513b/api/v1';
@@ -1086,3 +1087,32 @@ export const deleteMessageTemplate = async (id: string): Promise<void> => {
     localStorage.setItem('messageTemplates', JSON.stringify(filtered));
     return Promise.resolve();
 };
+
+// --- CRM Call Logs Server Endpoints ---
+export const getCallLogs = async (): Promise<CrmCallLog[]> => {
+    const response = await fetch('/calllog');
+    return handleResponse(response);
+};
+
+export const createCallLog = async (log: Omit<CrmCallLog, 'id'> & { id?: string }): Promise<CrmCallLog> => {
+    const response = await fetch('/calllog', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(log),
+    });
+    return handleResponse(response);
+};
+
+export const updateCallLog = async (log: CrmCallLog): Promise<CrmCallLog> => {
+    const response = await fetch('/calllog', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(log),
+    });
+    return handleResponse(response);
+};
+
