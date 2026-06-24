@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, Clock, Sparkles, Layers, Phone } from 'lucide-react';
+import { Wallet, Clock, Sparkles, Layers, Phone, Info } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import ConditionsPage from './pages/ConditionsPage';
 import AnnouncementsHubPage from './pages/AnnouncementsHubPage';
@@ -27,6 +27,7 @@ import CarOrderPage from './pages/CarOrderPage';
 import SalaryAdvancePage from './pages/SalaryAdvancePage';
 import OvertimePage from './pages/OvertimePage';
 import { AdvertisingPage } from './pages/AdvertisingPage';
+import AboutPage from './pages/AboutPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -56,7 +57,7 @@ import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'used-cars' | 'car-orders' | 'salary-advance' | 'overtime' | 'advertising-campaigns' | 'advertising-writer' | 'advertising-titles' | 'advertising-hooks' | 'advertising-ctas' | 'advertising-contact';
+export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'used-cars' | 'car-orders' | 'salary-advance' | 'overtime' | 'advertising-campaigns' | 'advertising-writer' | 'advertising-titles' | 'advertising-hooks' | 'advertising-ctas' | 'advertising-contact' | 'about';
 
 interface MenuItemProps {
     label: string;
@@ -222,7 +223,8 @@ const App: React.FC = () => {
         { view: 'salary-advance' as ActiveView, label: 'امور مساعده کارمندان', icon: <Wallet className="w-5 h-5" /> },
         { view: 'my-profile' as ActiveView, label: 'پروفایل کاربری من', icon: <UserIcon className="w-5 h-5" /> },
         { view: 'access-control' as ActiveView, label: 'مدیریت کاربران', icon: <SecurityIcon className="w-5 h-5" /> },
-        { view: 'settings' as ActiveView, label: 'تنظیمات عمومی سیستم', icon: <SettingsIcon className="w-5 h-5" /> }
+        { view: 'settings' as ActiveView, label: 'تنظیمات عمومی سیستم', icon: <SettingsIcon className="w-5 h-5" /> },
+        { view: 'about' as ActiveView, label: 'درباره و سوابق تغییرات', icon: <Info className="w-5 h-5 text-indigo-500" /> }
     ];
 
     // Highly styled grouped menu categories
@@ -318,6 +320,7 @@ const App: React.FC = () => {
             icon: <SettingsIcon className="w-5 h-5" />,
             items: [
                 { view: 'my-profile' as ActiveView, label: 'پروفایل کاربری من', icon: <UserIcon className="w-5 h-5" /> },
+                { view: 'about' as ActiveView, label: 'درباره و سوابق تغییرات', icon: <Info className="w-5 h-5 text-indigo-500" /> },
                 ...(currentUser?.isAdmin === 1 ? [
                     { view: 'access-control' as ActiveView, label: 'مدیریت دسترسی کاربران', icon: <SecurityIcon className="w-5 h-5" /> },
                     { view: 'settings' as ActiveView, label: 'تنظیمات عمومی سیستم', icon: <SettingsIcon className="w-5 h-5" /> },
@@ -532,6 +535,7 @@ const App: React.FC = () => {
                 {activeView === 'advertising-ctas' && <AdvertisingPage loggedInUser={currentUser} initialTab="ctas" />}
                 {activeView === 'advertising-contact' && <AdvertisingPage loggedInUser={currentUser} initialTab="contact" />}
                 {activeView === 'car-orders' && <CarOrderPage isAdmin={currentUser?.isAdmin === 1} />}
+                {activeView === 'about' && <AboutPage />}
             </main>
         </div>
     );

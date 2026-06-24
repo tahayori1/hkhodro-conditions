@@ -1,0 +1,196 @@
+import React from 'react';
+import { Info, GitCommit, Sparkles, ArrowUpRight, ShieldCheck, Heart } from 'lucide-react';
+
+interface ChangelogItem {
+    version: string;
+    date: string;
+    title: string;
+    changes: {
+        type: 'new' | 'improvement' | 'fix';
+        text: string;
+    }[];
+}
+
+const AboutPage: React.FC = () => {
+    const appVersion = "v2.4.0";
+    const releaseDate = "۴ تیر ۱۴۰۵";
+
+    const changelog: ChangelogItem[] = [
+        {
+            version: "v2.4.0",
+            date: "۱۴۰۵/۰۴/۰۴",
+            title: "بازطراحی پیشخوان اصلی و افزودن بخش درباره سیستم",
+            changes: [
+                { type: 'new', text: "بازطراحی مدرن پیشخوان اصلی شامل تمرکز روی قیمت‌های روز خودرو، شرایط فروش فعال و منوی دسترسی سریع." },
+                { type: 'new', text: "اضافه شدن بخش اختصاصی «درباره سیستم» و تاریخچه تغییرات (Change Log) جهت سهولت در رصد قابلیت‌ها." },
+                { type: 'improvement', text: "افزایش سرعت بارگذاری پیشخوان و یکپارچه‌سازی کامل تم‌های تیره و روشن." }
+            ]
+        },
+        {
+            version: "v2.3.0",
+            date: "۱۴۰۵/۰۴/۰۳",
+            title: "اتصال هوشمند به وب‌هوک API و بازطراحی المان‌های پنل بازاریابی",
+            changes: [
+                { type: 'new', text: "اتصال هوشمند بخش «contact ساز» به API کسب‌وکار (وب‌هوک Hoseini Khodro) جهت استخراج خودکار آدرس، تلفن‌ها، شعار و نام نمایندگی." },
+                { type: 'improvement', text: "تغییر نام ماژول‌های پنل تبلیغات به ساختار کوتاه‌تر و استاندارد: عنوان‌های آماده به «title ساز»، قلاب‌های متمایز به «hook ساز» و مشخصات فروشنده به «contact ساز»." },
+                { type: 'improvement', text: "حذف المان‌های ناوبری تب اضافی در پنل بازاریابی و بهینه‌سازی دسترسی به هر بخش از منوی فرعی سیستم." }
+            ]
+        },
+        {
+            version: "v2.2.0",
+            date: "۱۴۰۵/۰۳/۲۸",
+            title: "محاسبه کف قیمت هوشمند خودرو و تنظیمات کپی گروهی",
+            changes: [
+                { type: 'new', text: "افزودن متغیر هوشمند lowestLimit (کف واقعی قیمت روز) بر اساس کمترین منبع موجود یا قیمت دستی ورودی." },
+                { type: 'improvement', text: "یکپارچه‌سازی کف قیمت در فرمول‌های محاسباتی کپی گروهی قیمت و شرایط فروش." },
+                { type: 'fix', text: "رفع خطا در مقادیر پیش‌فرض محاسبه بازه ۲ درصد نوسان خودرو در منوی خروجی آگهی." }
+            ]
+        },
+        {
+            version: "v2.1.0",
+            date: "۱۴۰۵/۰۳/۱۵",
+            title: "سیستم هوشمند تبلیغ‌نویس هوش مصنوعی و کمپین‌های بازاریابی",
+            changes: [
+                { type: 'new', text: "راه‌اندازی دستگاه هوشمند تبلیغ‌نویس با قابلیت سفارشی‌سازی بر اساس متغیرهای انتخابی خودرو." },
+                { type: 'new', text: "افزودن امکان ثبت، ویرایش و تحلیل پیشرفته بازخورد کمپین‌های تبلیغاتی با بارگذاری فایل گزارش." },
+                { type: 'new', text: "کتابخانه غنی با ۹۰ عنوان جذاب، ۹۰ قلاب فروش جلب توجه و ۹۰ دعوت به اقدام (CTA) متمایز." }
+            ]
+        },
+        {
+            version: "v2.0.0",
+            date: "۱۴۰۵/۰۲/۲۰",
+            title: "بازنگری معماری سامانه و ماژول کارشناسی خودرو",
+            changes: [
+                { type: 'new', text: "اضافه شدن ماژول بررسی و ثبت کارشناسی‌های فنی خودروهای کارکرده." },
+                { type: 'new', text: "یکپارچه‌سازی فرآیند تحویل خودروهای صفر به مشتریان در دپارتمان ترخیص." },
+                { type: 'improvement', text: "بهبود امنیت دسترسی به بخش مدیریت کاربران و پنل ادمین ارشد." }
+            ]
+        }
+    ];
+
+    return (
+        <div className="animate-fade-in pb-10 space-y-8">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                <div>
+                    <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">
+                        <Info className="w-4 h-4" />
+                        <span>درباره نرم‌افزار</span>
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-white">
+                        درباره سامانه و سوابق تغییرات
+                    </h2>
+                </div>
+                <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40 text-xs font-bold">
+                    <span>نسخه فعلی:</span>
+                    <span className="font-mono">{appVersion}</span>
+                </div>
+            </div>
+
+            {/* Quick Summary Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-slate-850 p-6 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-500 dark:text-indigo-400 flex items-center justify-center mb-4">
+                            <Sparkles className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-black text-slate-800 dark:text-white">مدیریت هوشمند فروش</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                            AutoLead بستری قدرتمند جهت خودکارسازی و هوشمندسازی فرآیندهای فروش، بازاریابی، مدیریت سرنخ‌ها و مانیتورینگ نرخ رشد و قیمت روز خودروهاست.
+                        </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-4 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>امنیت بالا و یکپارچه با داده‌های ابری</span>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-850 p-6 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-sky-500 dark:text-sky-400 flex items-center justify-center mb-4">
+                            <GitCommit className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-black text-slate-800 dark:text-white">اتصال به وب‌هوک و API</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                            امکان ارتباط بدون وقفه با وب‌هوک تنظیمات کسب‌وکار جهت همگام‌سازی داینامیک مشخصات نمایندگی، آدرس‌ها، شعار و کاتالوگ در تمام فرآیندها.
+                        </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-4 flex items-center gap-1">
+                        <ArrowUpRight className="w-3.5 h-3.5 text-sky-500" />
+                        <span>قابلیت به‌روزرسانی آنی و پویا</span>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-850 p-6 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-500 dark:text-rose-400 flex items-center justify-center mb-4">
+                            <Heart className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-black text-slate-800 dark:text-white">تضمین کارایی دپارتمان‌ها</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                            ابزارهای کاربردی همگام نظیر محاسبه پورسانت کارشناسان، ثبت کارهای اصلاحی، کنترل اضافه کاری، خروج خودرو و مدیریت آدرس‌دهی متمرکز.
+                        </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-4 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>توسعه مداوم متناسب با نیاز بازار</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Change Log Section */}
+            <div className="bg-white dark:bg-slate-850 rounded-[28px] border border-slate-150 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+                    <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                        <GitCommit className="w-5 h-5 text-indigo-500" />
+                        سوابق تغییرات و بروزرسانی‌ها (Change Log)
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        آخرین قابلیت‌ها، بهبودها و اصلاحات اعمال شده روی هسته و رابط کاربری سامانه AutoLead
+                    </p>
+                </div>
+
+                <div className="p-6 space-y-8 relative">
+                    {/* Visual Vertical Line for Timeline */}
+                    <div className="absolute right-9 top-8 bottom-8 w-0.5 bg-slate-100 dark:bg-slate-800 hidden md:block"></div>
+
+                    {changelog.map((item, index) => (
+                        <div key={item.version} className="relative md:pr-10">
+                            {/* Dot on the timeline */}
+                            <div className="absolute right-1.5 top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-850 bg-indigo-500 hidden md:block z-10"></div>
+
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3">
+                                <div className="flex items-center gap-3">
+                                    <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                                        {item.version}
+                                    </span>
+                                    <h4 className="text-sm font-black text-slate-800 dark:text-white">{item.title}</h4>
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 font-mono">
+                                    {item.date}
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50/50 dark:bg-slate-900/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 space-y-2">
+                                {item.changes.map((change, cIdx) => (
+                                    <div key={cIdx} className="flex items-start gap-2 text-xs leading-relaxed">
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-black shrink-0 mt-0.5 ${
+                                            change.type === 'new' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400' :
+                                            change.type === 'improvement' ? 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-400' :
+                                            'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400'
+                                        }`}>
+                                            {change.type === 'new' ? 'جدید' : change.type === 'improvement' ? 'بهبود' : 'اصلاح'}
+                                        </span>
+                                        <span className="text-slate-600 dark:text-slate-300 font-medium">{change.text}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default AboutPage;
