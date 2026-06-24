@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getConditions, createCondition, updateCondition, deleteCondition, getCars } from '../services/api';
-import type { CarSaleCondition, ConditionStatus, SaleType, Car } from '../types';
+import { SaleType, ConditionStatus } from '../types';
+import type { CarSaleCondition, Car } from '../types';
 import ConditionTable from '../components/ConditionTable';
 import FilterPanel from '../components/FilterPanel';
 import ConditionModal from '../components/ConditionModal';
@@ -255,6 +256,15 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ isSubPage = false }) =>
         showToast('فایل CSV با موفقیت آماده شد.', 'success');
     };
 
+    const saleTypeTabs = [
+        { key: 'all', label: 'همه بخشنامه‌ها' },
+        { key: SaleType.FACTORY_REGISTRATION, label: 'ثبت‌نام کارخانه' },
+        { key: SaleType.TRANSFER, label: 'حواله' },
+        { key: SaleType.LEASING, label: 'لیزینگی' },
+        { key: SaleType.NEW_MARKET, label: 'صفر بازار' },
+        { key: SaleType.USED, label: 'کارکرده' },
+    ];
+
     const content = (
         <>
             <div className={`bg-white dark:bg-slate-800 ${isSubPage ? 'pb-6' : 'p-6 rounded-lg shadow-md mb-8'} space-y-4`}>
@@ -278,6 +288,29 @@ const ConditionsPage: React.FC<ConditionsPageProps> = ({ isSubPage = false }) =>
                         </button>
                     </div>
                 </div>
+
+                {/* Sub-categories tab bar */}
+                <div className="border-b border-slate-100 dark:border-slate-800 pb-2 overflow-x-auto scrollbar-none">
+                    <div className="flex gap-2 min-w-max pb-1">
+                        {saleTypeTabs.map((tab) => {
+                            const isActive = filters.sale_type === tab.key;
+                            return (
+                                <button
+                                    key={tab.key}
+                                    onClick={() => setFilters(prev => ({ ...prev, sale_type: tab.key as SaleType | 'all' }))}
+                                    className={`px-4 py-2 text-xs font-black rounded-xl transition-all ${
+                                        isActive 
+                                        ? 'bg-sky-600 text-white shadow-md shadow-sky-100 dark:shadow-none scale-102' 
+                                        : 'bg-slate-50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
                 <FilterPanel
                     onFilterChange={setFilters}
                     resultCount={sortedAndFilteredConditions.length}

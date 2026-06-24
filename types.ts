@@ -76,6 +76,11 @@ export interface CarSaleCondition {
     descriptions?: string;
     is_public: boolean;
     stock_quantity: number;
+    owner_id?: number | null;
+    owner_name?: string | null;
+    owner_phone?: string | null;
+    expert_report_id?: number | null;
+    expert_report_title?: string | null;
 }
 
 export interface User {
