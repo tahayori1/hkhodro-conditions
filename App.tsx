@@ -22,12 +22,11 @@ import ZeroCarDeliveryPage from './pages/ZeroCarDeliveryPage';
 import MyProfilePage from './pages/MyProfilePage';
 import CustomerClubPage from './pages/CustomerClubPage';
 import NotificationCenterPage from './pages/NotificationCenterPage';
-import AdvertisingPage from './pages/AdvertisingPage';
 import UsedCarPage from './pages/UsedCarPage';
 import CarOrderPage from './pages/CarOrderPage';
 import SalaryAdvancePage from './pages/SalaryAdvancePage';
 import OvertimePage from './pages/OvertimePage';
-import AdCaptionCreatorPage from './pages/AdCaptionCreatorPage';
+import { AdvertisingPage } from './pages/AdvertisingPage';
 import Spinner from './components/Spinner';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
@@ -57,7 +56,7 @@ import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
 import { getMyProfile } from './services/api';
 import type { MyProfile } from './types';
 
-export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'advertising' | 'used-cars' | 'car-orders' | 'salary-advance' | 'overtime' | 'ad-caption-creator';
+export type ActiveView = 'home' | 'announcements' | 'conditions' | 'users' | 'cars' | 'car-prices' | 'vehicle-exit' | 'settings' | 'access-control' | 'poll' | 'reports' | 'commission' | 'corrective-actions' | 'meeting-minutes' | 'leave-requests' | 'anonymous-feedback' | 'zero-car-delivery' | 'my-profile' | 'customer-club' | 'notification-center' | 'used-cars' | 'car-orders' | 'salary-advance' | 'overtime' | 'advertising';
 
 interface MenuItemProps {
     label: string;
@@ -202,8 +201,7 @@ const App: React.FC = () => {
         { view: 'users' as ActiveView, label: 'مدیریت مشتریان (CRM)', icon: <UsersIcon className="w-5 h-5" /> },
         { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
         { view: 'notification-center' as ActiveView, label: 'پیام‌رسان هوشمند', icon: <ChatAltIcon className="w-5 h-5" /> },
-        { view: 'advertising' as ActiveView, label: 'کمپین‌های تبلیغاتی', icon: <RocketIcon className="w-5 h-5" /> },
-        { view: 'ad-caption-creator' as ActiveView, label: 'آگهی‌ساز و کپشن‌ساز', icon: <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" /> },
+        { view: 'advertising' as ActiveView, label: 'تبلیغات و بازاریابی', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
         { view: 'cars' as ActiveView, label: 'کاتالوگ خودروها', icon: <CarIcon className="w-5 h-5" /> },
         { view: 'zero-car-delivery' as ActiveView, label: 'تحویل خودرو صفر', icon: <TruckIcon className="w-5 h-5" /> },
         { view: 'used-cars' as ActiveView, label: 'کارشناسی خودرو کارکرده', icon: <ClipboardListIcon className="w-5 h-5" /> },
@@ -253,8 +251,7 @@ const App: React.FC = () => {
                 { view: 'users' as ActiveView, label: 'مدیریت مشتریان (CRM)', icon: <UsersIcon className="w-5 h-5" /> },
                 { view: 'customer-club' as ActiveView, label: 'باشگاه مشتریان', icon: <BadgeIcon className="w-5 h-5" /> },
                 { view: 'notification-center' as ActiveView, label: 'پیام‌رسان هوشمند', icon: <ChatAltIcon className="w-5 h-5" /> },
-                { view: 'advertising' as ActiveView, label: 'کمپین‌های تبلیغاتی', icon: <RocketIcon className="w-5 h-5" /> },
-                { view: 'ad-caption-creator' as ActiveView, label: 'آگهی‌ساز و کپشن‌ساز', icon: <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse font-bold" /> },
+                { view: 'advertising' as ActiveView, label: 'تبلیغات و بازاریابی', icon: <SpeakerphoneIcon className="w-5 h-5" /> },
             ]
         },
         {
@@ -501,15 +498,14 @@ const App: React.FC = () => {
                 {activeView === 'meeting-minutes' && <MeetingMinutesPage />}
                 {activeView === 'leave-requests' && <LeaveRequestsPage />}
                 {activeView === 'overtime' && <OvertimePage />}
-                {activeView === 'ad-caption-creator' && <AdCaptionCreatorPage />}
                 {activeView === 'salary-advance' && <SalaryAdvancePage />}
                 {activeView === 'anonymous-feedback' && <AnonymousFeedbackPage />}
                 {activeView === 'zero-car-delivery' && <ZeroCarDeliveryPage />}
                 {activeView === 'my-profile' && <MyProfilePage />}
                 {activeView === 'customer-club' && <CustomerClubPage />}
                 {activeView === 'notification-center' && <NotificationCenterPage />}
-                {activeView === 'advertising' && <AdvertisingPage />}
                 {activeView === 'used-cars' && <UsedCarPage />}
+                {activeView === 'advertising' && <AdvertisingPage loggedInUser={currentUser} />}
                 {activeView === 'car-orders' && <CarOrderPage isAdmin={currentUser?.isAdmin === 1} />}
             </main>
         </div>
