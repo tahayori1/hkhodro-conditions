@@ -179,6 +179,7 @@ export interface CarPriceStats {
     maximum: number;
     average: number;
     computed_at: string;
+    lowestLimit?: number;
 }
 
 export interface ActiveLead {

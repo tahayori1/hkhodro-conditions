@@ -72,7 +72,7 @@ const CarPriceCopySettingsModal: React.FC<CarPriceCopySettingsModalProps> = ({ i
         
         const rows = selectedStats.map(stat => {
             const price = stat.maximum;
-            const minLimit = Math.round(stat.maximum * 0.98); // ۲ درصد کمتر از قیمت
+            const minLimit = Math.round(stat.lowestLimit ?? stat.maximum * 0.98); // محاسبه بر اساس کمترین منبع
             const maxLimit = Math.round(stat.maximum * 1.02); // ۲ درصد بیشتر از قیمت
             const havaleh1Min = Math.round(stat.maximum * 0.95);
             const havaleh1Max = Math.round(stat.maximum * 0.97);

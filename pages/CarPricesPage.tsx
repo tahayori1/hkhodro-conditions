@@ -263,13 +263,18 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
         // First map existing stats
         const overridden = priceStats.map(stat => {
             const manualPrice = prices.find(p => p.model_name === stat.model_name && p.source_name === 'custom');
+            const lowestLimit = (manualPrice ? manualPrice.price_rial : (stat.minimum && stat.minimum > 0 ? stat.minimum : stat.maximum)) * 0.98;
             if (manualPrice) {
                 return {
                     ...stat,
                     maximum: manualPrice.price_rial,
+                    lowestLimit,
                 };
             }
-            return stat;
+            return {
+                ...stat,
+                lowestLimit,
+            };
         });
 
         // Search for manual prices of models NOT in priceStats yet
@@ -284,7 +289,8 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                     minimum: price.price_rial,
                     maximum: price.price_rial,
                     average: price.price_rial,
-                    computed_at: price.captured_at
+                    computed_at: price.captured_at,
+                    lowestLimit: price.price_rial * 0.98
                 });
                 existingModelNames.add(price.model_name);
             }
@@ -319,7 +325,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                  </div>
             </div>
              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                * کمترین نرخ معامله (کف) برابر باقیمت - ۲٪ و بیشترین نرخ معامله (سقف) برابر با قیمت + ۲٪ است.قیمت‌های دستی دارای بالاترین اولویت می‌باشند.
+                * کمترین نرخ معامله (کف) برابر با کمترین قیمت منبع - ۲٪ و بیشترین نرخ معامله (سقف) برابر با بیشترین قیمت منبع + ۲٪ است. قیمت‌های دستی دارای بالاترین اولویت می‌باشند.
              </p>
             {loading ? (
                 <div className="flex justify-center items-center h-40 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
@@ -337,6 +343,9 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                         
                         // Change: Highest limit is now +2% instead of +7%
                         const highestLimit = stat.maximum * 1.02;
+                        
+                        // Lowest limit is based on lowest source (or manual price if overridden)
+                        const lowestLimit = (manualPrice ? manualPrice.price_rial : (stat.minimum && stat.minimum > 0 ? stat.minimum : stat.maximum)) * 0.98;
                         
                         // Havaleh Calculations
                         // 1 Month: Max - 5% (Min), Max - 3% (Max)
@@ -424,7 +433,7 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                                     <div className="border-t border-slate-100 dark:border-slate-700 pt-3 space-y-2">
                                         <div className="flex justify-between items-center">
                                             <span className="text-slate-500 dark:text-slate-400 font-bold text-xs">کمترین نرخ معامله (کف):</span>
-                                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">{Math.round(stat.maximum * 0.98).toLocaleString('fa-IR')}</span>
+                                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">{Math.round(lowestLimit).toLocaleString('fa-IR')}</span>
                                         </div>
                                         <div className="flex justify-between items-center">
                                             <span className="text-slate-500 dark:text-slate-400 font-bold text-xs">بیشترین نرخ معامله (سقف):</span>
