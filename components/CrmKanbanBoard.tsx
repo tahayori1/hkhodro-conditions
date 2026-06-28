@@ -4,13 +4,11 @@ import { User, LeadStatus, MyProfile } from '../types';
 import { PhoneIcon } from './icons/PhoneIcon';
 import { UserIcon } from './icons/UserIcon';
 import { ChatIcon } from './icons/ChatIcon';
-import { SecurityIcon } from './icons/SecurityIcon';
 
 interface CrmKanbanBoardProps {
     users: User[];
     onStatusChange: (userId: number, newStatus: LeadStatus) => void;
     onViewDetails: (user: User) => void;
-    onTransfer: (user: User) => void;
     loggedInUser: MyProfile | null;
 }
 
@@ -23,14 +21,9 @@ const COLUMNS: { status: LeadStatus; label: string; color: string; bg: string }[
     { status: LeadStatus.LOST, label: 'ناموفق', color: 'border-red-300', bg: 'bg-red-50' },
 ];
 
-const CrmKanbanBoard: React.FC<CrmKanbanBoardProps> = ({ users, onStatusChange, onViewDetails, onTransfer, loggedInUser }) => {
+const CrmKanbanBoard: React.FC<CrmKanbanBoardProps> = ({ users, onStatusChange, onViewDetails, loggedInUser }) => {
     
     const handleDragStart = (e: React.DragEvent, user: User) => {
-        const isActionDisabled = user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin;
-        if (isActionDisabled) {
-            e.preventDefault();
-            return;
-        }
         e.dataTransfer.setData('userId', user.id.toString());
     };
 
@@ -77,18 +70,17 @@ const CrmKanbanBoard: React.FC<CrmKanbanBoardProps> = ({ users, onStatusChange, 
                             {columnUsers.map(user => (
                                 <div
                                     key={user.id}
-                                    draggable={!(user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin)}
+                                    draggable={true}
                                     onDragStart={(e) => handleDragStart(e, user)}
-                                    className={`bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md group transition-all ${user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'opacity-75 grayscale-[0.5] cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
+                                    className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md group transition-all cursor-grab active:cursor-grabbing"
                                 >
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="font-bold text-slate-800 dark:text-white text-sm truncate max-w-[180px]">
                                             {user.FullName}
                                         </div>
                                         <button 
-                                            disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
                                             onClick={() => onViewDetails(user)}
-                                            className={`transition-colors ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'text-slate-300 dark:text-slate-600' : 'text-slate-400 hover:text-sky-600'}`}
+                                            className="transition-colors text-slate-400 hover:text-sky-600"
                                         >
                                             <ChatIcon className="w-4 h-4" />
                                         </button>
@@ -105,21 +97,6 @@ const CrmKanbanBoard: React.FC<CrmKanbanBoardProps> = ({ users, onStatusChange, 
                                         </div>
                                     )}
 
-                                    {user.reservedByUserId && (
-                                        <div className="mb-2 flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg w-fit">
-                                            <SecurityIcon className="w-3.5 h-3.5" />
-                                            <span>رزرو: <b>{user.reservedByUserName}</b></span>
-                                            {(loggedInUser?.isAdmin || loggedInUser?.id === user.reservedByUserId) && (
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); onTransfer(user); }}
-                                                    className="mr-2 text-blue-600 dark:text-blue-400 hover:underline"
-                                                >
-                                                    انتقال
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-
                                     <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-700 mt-2">
                                         <span className="text-[10px] text-slate-400">
                                             {new Date(user.updatedAt).toLocaleDateString('fa-IR')}
@@ -127,8 +104,7 @@ const CrmKanbanBoard: React.FC<CrmKanbanBoardProps> = ({ users, onStatusChange, 
                                         
                                         {/* Mobile Move Dropdown (visible on hover or focus) */}
                                         <select
-                                            disabled={!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin}
-                                            className={`bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 text-[10px] rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-sky-500 transition-opacity ${!!user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin ? 'opacity-50 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}`}
+                                            className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 text-[10px] rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-sky-500 transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100"
                                             value={user.leadStatus || LeadStatus.NEW}
                                             onChange={(e) => onStatusChange(user.id, e.target.value as LeadStatus)}
                                             onClick={(e) => e.stopPropagation()}

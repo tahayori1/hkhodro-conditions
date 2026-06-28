@@ -24,7 +24,6 @@ interface LeadDetailHistoryModalProps {
     isLoading: boolean;
     error: string | null;
     onSendMessage: (message: string, type: 'SMS' | 'WHATSAPP') => Promise<void>;
-    onSendToCrm: (user: User) => Promise<void>;
     onRegisterOrder: (user: User) => void;
     cars: Car[];
     conditions: CarSaleCondition[];
@@ -41,7 +40,7 @@ const DetailItem: React.FC<{ label: string; value: React.ReactNode; }> = ({ labe
 
 const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({ 
     isOpen, onClose, lead, fullUserDetails, messages, isLoading, error, 
-    onSendMessage, onSendToCrm, onRegisterOrder, cars, conditions, loggedInUser,
+    onSendMessage, onRegisterOrder, cars, conditions, loggedInUser,
     onStatusChange
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -51,7 +50,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
     // Message State
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
-    const [isCrmSending, setIsCrmSending] = useState(false);
     const [quickSendCarModel, setQuickSendCarModel] = useState('');
     const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
@@ -156,17 +154,6 @@ const LeadDetailHistoryModal: React.FC<LeadDetailHistoryModalProps> = ({
         }
     };
     
-    const handleSendToCrm = async () => {
-        if (fullUserDetails && !isCrmSending) {
-            setIsCrmSending(true);
-            try {
-                await onSendToCrm(fullUserDetails);
-            } finally {
-                setIsCrmSending(false);
-            }
-        }
-    };
-
     const handleQuickSend = (text: string) => {
         setNewMessage(prev => prev ? `${prev}\n\n${text}`.trim() : text);
         setTimeout(() => textareaRef.current?.focus(), 0);
@@ -278,7 +265,7 @@ ${descriptionsText}`;
     
     const leadName = lead.FullName || fullUserDetails?.FullName;
     const leadNumber = lead.Number;
-    const isActionDisabled = !!fullUserDetails?.reservedByUserId && fullUserDetails.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin;
+    const isActionDisabled = false;
 
     return (
         <>
@@ -294,37 +281,16 @@ ${descriptionsText}`;
                                     <p className="text-sm text-slate-500" dir="ltr">
                                         {leadNumber} {leadName && `(${leadName})`}
                                     </p>
-                                    {fullUserDetails?.reservedByUserId && (
-                                        <div className="flex items-center gap-1 text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full border border-amber-100">
-                                            <SecurityIcon className="w-3 h-3" />
-                                            <span>رزرو شده توسط: <b>{fullUserDetails.reservedByUserName}</b></span>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button 
-                                    disabled={isActionDisabled}
                                     onClick={() => fullUserDetails && onRegisterOrder(fullUserDetails)} 
-                                    className={`p-2 rounded-lg transition-colors ${isActionDisabled ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'}`} 
+                                    className="p-2 rounded-lg transition-colors bg-emerald-100 text-emerald-600 hover:bg-emerald-200" 
                                     title="ثبت سفارش فروش"
                                 >
                                     <ClipboardListIcon className="w-5 h-5" />
                                 </button>
-                                {fullUserDetails && !fullUserDetails.crmIsSend ? (
-                                    <button 
-                                        disabled={isCrmSending || isActionDisabled} 
-                                        onClick={handleSendToCrm} 
-                                        className={`p-2 rounded-lg transition-colors ${isActionDisabled ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-wait'}`} 
-                                        title="ارسال به CRM"
-                                    >
-                                        {isCrmSending ? <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div> : <SendToCrmIcon />}
-                                    </button>
-                                ) : fullUserDetails && fullUserDetails.crmIsSend ? (
-                                    <div className="p-2 text-emerald-500" title={`ارسال شده توسط ${fullUserDetails.crmPerson}`}>
-                                        <CheckCircleIcon />
-                                    </div>
-                                ) : null}
                                 <button onClick={onClose} className="text-slate-500 hover:text-slate-800">
                                     <CloseIcon />
                                 </button>

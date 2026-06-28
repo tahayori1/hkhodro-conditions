@@ -9,7 +9,7 @@ import { CopyIcon } from '../components/icons/CopyIcon';
 import { EyeIcon } from '../components/icons/EyeIcon';
 import CarPriceCopySettingsModal from '../components/CarPriceCopySettingsModal';
 import AddCustomPriceModal from '../components/AddCustomPriceModal';
-import { Plus, Clock, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Plus, Clock, ChevronDown, ChevronUp, AlertTriangle, RefreshCw } from 'lucide-react';
 
 const timeAgo = (dateString: string): string => {
     try {
@@ -99,6 +99,16 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
     const [lastUpdated, setLastUpdated] = useState<string>('');
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
+    // Auto Refresh State
+    const [refreshInterval, setRefreshInterval] = useState<number>(0); // 0 means manual
+    const [secondsLeft, setSecondsLeft] = useState<number>(0);
+
+    const formatTimeLeft = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     // Copy Modal State
     const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
 
@@ -201,6 +211,28 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
     useEffect(() => {
         fetchAllData();
     }, [fetchAllData]);
+
+    // Effect for the auto refresh timer
+    useEffect(() => {
+        if (refreshInterval <= 0) {
+            setSecondsLeft(0);
+            return;
+        }
+
+        setSecondsLeft(refreshInterval * 60);
+
+        const intervalId = setInterval(() => {
+            setSecondsLeft(prev => {
+                if (prev <= 1) {
+                    fetchAllData();
+                    return refreshInterval * 60;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [refreshInterval, fetchAllData]);
 
     const tableData = useMemo((): TableRow[] => {
         const groupedByModel = prices.reduce((acc, price) => {
@@ -330,7 +362,38 @@ const CarPricesPage: React.FC<CarPricesPageProps> = () => {
                     <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200">آمار خلاصه قیمت‌ها</h2>
                     {lastUpdated && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">آخرین بروزرسانی: {timeAgo(lastUpdated)}</p>}
                  </div>
-                 <div className="flex items-center gap-2 w-full sm:w-auto">
+                 <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    {/* Auto Refresh Select */}
+                    <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+                        <span className="text-slate-500 dark:text-slate-400 font-bold">بروزرسانی خودکار:</span>
+                        <select
+                            value={refreshInterval}
+                            onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                            className="bg-transparent border-none text-slate-700 dark:text-slate-200 font-bold outline-none cursor-pointer"
+                        >
+                            <option value={0} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">دستی</option>
+                            <option value={5} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">۵ دقیقه</option>
+                            <option value={10} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">۱۰ دقیقه</option>
+                            <option value={15} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">۱۵ دقیقه</option>
+                            <option value={30} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">۳۰ دقیقه</option>
+                            <option value={60} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">۱ ساعت</option>
+                        </select>
+                        {refreshInterval > 0 && (
+                            <span className="text-slate-500 dark:text-slate-400 font-mono font-bold mr-1 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px]">
+                                {formatTimeLeft(secondsLeft)}
+                             </span>
+                        )}
+                    </div>
+
+                    <button 
+                        onClick={fetchAllData}
+                        disabled={loading}
+                        className="p-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+                        title="بروزرسانی دستی"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+
                     <button 
                         onClick={() => setIsAddModalOpen(true)}
                         className="flex items-center gap-2 px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"

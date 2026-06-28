@@ -17,7 +17,6 @@ import Pagination from '../components/Pagination';
 import LeadDetailHistoryModal from '../components/LeadHistoryModal';
 import BroadcastModal from '../components/BroadcastModal';
 import CarOrderModal from '../components/CarOrderModal';
-import TransferLeadModal from '../components/TransferLeadModal';
 import { BroadcastIcon } from '../components/icons/BroadcastIcon';
 import { CloseIcon } from '../components/icons/CloseIcon';
 import UserFilterPanel from '../components/UserFilterPanel';
@@ -70,9 +69,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
 
     const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
     const [selectedUserForOrder, setSelectedUserForOrder] = useState<User | null>(null);
-
-    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-    const [userToTransfer, setUserToTransfer] = useState<User | null>(null);
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
@@ -273,12 +269,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         const user = users.find(u => u.id === userId);
         if (!user) return;
 
-        // Check reservation
-        if (user.reservedByUserId && user.reservedByUserId !== loggedInUser?.id && !loggedInUser?.isAdmin) {
-            showToast('این مشتری توسط کاربر دیگری رزرو شده است.', 'error');
-            return;
-        }
-
         // Optimistic Update
         const originalUsers = [...users];
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, leadStatus: newStatus } : u));
@@ -290,50 +280,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
             // Revert on error
             setUsers(originalUsers);
             showToast('خطا در تغییر وضعیت سرنخ', 'error');
-        }
-    };
-
-    const handleReserve = async (user: User) => {
-        if (!loggedInUser) return;
-        
-        try {
-            const updatedUser: User = {
-                ...user,
-                reservedByUserId: loggedInUser.id,
-                reservedByUserName: loggedInUser.full_name || loggedInUser.username
-            };
-            
-            await updateUser(user.id, updatedUser);
-            showToast('مشتری با موفقیت برای شما رزرو شد', 'success');
-            fetchAllData();
-        } catch (err) {
-            showToast('خطا در رزرو مشتری', 'error');
-        }
-    };
-
-    const handleOpenTransferModal = (user: User) => {
-        setUserToTransfer(user);
-        setIsTransferModalOpen(true);
-    };
-
-    const handleTransfer = async (userId: number, newOwnerId: number, newOwnerName: string) => {
-        const user = users.find(u => u.id === userId);
-        if (!user) return;
-
-        try {
-            const updatedUser: User = {
-                ...user,
-                reservedByUserId: newOwnerId,
-                reservedByUserName: newOwnerName
-            };
-            
-            await updateUser(userId, updatedUser);
-            showToast(`مشتری با موفقیت به ${newOwnerName} منتقل شد`, 'success');
-            setIsTransferModalOpen(false);
-            setUserToTransfer(null);
-            fetchAllData();
-        } catch (err) {
-            showToast('خطا در انتقال مشتری', 'error');
         }
     };
 
@@ -384,39 +330,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
         }
     };
     
-    const handleSendToCrm = async (user: User) => {
-        if (!loggedInUser) {
-            showToast('اطلاعات کاربری برای ثبت ارسال کننده یافت نشد.', 'error');
-            return;
-        }
-
-        try {
-            const crmDate = moment().format('YYYY-MM-DD HH:mm:ss');
-
-            const updatedUserForApi: User = {
-                ...user,
-                crmIsSend: 1,
-                crmPerson: loggedInUser.full_name || loggedInUser.username || 'ناشناس',
-                crmDate: crmDate
-            };
-            
-            await updateUser(user.id, updatedUserForApi);
-
-            showToast('کاربر با موفقیت به CRM ارسال شد', 'success');
-            fetchAllData();
-            if (isDetailModalOpen && selectedLead) {
-                const updatedDetails = await getUserByNumber(selectedLead.Number);
-                if (updatedDetails) {
-                    setModalFullUser(updatedDetails);
-                }
-            }
-
-        } catch (err) {
-            showToast('خطا در ارسال به CRM', 'error');
-            throw err;
-        }
-    };
-
     const handleOpenOrderModal = (user: User) => {
         setSelectedUserForOrder(user);
         setIsOrderModalOpen(true);
@@ -670,10 +583,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                                     selectedUserIds={selectedUserIds}
                                     onSelectionChange={handleSelectionChange}
                                     onSelectAllChange={handleSelectAllChange}
-                                    onSendToCrm={handleSendToCrm}
                                     onRegisterOrder={handleOpenOrderModal}
-                                    onReserve={handleReserve}
-                                    onTransfer={handleOpenTransferModal}
                                     loggedInUser={loggedInUser}
                                 />
                                 {totalPages > 1 && (
@@ -688,10 +598,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                             </>
                         ) : viewMode === 'BOARD' ? (
                             <CrmKanbanBoard 
-                                users={sortedUsers.filter(u => !!u.reservedByUserId)}
+                                users={sortedUsers}
                                 onStatusChange={handleStatusChange}
                                 onViewDetails={handleViewDetails}
-                                onTransfer={handleOpenTransferModal}
                                 loggedInUser={loggedInUser}
                             />
                         ) : (
@@ -735,7 +644,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                     isLoading={modalLoading}
                     error={modalError}
                     onSendMessage={handleSendMessage}
-                    onSendToCrm={handleSendToCrm}
                     onRegisterOrder={handleOpenOrderModal}
                     cars={cars}
                     conditions={conditions}
@@ -781,19 +689,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ initialFilters, onFiltersCleared,
                 />
             )}
 
-            {isTransferModalOpen && (
-                <TransferLeadModal
-                    isOpen={isTransferModalOpen}
-                    onClose={() => {
-                        setIsTransferModalOpen(false);
-                        setUserToTransfer(null);
-                    }}
-                    onTransfer={handleTransfer}
-                    user={userToTransfer}
-                    staffUsers={staffUsers}
-                />
-            )}
-            
             {isDeleteModalOpen && (
                 <DeleteConfirmModal
                     isOpen={isDeleteModalOpen}
