@@ -193,12 +193,6 @@ const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave
                 : 'مبلغ پیش‌پرداخت باید بزرگتر از صفر باشد.';
         }
         if (formState.colors.length === 0) newErrors.colors = 'حداقل یک رنگ باید انتخاب شود.';
-        
-        // Owner validation for Market/Used
-        const isOwnerRequired = formState.sale_type === SaleType.NEW_MARKET || formState.sale_type === SaleType.USED;
-        if (isOwnerRequired && !formState.owner_name) {
-            newErrors.owner_name = 'انتخاب یا ثبت مالک خودرو برای این نوع فروش الزامی است.';
-        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -540,9 +534,9 @@ const ConditionModal: React.FC<ConditionModalProps> = ({ isOpen, onClose, onSave
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="bg-amber-50 dark:bg-amber-950/10 p-2.5 rounded-lg border border-amber-150 dark:border-amber-900/40 flex items-center gap-2 text-xs text-amber-800 dark:text-amber-400">
-                                        <AlertCircle className="w-4 h-4 text-amber-500" />
-                                        <span>هیچ مالکی برای این خودرو مشخص نشده است. انتخاب مالک الزامی است.</span>
+                                    <div className="bg-slate-50 dark:bg-slate-900/10 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/40 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                        <Info className="w-4 h-4 text-slate-400" />
+                                        <span>هیچ مالکی برای این خودرو مشخص نشده است (انتخاب مالک اختیاری است).</span>
                                     </div>
                                 )}
                                 {errors.owner_name && <p className="text-red-500 text-xs font-bold">{errors.owner_name}</p>}
